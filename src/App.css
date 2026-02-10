@@ -402,7 +402,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 80%;
+  height: 100%;
   background: radial-gradient(ellipse at 50% 100%, rgba(124, 58, 237, 0.5) 0%, rgba(124, 58, 237, 0.25) 30%, transparent 70%);
   z-index: 0;
   pointer-events: none;
@@ -418,7 +418,7 @@ body {
 }
 
 .waitlist-page .section-container {
-  width: 100%;
+  width: 150%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
