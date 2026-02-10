@@ -411,8 +411,8 @@ body {
 /* Waitlist Page Specific */
 .waitlist-page {
   min-height: 100vh;
-  padding: 0 2rem;
-  display: block;
+  width: 100%;
+  padding: 0;
   background: #000000;
 }
 
