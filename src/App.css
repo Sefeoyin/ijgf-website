@@ -411,7 +411,7 @@ body {
 /* Waitlist Page Specific */
 .waitlist-page {
   min-height: 100vh;
-  padding: 140px 2rem 100px;
+  padding: 0 2rem;
   display: block;
   background: #000000;
 }
@@ -427,11 +427,17 @@ body {
   text-align: center;
 }
 
-/* Override waitlist-container for waitlist page - make it wider */
+/* Waitlist form area - fills first viewport */
 .waitlist-page .waitlist-container {
+  min-height: 100vh;
   max-width: 800px;
   width: 100%;
-  margin-bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 0 60px;
+  margin-bottom: 0;
 }
 
 /* Share Story Page */
@@ -745,8 +751,9 @@ body {
 /* Story Section */
 .story-section {
   max-width: 800px;
+  width: 100%;
   margin: 0 auto;
-  padding-bottom: 4rem;
+  padding: 60px 0 100px;
   text-align: center;
   position: relative;
   z-index: 1;
@@ -1072,15 +1079,16 @@ body {
 
   /* Waitlist Page Mobile */
   .waitlist-page {
-    padding: 100px 1.5rem 80px;
+    padding: 0 1.5rem;
+  }
+
+  .waitlist-page .waitlist-container {
+    min-height: 100vh;
+    padding: 100px 0 40px;
   }
 
   .waitlist-page .section-container {
     padding: 0;
-  }
-
-  .waitlist-page .waitlist-container {
-    max-width: 100%;
   }
 
   .waitlist-icon {
@@ -1095,6 +1103,10 @@ body {
 
   .waitlist-subtitle {
     font-size: 0.95rem;
+  }
+  
+  .story-section {
+    padding: 40px 0 80px;
   }
 
   /* Share Story Page Mobile */
