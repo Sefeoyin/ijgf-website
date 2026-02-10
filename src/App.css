@@ -402,29 +402,30 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100%;
+  height: 80%;
   background: radial-gradient(ellipse at 50% 100%, rgba(124, 58, 237, 0.5) 0%, rgba(124, 58, 237, 0.25) 30%, transparent 70%);
   z-index: 0;
   pointer-events: none;
 }
 
-/* FIXED: Waitlist Page Specific - improved centering */
+/* FIXED: Waitlist Page Specific - properly centered */
 .waitlist-page {
   min-height: 100vh;
-  padding: 140px 2rem 100px 2rem;
+  padding: 140px 0 100px 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .waitlist-page .section-container {
-  width: 150%;
-  max-width: 1800px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
   padding: 0 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
 }
 
 /* Share Story Page */
@@ -585,11 +586,12 @@ body {
 
 .waitlist-container {
   max-width: 600px;
+  width: 100%;
   margin: 0 auto 4rem;
   text-align: center;
   position: relative;
   z-index: 1;
-  width: 100%;
+  padding: 0;
 }
 
 .waitlist-icon {
@@ -1059,11 +1061,11 @@ body {
 
   /* Waitlist Page Mobile */
   .waitlist-page {
-    padding: 100px 1.5rem 80px;
+    padding: 100px 0 80px 0;
   }
 
   .waitlist-page .section-container {
-    padding: 0;
+    padding: 0 1.5rem;
   }
 
   .waitlist-icon {
