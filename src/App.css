@@ -22,7 +22,7 @@ body {
   top: 0;
   width: 100%;
   background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(01px);
+  backdrop-filter: blur(10px);
   z-index: 1000;
   padding: 1rem 0;
   border-bottom: 1px solid rgba(124, 58, 237, 0.1);
@@ -411,8 +411,8 @@ body {
 /* Waitlist Page Specific */
 .waitlist-page {
   min-height: 100vh;
-  width: 100%;
-  padding: 0;
+  padding: 0 2rem;
+  display: block;
   background: #000000;
 }
 
@@ -978,6 +978,16 @@ body {
   transform: translateY(-2px);
 }
 
+/* Footer socials column - icons grid for mobile */
+.footer-social-icons {
+  display: none; /* Hidden on desktop, shown on mobile */
+}
+
+/* Desktop: hide the footer-socials-column icons, show links */
+.footer-socials-column .footer-social-link {
+  display: block;
+}
+
 .footer-bottom {
   max-width: 1200px;
   margin: 0 auto;
@@ -1036,50 +1046,242 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* ===== HERO SECTION MOBILE ===== */
   .hero {
-    padding: 120px 1.5rem 60px;
-    min-height: 70vh;
+    padding: 100px 1.25rem 50px;
+    min-height: auto;
   }
   
   .hero-bg-img {
     object-fit: cover;
+    object-position: center top;
+    opacity: 0.4;
+    transform: scale(1.1);
   }
   
-  /* FIXED: Mobile buttons - centered text */
+  .hero-title {
+    font-size: 2rem;
+    text-align: left;
+  }
+  
+  .hero-subtitle {
+    text-align: left;
+    font-size: 0.9rem;
+  }
+  
+  .hero-content {
+    text-align: left;
+  }
+  
   .hero-buttons {
     flex-direction: column;
     width: 100%;
-    align-items: center;
+    gap: 0.75rem;
   }
   
   .btn-primary, .btn-secondary {
     width: 100%;
     text-align: center;
     justify-content: center;
+    padding: 0.85rem 1.5rem;
   }
   
+  /* Hero features - 2x2 grid like Figma */
   .hero-features {
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: center;
-  }
-  
-  .waitlist-form {
-    flex-direction: column;
-  }
-  
-  .submit-btn {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    justify-items: start;
     width: 100%;
   }
   
-  .footer-links {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+  .feature-item {
+    font-size: 0.8rem;
   }
 
-  /* Waitlist Page Mobile */
+  /* ===== KEY BENEFITS MOBILE ===== */
+  .benefits-section {
+    padding: 60px 1rem;
+  }
+  
+  .benefits-section .section-container {
+    padding: 0;
+  }
+  
+  .section-title {
+    font-size: 1.75rem;
+  }
+  
+  .section-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+  
+  .benefits-grid {
+    gap: 1rem;
+  }
+  
+  .benefit-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+  
+  .benefit-card h3 {
+    font-size: 1.15rem;
+  }
+  
+  .benefit-card p {
+    font-size: 0.85rem;
+  }
+  
+  .benefit-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 1rem;
+  }
+  
+  .benefit-illustration {
+    width: 100px;
+    height: 100px;
+    bottom: 10px;
+    right: 10px;
+  }
+
+  /* ===== HOW IT WORKS MOBILE ===== */
+  .how-it-works-section {
+    padding: 60px 1rem;
+  }
+  
+  .steps-grid {
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .step-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+  
+  .step-card h3 {
+    font-size: 1.15rem;
+  }
+  
+  .step-card p {
+    font-size: 0.85rem;
+  }
+  
+  .step-number {
+    font-size: 5rem;
+    right: 0.5rem;
+    top: -0.5rem;
+  }
+  
+  .learn-more-btn {
+    font-size: 0.9rem;
+  }
+
+  /* ===== FAQ SECTION MOBILE ===== */
+  .faq-section {
+    padding: 60px 1rem;
+  }
+  
+  .faq-list {
+    margin-bottom: 2rem;
+  }
+  
+  .faq-question {
+    font-size: 0.9rem;
+    padding: 1rem 1.25rem;
+  }
+  
+  .faq-answer {
+    font-size: 0.85rem;
+    padding: 0 1.25rem 1rem;
+  }
+
+  /* ===== FOOTER MOBILE - 2 Column Layout ===== */
+  .footer {
+    padding: 2.5rem 0 1.5rem;
+  }
+  
+  .footer-container {
+    flex-direction: column;
+    gap: 2rem;
+    padding: 0 1.25rem;
+    margin-bottom: 2rem;
+  }
+  
+  .footer-brand {
+    flex: 1;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .footer-brand p {
+    font-size: 0.85rem;
+  }
+  
+  /* Hide brand social icons on mobile - they appear in Socials column */
+  .footer-brand .social-icons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  /* Footer links - 2x2 grid layout like Figma */
+  .footer-links {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem 1.5rem;
+  }
+  
+  .footer-column h4 {
+    font-size: 0.65rem;
+    margin-bottom: 1rem;
+  }
+  
+  .footer-column a {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Footer socials column - show icons in 2x2 grid */
+  .footer-social-icons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .footer-social-icons .social-icon {
+    width: 38px;
+    height: 38px;
+  }
+  
+  /* Hide text links in socials column on mobile */
+  .footer-socials-column .footer-social-link {
+    display: none;
+  }
+  
+  /* Social icons base on mobile */
+  .social-icons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+  
+  .social-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .footer-bottom {
+    font-size: 0.75rem;
+    padding: 1.5rem 1.25rem 0;
+  }
+
+  /* ===== WAITLIST PAGE MOBILE ===== */
   .waitlist-page {
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
   }
 
   .waitlist-page .waitlist-container {
@@ -1092,55 +1294,133 @@ body {
   }
 
   .waitlist-icon {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
   }
 
   .waitlist-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .waitlist-subtitle {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+  
+  /* Waitlist form - pill shape with arrow button inside */
+  .waitlist-form {
+    flex-direction: row;
+    padding: 0.35rem;
+    border-radius: 50px;
+  }
+  
+  .email-input {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .submit-btn {
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+  }
+  
+  .submit-btn::after {
+    content: '→';
+    font-size: 1.25rem;
+  }
+  
+  .waitlist-count {
+    font-size: 0.8rem;
+    margin-top: 1rem;
+  }
+  
+  .avatar {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .optional-btn {
+    margin: 3rem auto;
+    font-size: 0.85rem;
+    padding: 0.75rem 1.5rem;
   }
   
   .story-section {
-    padding: 40px 0 80px;
+    padding: 40px 0 60px;
   }
 
-  /* Share Story Page Mobile */
+  .story-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .story-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .traders-collage {
+    max-width: 100%;
+  }
+  
+  .share-story-btn {
+    font-size: 0.9rem;
+  }
+
+  /* ===== SHARE STORY PAGE MOBILE ===== */
   .share-story-page {
-    padding: 100px 1.5rem 60px;
+    padding: 100px 1.25rem 60px;
   }
 
   .share-story-icon {
     width: 48px;
     height: 48px;
-    padding: 8px;
-    margin-bottom: 2rem;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
   }
 
   .share-story-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .share-story-description {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
   }
 
   .story-textarea {
-    min-height: 160px;
+    min-height: 140px;
     font-size: 0.9rem;
+    border-radius: 10px;
+    padding: 1rem;
   }
 
   .share-submit-btn {
+    width: auto;
+    min-width: 140px;
+  }
+  
+  .divider-line {
     width: 100%;
+    height: 1px;
+    min-height: auto;
+    margin: 0.5rem 0;
   }
 
   .why-share-title {
     font-size: 1.5rem;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
   }
 
   .why-share-intro {
@@ -1151,41 +1431,8 @@ body {
     font-size: 0.9rem;
     margin-bottom: 1rem;
   }
-
-  /* Benefits Section Mobile */
-  .benefit-card {
-    padding: 2rem;
-  }
-
-  .benefit-icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  .benefit-illustration {
-    width: 140px;
-    height: 140px;
-  }
-
-  /* Step Cards Mobile */
-  .step-card {
-    padding: 2rem;
-  }
-
-  .step-number {
-    font-size: 6rem;
-  }
-
-  /* Story Section Mobile */
-  .story-title {
-    font-size: 1.5rem;
-  }
-
-  .story-subtitle {
-    font-size: 0.9rem;
-  }
-
-  .traders-collage {
-    max-width: 100%;
+  
+  .why-share-footer {
+    font-size: 0.85rem;
   }
 }
