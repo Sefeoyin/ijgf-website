@@ -121,16 +121,6 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.dot-separator {
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 0.15em;
-}
-
-.hero-title-line1,
-.hero-title-line2 {
-  display: inline;
-}
-
 .highlight {
   background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
   -webkit-background-clip: text;
@@ -140,7 +130,7 @@ body {
 
 .hero-subtitle {
   font-size: clamp(0.95rem, 2vw, 1.15rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   margin-bottom: 2.5rem;
   line-height: 1.6;
   max-width: 650px;
@@ -148,14 +138,17 @@ body {
   margin-right: auto;
 }
 
-.hero-subtitle.blurred-text {
-  filter: blur(4px);
-  user-select: none;
-  transition: filter 0.3s ease;
+.hero-subheadline {
+  font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 
-.hero-subtitle.blurred-text:hover {
+.blurred-text {
   filter: blur(2px);
+  opacity: 0.7;
+  user-select: none;
 }
 
 .hero-buttons {
@@ -176,8 +169,6 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  text-align: center;
-  justify-content: center;
 }
 
 .btn-primary:hover {
@@ -198,7 +189,6 @@ body {
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -223,8 +213,7 @@ body {
 }
 
 .feature-item svg {
-  color: rgba(255, 255, 255, 0.6);
-  flex-shrink: 0;
+  color: #8b5cf6;
 }
 
 /* Section Styles */
@@ -245,7 +234,7 @@ body {
 
 .section-subtitle {
   text-align: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 1.05rem;
   margin-bottom: 4rem;
   max-width: 700px;
@@ -275,11 +264,9 @@ body {
   pointer-events: none;
 }
 
-/* FIXED: Benefits Grid - proper 2x2 layout matching Figma design */
 .benefits-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: auto auto;
   gap: 1.5rem;
   position: relative;
   z-index: 1;
@@ -297,13 +284,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* FIXED: Purple card is now just the top-right card, no longer spanning 2 rows */
 .purple-card {
   background: linear-gradient(135deg, rgba(124, 58, 237, 0.35) 0%, rgba(168, 85, 247, 0.18) 100%);
   border: 1px solid rgba(139, 92, 246, 0.3);
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
+  grid-column: 2;
+  grid-row: 1 / 3;
 }
 
 .benefit-icon {
@@ -320,7 +305,7 @@ body {
 }
 
 .benefit-card p {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   line-height: 1.6;
   font-size: 0.95rem;
 }
@@ -397,7 +382,7 @@ body {
 }
 
 .step-card p {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   line-height: 1.6;
   position: relative;
   z-index: 1;
@@ -432,9 +417,10 @@ body {
 /* Waitlist Page Specific */
 .waitlist-page {
   min-height: 100vh;
-  padding: 0 2rem;
-  display: block;
-  background: #000000;
+  padding: 140px 0 100px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .waitlist-page .section-container {
@@ -445,20 +431,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-}
-
-/* Waitlist form area - fills first viewport */
-.waitlist-page .waitlist-container {
-  min-height: 100vh;
-  max-width: 800px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120px 0 60px;
-  margin-bottom: 0;
 }
 
 /* Share Story Page */
@@ -521,7 +493,7 @@ body {
 }
 
 .share-story-description {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 1rem;
   margin-bottom: 2rem;
   line-height: 1.6;
@@ -576,7 +548,7 @@ body {
 }
 
 .why-share-intro {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 0.95rem;
   margin-bottom: 1.5rem;
   line-height: 1.6;
@@ -598,7 +570,7 @@ body {
 }
 
 .why-share-list li::before {
-  content: '•';
+  content: 'â€¢';
   color: #7C3AED;
   font-size: 1.5rem;
   position: absolute;
@@ -612,56 +584,50 @@ body {
 }
 
 .why-share-footer {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 0.95rem;
   line-height: 1.6;
 }
 
 .waitlist-container {
-  max-width: 800px;
-  width: 100%;
-  margin: 0 auto;
+  max-width: 600px;
+  margin: 0 auto 4rem;
   text-align: center;
   position: relative;
   z-index: 1;
-  padding: 0 2rem;
 }
 
 .waitlist-icon {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   background: rgba(30, 30, 40, 0.6);
   border: 2px solid rgba(139, 92, 246, 0.3);
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 2.5rem;
-  padding: 14px;
+  margin: 0 auto 2rem;
+  padding: 12px;
 }
 
 .waitlist-title {
-  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
   margin-bottom: 1rem;
   line-height: 1.3;
 }
 
 .waitlist-subtitle {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 1.05rem;
   margin-bottom: 2.5rem;
   line-height: 1.6;
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .waitlist-form {
   display: flex;
   gap: 0.5rem;
-  max-width: 700px;
-  width: 100%;
+  max-width: 550px;
   margin: 0 auto 1.5rem;
   background: rgba(255, 255, 255, 0.04);
   padding: 0.5rem;
@@ -705,15 +671,6 @@ body {
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.3);
   color: #22c55e;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.error-message {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ef4444;
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -772,9 +729,7 @@ body {
 /* Story Section */
 .story-section {
   max-width: 800px;
-  width: 100%;
   margin: 0 auto;
-  padding: 60px 0 100px;
   text-align: center;
   position: relative;
   z-index: 1;
@@ -788,7 +743,7 @@ body {
 }
 
 .story-subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 1rem;
   margin-bottom: 3rem;
   line-height: 1.6;
@@ -876,7 +831,7 @@ body {
 
 .faq-answer {
   padding: 0 1.5rem 1.3rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   line-height: 1.6;
   font-size: 0.9rem;
   animation: slideDown 0.3s ease-out;
@@ -914,7 +869,6 @@ body {
   flex: 0 0 280px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 1.25rem;
 }
 
@@ -948,7 +902,7 @@ body {
 
 .footer-column a {
   display: block;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
   margin-bottom: 0.85rem;
   font-size: 0.9rem;
@@ -961,7 +915,7 @@ body {
 
 .footer-social-link {
   display: block;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
   margin-bottom: 0.85rem;
   font-size: 0.9rem;
@@ -989,7 +943,7 @@ body {
   justify-content: center;
   transition: all 0.2s;
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
 }
 
@@ -998,16 +952,6 @@ body {
   border-color: rgba(139, 92, 246, 0.25);
   color: #a855f7;
   transform: translateY(-2px);
-}
-
-/* Footer socials column - icons grid for mobile */
-.footer-social-icons {
-  display: none; /* Hidden on desktop, shown on mobile */
-}
-
-/* Desktop: hide the footer-socials-column icons, show links */
-.footer-socials-column .footer-social-link {
-  display: block;
 }
 
 .footer-bottom {
@@ -1027,7 +971,8 @@ body {
   }
   
   .purple-card {
-    min-height: auto;
+    grid-column: 1;
+    grid-row: auto;
   }
   
   .steps-grid {
@@ -1068,399 +1013,94 @@ body {
 }
 
 @media (max-width: 768px) {
-  /* ===== HERO SECTION MOBILE ===== */
   .hero {
-    padding: 140px 1.25rem 50px;
-    min-height: auto;
+    padding: 120px 1.5rem 60px;
+    min-height: 70vh;
   }
   
   .hero-bg-img {
     object-fit: cover;
-    object-position: center top;
-    opacity: 0.4;
-    transform: scale(1.1);
-  }
-  
-  .hero-title {
-    font-size: 2rem;
-    text-align: left;
-  }
-  
-  .hero-subtitle {
-    text-align: left;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.75);
-  }
-  
-  .hero-content {
-    text-align: left;
   }
   
   .hero-buttons {
     flex-direction: column;
     width: 100%;
-    gap: 0.75rem;
   }
   
   .btn-primary, .btn-secondary {
     width: 100%;
-    text-align: center;
-    justify-content: center;
-    padding: 0.85rem 1.5rem;
   }
   
-  /* Hero features - 2x2 grid like Figma */
   .hero-features {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem 1rem;
-    justify-items: start;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  
+  .waitlist-form {
+    flex-direction: column;
+  }
+  
+  .submit-btn {
     width: 100%;
   }
   
-  .feature-item {
-    font-size: 0.8rem;
-  }
-
-  /* ===== KEY BENEFITS MOBILE ===== */
-  .benefits-section {
-    padding: 60px 1rem;
-  }
-  
-  .benefits-section .section-container {
-    padding: 0;
-  }
-  
-  .section-title {
-    font-size: 1.75rem;
-  }
-  
-  .section-subtitle {
-    font-size: 0.9rem;
-    margin-bottom: 2rem;
-  }
-  
-  .benefits-grid {
-    gap: 1rem;
-  }
-  
-  .benefit-card {
-    padding: 1.5rem;
-    border-radius: 12px;
-  }
-  
-  .benefit-card h3 {
-    font-size: 1.15rem;
-  }
-  
-  .benefit-card p {
-    font-size: 0.85rem;
-  }
-  
-  .benefit-icon {
-    width: 44px;
-    height: 44px;
-    margin-bottom: 1rem;
-  }
-  
-  .benefit-illustration {
-    width: 100px;
-    height: 100px;
-    bottom: 10px;
-    right: 10px;
-  }
-
-  /* ===== HOW IT WORKS MOBILE ===== */
-  .how-it-works-section {
-    padding: 60px 1rem;
-  }
-  
-  .steps-grid {
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-  
-  .step-card {
-    padding: 1.5rem;
-    border-radius: 12px;
-  }
-  
-  .step-card h3 {
-    font-size: 1.15rem;
-  }
-  
-  .step-card p {
-    font-size: 0.85rem;
-  }
-  
-  .step-number {
-    font-size: 5rem;
-    right: 0.5rem;
-    top: -0.5rem;
-  }
-  
-  .learn-more-btn {
-    font-size: 0.9rem;
-  }
-
-  /* ===== FAQ SECTION MOBILE ===== */
-  .faq-section {
-    padding: 60px 1rem;
-  }
-  
-  .faq-list {
-    margin-bottom: 2rem;
-  }
-  
-  .faq-question {
-    font-size: 0.9rem;
-    padding: 1rem 1.25rem;
-  }
-  
-  .faq-answer {
-    font-size: 0.85rem;
-    padding: 0 1.25rem 1rem;
-  }
-
-  /* ===== FOOTER MOBILE - 2 Column Layout ===== */
-  .footer {
-    padding: 2.5rem 0 1.5rem;
-  }
-  
-  .footer-container {
-    flex-direction: column;
-    gap: 2rem;
-    padding: 0 1.25rem;
-    margin-bottom: 2rem;
-  }
-  
-  .footer-brand {
-    flex: 1;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .footer-brand p {
-    font-size: 0.85rem;
-  }
-  
-  /* Hide brand social icons on mobile - they appear in Socials column */
-  .footer-brand .social-icons {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-  
-  /* Footer links - 2x2 grid layout like Figma */
   .footer-links {
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem 1.5rem;
-  }
-  
-  .footer-column h4 {
-    font-size: 0.65rem;
-    margin-bottom: 1rem;
-  }
-  
-  .footer-column a {
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  /* Footer socials column - show icons in 2x2 grid */
-  .footer-social-icons {
-    display: grid;
-    grid-template-columns: repeat(2, auto);
-    gap: 0.5rem;
-    justify-content: start;
-  }
-  
-  .footer-social-icons .social-icon {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .footer-social-icons .social-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-  
-  /* Hide text links in socials column on mobile */
-  .footer-socials-column .footer-social-link {
-    display: none;
-  }
-  
-  /* Social icons base on mobile */
-  .social-icons {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-  }
-  
-  .social-icon {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .social-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .footer-bottom {
-    font-size: 0.75rem;
-    padding: 1.5rem 1.25rem 0;
+    grid-template-columns: 1fr;
+    gap: 2rem;
   }
 
-  /* ===== WAITLIST PAGE MOBILE ===== */
+  /* Waitlist Page Mobile */
   .waitlist-page {
-    padding: 0 1.25rem;
-  }
-
-  .waitlist-page .waitlist-container {
-    min-height: 100vh;
-    padding: 100px 0 40px;
-  }
-
-  .waitlist-page .section-container {
-    padding: 0;
+    padding-top: 100px;
   }
 
   .waitlist-icon {
     width: 48px;
     height: 48px;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
+    padding: 8px;
   }
 
   .waitlist-title {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .waitlist-subtitle {
-    font-size: 0.9rem;
-    margin-bottom: 2rem;
-  }
-  
-  /* Waitlist form - pill shape with arrow button inside */
-  .waitlist-form {
-    flex-direction: row;
-    padding: 0.35rem;
-    border-radius: 50px;
-  }
-  
-  .email-input {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9rem;
-  }
-  
-  .submit-btn {
-    width: auto;
-    min-width: 44px;
-    height: 44px;
-    padding: 0;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0;
-  }
-  
-  .submit-btn::after {
-    content: '→';
-    font-size: 1.25rem;
-  }
-  
-  .waitlist-count {
-    font-size: 0.8rem;
-    margin-top: 1rem;
-  }
-  
-  .avatar {
-    width: 26px;
-    height: 26px;
-  }
-  
-  .optional-btn {
-    margin: 3rem auto;
-    font-size: 0.85rem;
-    padding: 0.75rem 1.5rem;
-  }
-  
-  .story-section {
-    padding: 40px 0 60px;
+    font-size: 0.95rem;
   }
 
-  .story-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .story-subtitle {
-    font-size: 0.85rem;
-    margin-bottom: 2rem;
-  }
-
-  .traders-collage {
-    max-width: 100%;
-  }
-  
-  .share-story-btn {
-    font-size: 0.9rem;
-  }
-
-  /* ===== SHARE STORY PAGE MOBILE ===== */
+  /* Share Story Page Mobile */
   .share-story-page {
-    padding: 100px 1.25rem 60px;
+    padding: 100px 1.5rem 60px;
   }
 
   .share-story-icon {
     width: 48px;
     height: 48px;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
+    padding: 8px;
+    margin-bottom: 2rem;
   }
 
   .share-story-title {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .share-story-description {
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
   }
 
   .story-textarea {
-    min-height: 140px;
+    min-height: 160px;
     font-size: 0.9rem;
-    border-radius: 10px;
-    padding: 1rem;
   }
 
   .share-submit-btn {
-    width: auto;
-    min-width: 140px;
-  }
-  
-  .divider-line {
     width: 100%;
-    height: 1px;
-    min-height: auto;
-    margin: 0.5rem 0;
   }
 
   .why-share-title {
     font-size: 1.5rem;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
   }
 
   .why-share-intro {
@@ -1471,8 +1111,41 @@ body {
     font-size: 0.9rem;
     margin-bottom: 1rem;
   }
-  
-  .why-share-footer {
-    font-size: 0.85rem;
+
+  /* Benefits Section Mobile */
+  .benefit-card {
+    padding: 2rem;
+  }
+
+  .benefit-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .benefit-illustration {
+    width: 140px;
+    height: 140px;
+  }
+
+  /* Step Cards Mobile */
+  .step-card {
+    padding: 2rem;
+  }
+
+  .step-number {
+    font-size: 6rem;
+  }
+
+  /* Story Section Mobile */
+  .story-title {
+    font-size: 1.5rem;
+  }
+
+  .story-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .traders-collage {
+    max-width: 100%;
   }
 }
