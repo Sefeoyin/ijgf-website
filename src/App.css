@@ -220,6 +220,8 @@ body {
   gap: 0.5rem;
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
 }
 
 .feature-item svg {
@@ -258,9 +260,10 @@ body {
 /* Benefits Section */
 .benefits-section {
   padding: 100px 2rem;
-  background: #000000;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0.9) 100%);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  margin-top: -120px; /* Pull section up to overlap with hero */
 }
 
 .benefits-section::before {
@@ -1624,24 +1627,18 @@ body[data-theme="day"] .join-btn-nav:hover {
 }
 
 body[data-theme="day"] .hero {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  position: relative;
+  /* Keep hero the same as night mode */
+  background: #0a0a0f;
 }
 
+/* Remove day mode hero overlay to keep it consistent */
 body[data-theme="day"] .hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
-  z-index: 1;
+  background: radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.4) 0%, rgba(124, 58, 237, 0.2) 25%, transparent 60%);
 }
 
 body[data-theme="day"] .hero-bg {
-  opacity: 0.2;
-  mix-blend-mode: overlay;
+  opacity: 0.35;
+  mix-blend-mode: normal;
 }
 
 body[data-theme="day"] .hero-content {
@@ -1651,16 +1648,18 @@ body[data-theme="day"] .hero-content {
 
 body[data-theme="day"] .hero-title {
   color: #ffffff !important;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 body[data-theme="day"] .hero-subtitle {
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
 body[data-theme="day"] .highlight {
-  color: #FFD700 !important;
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 body[data-theme="day"] .btn-primary {
@@ -1678,64 +1677,76 @@ body[data-theme="day"] .btn-primary:hover {
 }
 
 body[data-theme="day"] .btn-secondary {
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   color: #ffffff;
   font-weight: 600;
+  backdrop-filter: blur(10px);
 }
 
 body[data-theme="day"] .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 body[data-theme="day"] .feature-item {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+body[data-theme="day"] .feature-item svg {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 body[data-theme="day"] .benefits-section {
-  background: #ffffff;
-  color: #1a1a2e;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 40%, rgba(0, 0, 0, 0.8) 100%);
+  color: #ffffff;
 }
 
 body[data-theme="day"] .section-title {
-  color: #1a1a2e;
+  color: #ffffff;
   font-weight: 700;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 body[data-theme="day"] .section-subtitle {
-  color: #4a5568;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 body[data-theme="day"] .benefit-card.dark-card {
-  background: #f8f9fa;
-  border: 1px solid #e2e8f0;
-  color: #1a1a2e;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 body[data-theme="day"] .benefit-card.dark-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 body[data-theme="day"] .benefit-card.dark-card h3 {
-  color: #1a1a2e;
+  color: #ffffff;
 }
 
 body[data-theme="day"] .benefit-card.dark-card p {
-  color: #4a5568;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 body[data-theme="day"] .benefit-card.purple-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.45) 0%, rgba(168, 85, 247, 0.28) 100%);
   color: #ffffff;
-  border: none;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
 }
 
 body[data-theme="day"] .benefit-card.purple-card h3,
@@ -1846,6 +1857,10 @@ body[data-theme="day"] .footer {
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
   color: #1a1a2e;
+}
+
+body[data-theme="day"] .footer-logo {
+  filter: brightness(0.2) contrast(1.5);
 }
 
 body[data-theme="day"] .footer-brand p {
