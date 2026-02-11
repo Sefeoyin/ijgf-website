@@ -32,6 +32,13 @@ function LandingPage() {
     }
   ]
 
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
     <>
       {/* Hero Section */}
@@ -54,7 +61,7 @@ function LandingPage() {
             <button className="btn-primary" onClick={() => navigate('/waitlist')}>
               Join Waitlist
             </button>
-            <button className="btn-secondary">
+            <button className="btn-secondary" onClick={() => scrollToSection('how-it-works')}>
               Learn How it Works
             </button>
           </div>
@@ -123,7 +130,7 @@ function LandingPage() {
       </section>
 
       {/* How it Works Section */}
-      <section className="how-it-works-section">
+      <section className="how-it-works-section" id="how-it-works">
         <div className="section-container">
           <h2 className="section-title">How it Works</h2>
           <p className="section-subtitle">Three simple steps to get funded</p>
