@@ -121,6 +121,11 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.dot-separator {
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0.15em;
+}
+
 .hero-title-line1,
 .hero-title-line2 {
   display: inline;
@@ -909,6 +914,7 @@ body {
   flex: 0 0 280px;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 1.25rem;
 }
 
@@ -1078,11 +1084,6 @@ body {
   .hero-title {
     font-size: 2rem;
     text-align: left;
-  }
-  
-  .hero-title-line1,
-  .hero-title-line2 {
-    display: block;
   }
   
   .hero-subtitle {
