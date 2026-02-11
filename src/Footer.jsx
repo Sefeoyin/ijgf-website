@@ -86,7 +86,7 @@ function Footer() {
       </div>
       
       <div className="footer-bottom">
-        © 2025 IJGF. All rights reserved.
+        © 2026 IJGF. All rights reserved.
       </div>
     </footer>
   )
