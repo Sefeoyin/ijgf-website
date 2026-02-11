@@ -1,12 +1,15 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState, createContext } from 'react'
 import Navigation from './Navigation'
 import Footer from './Footer'
 import LandingPage from './LandingPage'
 import WaitlistPage from './WaitlistPage'
 import ShareStoryPage from './ShareStoryPage'
 import './App.css'
+
+// Create theme context
+export const ThemeContext = createContext()
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -94,15 +97,27 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  const [theme, setTheme] = useState('night') // night is default
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'night' ? 'day' : 'night')
+  }
+
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme)
+  }, [theme])
+
   return (
-    <Router>
-      <ScrollToTop />
-      <div className="App">
-        <Navigation />
-        <AnimatedRoutes />
-        <Footer />
-      </div>
-    </Router>
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <Router>
+        <ScrollToTop />
+        <div className="App">
+          <Navigation />
+          <AnimatedRoutes />
+          <Footer />
+        </div>
+      </Router>
+    </ThemeContext.Provider>
   )
 }
 
