@@ -260,6 +260,7 @@ body {
   padding: 100px 2rem;
   background: #000000;
   position: relative;
+  overflow: hidden;
 }
 
 .benefits-section::before {
