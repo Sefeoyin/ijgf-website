@@ -65,7 +65,7 @@ function LandingPage() {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              objectPosition: 'center 15%',
+              objectPosition: 'center 5%',
               margin: 0,
               padding: 0,
             }}
