@@ -47,6 +47,15 @@ body {
   width: auto;
 }
 
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin-left: 0.5rem;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
 .join-btn-nav {
   background: #7C3AED;
   color: white;
@@ -1070,6 +1079,15 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* ===== THEME TOGGLE MOBILE ===== */
+  .theme-toggle-desktop {
+    display: none !important;
+  }
+  
+  .theme-toggle-mobile {
+    display: flex !important;
+  }
+
   /* ===== HERO SECTION MOBILE ===== */
   .hero {
     padding: 140px 1.25rem 50px;
@@ -1555,6 +1573,34 @@ body {
   z-index: 1;
 }
 
+/* Mobile Theme Toggle - Simple Icon */
+.theme-toggle-mobile {
+  display: none;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle-mobile:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.theme-toggle-mobile svg {
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle-mobile:hover svg {
+  transform: scale(1.1);
+}
+
 /* Night Theme (Default) */
 body[data-theme="night"] {
   background-color: #0a0a0f;
@@ -1624,6 +1670,21 @@ body[data-theme="day"] .join-btn-nav {
 
 body[data-theme="day"] .join-btn-nav:hover {
   background: #5f4dd4;
+}
+
+body[data-theme="day"] .logo-text {
+  color: #1a1a2e;
+}
+
+body[data-theme="day"] .theme-toggle-mobile {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1a1a2e;
+}
+
+body[data-theme="day"] .theme-toggle-mobile:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: #6C5CE7;
 }
 
 body[data-theme="day"] .hero {
