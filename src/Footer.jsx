@@ -4,7 +4,7 @@ function Footer() {
       <div className="footer-container">
         <div className="footer-brand">
           <img src="/images/logo.png" alt="IJGF" className="footer-logo" />
-          <p>Where Skill • Not Capital • Determines Opportunity</p>
+          <p>Where Skill, Not Capital, Determines Opportunity</p>
           <div className="social-icons">
             <a href="https://x.com/ijustgotfunded" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="X (Twitter)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

@@ -149,13 +149,13 @@ body {
 }
 
 .hero-subtitle.blurred-text {
-  filter: blur(4px);
+  filter: blur(2px);
   user-select: none;
   transition: filter 0.3s ease;
 }
 
 .hero-subtitle.blurred-text:hover {
-  filter: blur(2px);
+  filter: blur(1px);
 }
 
 .hero-buttons {
