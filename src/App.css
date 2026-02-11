@@ -1652,15 +1652,15 @@ body[data-theme="day"] .logo-img {
 }
 
 body[data-theme="day"] .join-btn-nav {
-  background: rgba(255, 255, 255, 0.05);
+  background: #7C3AED;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: none;
+  border: none;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }
 
 body[data-theme="day"] .join-btn-nav:hover {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: none;
+  background: #6D28D9;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.5);
 }
 
 body[data-theme="day"] .theme-toggle-mobile {
