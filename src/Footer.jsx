@@ -1,3 +1,11 @@
+const comingSoonStyle = {
+  opacity: 0.35,
+  filter: 'blur(2px)',
+  pointerEvents: 'none',
+  cursor: 'default',
+  userSelect: 'none',
+}
+
 function Footer() {
   return (
     <footer className="footer">
@@ -33,22 +41,22 @@ function Footer() {
           <div className="footer-column">
             <h4>Platform</h4>
             <a href="#how-it-works">How it Works</a>
-            <a href="#challenges">Challenges</a>
-            <a href="#pricing">Pricing</a>
+            <a href="#challenges" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Challenges</a>
+            <a href="#pricing" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Pricing</a>
           </div>
           
           <div className="footer-column">
             <h4>Company</h4>
-            <a href="#about">About Us</a>
-            <a href="#blog">Blog/Resources</a>
-            <a href="#contact">Contact</a>
+            <a href="#about" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">About Us</a>
+            <a href="#blog" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Blog/Resources</a>
+            <a href="#contact" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Contact</a>
           </div>
           
           <div className="footer-column">
             <h4>Legal</h4>
-            <a href="#terms">Terms of Service</a>
-            <a href="#privacy">Privacy Policy</a>
-            <a href="#cookies">Cookie Policy</a>
+            <a href="#terms" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Terms of Service</a>
+            <a href="#privacy" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Privacy Policy</a>
+            <a href="#cookies" style={comingSoonStyle} tabIndex="-1" aria-disabled="true">Cookie Policy</a>
           </div>
           
           <div className="footer-column footer-socials-column">

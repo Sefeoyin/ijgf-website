@@ -42,12 +42,37 @@ function LandingPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-bg">
-          <img src="/images/Rectangle_6281.png" alt="" className="hero-bg-img" />
+      <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div
+          className="hero-bg"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 0,
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          <img
+            src="/images/Rectangle_6281.png"
+            alt=""
+            className="hero-bg-img"
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              margin: 0,
+              padding: 0,
+            }}
+          />
         </div>
         
-        <div className="hero-content">
+        <div className="hero-content" style={{ position: 'relative', zIndex: 1 }}>
           <h1 className="hero-title">
             Where <span className="highlight">Skill</span>, Not Capital, Determines <span className="highlight">Opportunity</span>
           </h1>
