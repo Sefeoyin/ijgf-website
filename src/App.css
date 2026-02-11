@@ -1592,6 +1592,15 @@ body {
   transform: scale(1.1);
 }
 
+.toggle-icon-moon,
+.toggle-icon-sun {
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Night Theme (Default) */
 body[data-theme="night"] {
   background-color: #0a0a0f;
