@@ -1567,20 +1567,21 @@ body {
 /* Mobile Theme Toggle - Simple Icon */
 .theme-toggle-mobile {
   display: none;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
   color: white;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  padding: 0;
 }
 
 .theme-toggle-mobile:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-color: rgba(139, 92, 246, 0.4);
 }
 
@@ -1594,7 +1595,7 @@ body {
 
 .toggle-icon-moon,
 .toggle-icon-sun {
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1673,14 +1674,14 @@ body[data-theme="day"] .join-btn-nav:hover {
 }
 
 body[data-theme="day"] .theme-toggle-mobile {
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   color: #1a1a2e;
 }
 
 body[data-theme="day"] .theme-toggle-mobile:hover {
-  background: rgba(0, 0, 0, 0.08);
-  border-color: #6C5CE7;
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(108, 92, 231, 0.3);
 }
 
 body[data-theme="day"] .hero {
