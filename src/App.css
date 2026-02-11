@@ -143,6 +143,16 @@ body {
   margin-right: auto;
 }
 
+.hero-subtitle.blurred-text {
+  filter: blur(4px);
+  user-select: none;
+  transition: filter 0.3s ease;
+}
+
+.hero-subtitle.blurred-text:hover {
+  filter: blur(2px);
+}
+
 .hero-buttons {
   display: flex;
   gap: 1rem;
@@ -208,7 +218,8 @@ body {
 }
 
 .feature-item svg {
-  color: #8b5cf6;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
 }
 
 /* Section Styles */
