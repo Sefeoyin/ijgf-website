@@ -1612,7 +1612,8 @@ body[data-theme="day"] .nav {
 }
 
 body[data-theme="day"] .logo-img {
-  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(7500%) hue-rotate(0deg) brightness(0%) contrast(100%);
+  /* No filter - let the icon show naturally */
+  filter: none;
 }
 
 body[data-theme="day"] .join-btn-nav {
@@ -1690,9 +1691,9 @@ body[data-theme="day"] .btn-secondary:hover {
 
 body[data-theme="day"] .feature-item {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
 }
 
 body[data-theme="day"] .feature-item svg {
@@ -1845,6 +1846,26 @@ body[data-theme="day"] .submit-btn:hover {
   background: #5f4dd4;
 }
 
+body[data-theme="day"] .story-title {
+  color: #1a1a2e;
+}
+
+body[data-theme="day"] .story-subtitle {
+  color: #1a1a2e;
+}
+
+body[data-theme="day"] .share-story-page {
+  background: #000000;
+}
+
+body[data-theme="day"] .share-story-title {
+  color: #ffffff;
+}
+
+body[data-theme="day"] .share-story-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 body[data-theme="day"] .footer {
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
@@ -1852,7 +1873,8 @@ body[data-theme="day"] .footer {
 }
 
 body[data-theme="day"] .footer-logo {
-  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(7500%) hue-rotate(0deg) brightness(0%) contrast(100%);
+  /* No filter - let the icon show naturally */
+  filter: none;
 }
 
 body[data-theme="day"] .footer-brand p {
