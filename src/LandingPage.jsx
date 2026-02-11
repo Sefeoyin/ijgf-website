@@ -42,7 +42,8 @@ function LandingPage() {
         
         <div className="hero-content">
           <h1 className="hero-title">
-            Trade on Skill. We <span className="highlight">Fund</span> the Rest.
+            <span className="hero-title-line1">Trade on Skill.</span>
+            <span className="hero-title-line2">We <span className="highlight">Fund</span> the Rest.</span>
           </h1>
           
           <p className="hero-subtitle">
