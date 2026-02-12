@@ -1,66 +1,146 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #000000;
+  --bg: #0a0a0a;
+  --text: #ffffff;
+  --card: #111111;
+  --accent: #7c3aed;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
+[data-theme="light"] {
 
-a:hover {
-  color: #535bf2;
+  --bg: #ffffff;
+  --text: #111111;
+  --card: #f4f4f4;
+
 }
 
 body {
+
   margin: 0;
-  min-width: 320px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial;
+
+}
+
+.layout {
+
   min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.main-content {
+
+  flex: 1;
+
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+.content-container {
+
+  max-width: 1200px;
+  margin: auto;
+  padding: 40px;
+
+}
+
+.nav {
+
+  border-bottom: 1px solid #222;
+
+}
+
+.nav-container {
+
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+
+}
+
+.logo-img {
+
+  height: 40px;
+
+}
+
+.nav-links {
+
+  display: flex;
+  gap: 20px;
+
+}
+
+.nav-right {
+
+  display: flex;
+  gap: 10px;
+
+}
+
+.theme-toggle {
+
+  background: none;
+  border: none;
+  color: var(--text);
   cursor: pointer;
-  transition: border-color 0.25s;
+
 }
 
-button:hover {
-  border-color: #646cff;
+.get-started {
+
+  background: var(--accent);
+  border: none;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 8px;
+
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.footer {
+
+  border-top: 1px solid #222;
+  padding: 40px;
+
 }
 
-* {
-  box-sizing: border-box;
+.footer-container {
+
+  display: flex;
+  justify-content: space-between;
+
 }
 
-#root {
-  width: 100%;
+.challenges-grid {
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 20px;
+
+}
+
+.challenge-card {
+
+  background: var(--card);
+  padding: 20px;
+  border-radius: 10px;
+
+}
+
+.challenge-card.popular {
+
+  border: 2px solid var(--accent);
+
+}
+
+.challenge-btn {
+
+  background: var(--accent);
+  border: none;
+  padding: 10px;
+  color: white;
+  border-radius: 8px;
+
 }
