@@ -740,6 +740,7 @@ body[data-theme="day"] .step-card p {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
+  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -770,12 +771,10 @@ body[data-theme="day"] .step-card p {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  min-height: 2.2rem;
 }
 
 .challenge-preview-price {
   margin-bottom: 1.5rem;
-  min-height: 4rem;
 }
 
 .challenge-preview-price .price {
@@ -793,17 +792,18 @@ body[data-theme="day"] .step-card p {
 
 .challenge-preview-specs {
   margin-bottom: 1.5rem;
-  min-height: 180px;
 }
 
 .challenge-preview-btn {
-  width: 100%;
+  position: absolute;
+  bottom: 200px;
+  left: 1.5rem;
+  right: 1.5rem;
+  width: calc(100% - 3rem);
   padding: 1rem;
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  margin-top: auto;
 }
 
 .challenge-details-toggle {
@@ -811,6 +811,10 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-features {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1484,6 +1488,7 @@ body[data-theme="day"] .faq-item {
   padding: 1.75rem;
   position: relative;
   transition: all 0.2s;
+  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -1526,12 +1531,10 @@ body[data-theme="day"] .faq-item {
   font-size: 0.95rem;
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
-  min-height: 1.5rem;
 }
 
 .challenge-price {
   margin-bottom: 1.5rem;
-  min-height: 3.5rem;
 }
 
 .challenge-price .price {
@@ -1547,7 +1550,6 @@ body[data-theme="day"] .faq-item {
 
 .challenge-specs {
   margin-bottom: 1.5rem;
-  min-height: 180px;
 }
 
 .spec-row {
@@ -1572,14 +1574,16 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-btn {
-  width: 100%;
+  position: absolute;
+  bottom: 200px;
+  left: 1.75rem;
+  right: 1.75rem;
+  width: calc(100% - 3.5rem);
   padding: 0.85rem;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  margin-bottom: 1.5rem;
-  margin-top: auto;
   transition: all 0.2s;
 }
 
@@ -1591,6 +1595,10 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-features {
+  position: absolute;
+  bottom: 1.75rem;
+  left: 1.75rem;
+  right: 1.75rem;
   list-style: none;
   padding: 0;
   margin: 0;
