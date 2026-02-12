@@ -29,7 +29,7 @@ function Navigation() {
       <div className="nav-container">
         {/* Logo */}
         <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <img src="/images/logo-icon.png" alt="IJGF" className="logo-img" />
+          <img src="/images/logo.png" alt="IJGF" className="logo-img" />
         </div>
 
         {/* Desktop Navigation Links - Centered */}
