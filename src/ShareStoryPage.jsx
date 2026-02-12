@@ -1,43 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from './supabase'
 
 function ShareStoryPage() {
   const [story, setStory] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('Stories')
-        .insert([
-          { story: story.trim() }
-        ])
-        .select()
-
-      if (supabaseError) {
-        throw supabaseError
-      }
-
+    if (story) {
       setSubmitted(true)
-      setStory('')
-      
       setTimeout(() => {
+        setSubmitted(false)
         navigate('/waitlist')
       }, 2000)
-
-    } catch (err) {
-      console.error('Error saving story:', err)
-      setError('Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
+      setStory('')
     }
   }
 
@@ -46,11 +23,7 @@ function ShareStoryPage() {
       <div className="section-container">
         <div className="share-story-container">
           <div className="share-story-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
+            <img src="/images/logo.png" alt="IJGF" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
           </div>
 
           <div className="share-story-content">
@@ -62,13 +35,7 @@ function ShareStoryPage() {
 
               {submitted && (
                 <div className="success-message">
-                  ✓ Thank you for sharing! Redirecting...
-                </div>
-              )}
-
-              {error && (
-                <div className="error-message">
-                  {error}
+                  âœ“ Thank you for sharing! Redirecting...
                 </div>
               )}
 
@@ -79,11 +46,10 @@ function ShareStoryPage() {
                   value={story}
                   onChange={(e) => setStory(e.target.value)}
                   required
-                  disabled={loading}
                   rows="8"
                 />
-                <button type="submit" className="btn-primary share-submit-btn" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Share Story'}
+                <button type="submit" className="btn-primary share-submit-btn">
+                  Share Story
                 </button>
               </form>
             </div>
@@ -97,10 +63,10 @@ function ShareStoryPage() {
               </p>
               <ul className="why-share-list">
                 <li>
-                  <strong>Priority Access</strong> — Be among the first to get funded when we launch
+                  <strong>Priority Access</strong> â€” Be among the first to get funded when we launch
                 </li>
                 <li>
-                  <strong>Founding Trader Recognition</strong> — Early believers get remembered
+                  <strong>Founding Trader Recognition</strong> â€” Early believers get remembered
                 </li>
                 <li>
                   <strong>Potential Fee Discounts</strong>

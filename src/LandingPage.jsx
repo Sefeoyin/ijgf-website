@@ -1,5 +1,43 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+
+// Animation variants for scroll reveal
+const fadeInUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.6, ease: 'easeOut' }
+  }
+}
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { duration: 0.6, ease: 'easeOut' }
+  }
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15
+    }
+  }
+}
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { duration: 0.5, ease: 'easeOut' }
+  }
+}
 
 function LandingPage() {
   const navigate = useNavigate()
@@ -9,6 +47,14 @@ function LandingPage() {
     setOpenFaq(openFaq === index ? null : index)
   }
 
+  const challenges = [
+    { size: '$5K', price: '$49', popular: false, available: true },
+    { size: '$10K', price: '$99', popular: true, available: true },
+    { size: '$25K', price: '$249', popular: false, available: false },
+    { size: '$50K', price: '$499', popular: false, available: false },
+    { size: '$100K', price: '$999', popular: false, available: false },
+  ]
+
   const faqs = [
     {
       question: "What is a crypto prop trading platform?",
@@ -16,7 +62,7 @@ function LandingPage() {
     },
     {
       question: "How much capital can I access?",
-      answer: "Challenge sizes range from $5,000 to $100,000. Once funded, you trade with real firm capital and can scale your account based on consistent performance."
+      answer: "Challenge sizes range from $10,000 to $200,000. Once funded, you trade with real firm capital and can scale your account based on consistent performance."
     },
     {
       question: "What are the profit splits?",
@@ -32,159 +78,353 @@ function LandingPage() {
     }
   ]
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
   return (
     <>
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-bg">
-          <img
-            src="/images/Rectangle_6281.png"
-            alt=""
-            className="hero-bg-img"
-          />
+          <img src="/images/Rectangle_6281.png" alt="" className="hero-bg-img" />
         </div>
         
-        <div className="hero-content">
-          <h1 className="hero-title">
-            Where <span className="highlight">Skill</span>, Not Capital, Determines <span className="highlight">Opportunity</span>
-          </h1>
+        <motion.div 
+          className="hero-content"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.h1 className="hero-title" variants={fadeInUp}>
+            Trade on Skill. We <span className="highlight">Fund</span> the Rest.
+          </motion.h1>
           
-          <p className="hero-subtitle blurred-text">
-            The first VARA-regulated crypto prop trading platform.
-          </p>
+          <motion.p className="hero-subtitle" variants={fadeInUp}>
+            Prove your edge through disciplined, risk-managed trading and earn access to firm-backed crypto capital. No upfront capital required
+          </motion.p>
           
-          <div className="hero-buttons">
+          <motion.div className="hero-buttons" variants={fadeInUp}>
             <button className="btn-primary" onClick={() => navigate('/waitlist')}>
               Join Waitlist
             </button>
-            <button className="btn-secondary" onClick={() => scrollToSection('how-it-works')}>
+            <button className="btn-secondary" onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })}>
               Learn How it Works
             </button>
-          </div>
+          </motion.div>
           
-          <div className="hero-features">
+          <motion.div className="hero-features" variants={fadeInUp}>
             <div className="feature-item">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               VARA Regulated
             </div>
             <div className="feature-item">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Real Capital
             </div>
             <div className="feature-item">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               24/7 Markets
             </div>
             <div className="feature-item">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Fast Daily Payouts
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Key Benefits Section */}
       <section className="benefits-section">
         <div className="section-container">
-          <h2 className="section-title">Key Benefits</h2>
-          <p className="section-subtitle">
+          <motion.h2 
+            className="section-title"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            Key Benefits
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
             The most transparent and trader-friendly platform in crypto prop trading
-          </p>
+          </motion.p>
           
-          <div className="benefits-grid">
-            <div className="benefit-card dark-card">
-              <img src="/images/tdesign_secured-filled.png" alt="VARA Regulated" className="benefit-icon" />
+          <motion.div 
+            className="benefits-grid"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+          >
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
+              <div className="benefit-icon-wrapper">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+              </div>
               <h3>VARA Regulated & Compliant</h3>
               <p>Built to meet VARA regulatory standards, ensuring a secure, transparent, and compliant trading environment you can trust.</p>
-            </div>
+            </motion.div>
             
-            <div className="benefit-card purple-card">
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
+              <div className="benefit-icon-wrapper">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
               <h3>Real Capital Deployment</h3>
-              <p>Trade with actual firm capital once you qualify. no paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
-              <img src="/images/capital_1.png" alt="Real Capital" className="benefit-illustration" />
-            </div>
+              <p>Trade with actual firm capital once you qualify—no paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
+            </motion.div>
             
-            <div className="benefit-card dark-card">
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
+              <div className="benefit-icon-wrapper">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
               <h3>Up to 80% Profit Split</h3>
               <p>Keep the majority of what you earn. Our profit-sharing model is designed to reward skill, consistency, and long-term performance.</p>
-            </div>
+            </motion.div>
             
-            <div className="benefit-card dark-card">
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
+              <div className="benefit-icon-wrapper">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
               <h3>No Time Limits on Challenges</h3>
-              <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution. no forced timelines, no rushed decisions.</p>
-            </div>
-          </div>
+              <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution—no forced timelines, no rushed decisions.</p>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* How it Works Section */}
       <section className="how-it-works-section" id="how-it-works">
         <div className="section-container">
-          <h2 className="section-title">How it Works</h2>
-          <p className="section-subtitle">Three simple steps to get funded</p>
+          <motion.h2 
+            className="section-title"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            How it Works
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            Three simple steps to get funded
+          </motion.p>
           
-          <div className="steps-grid">
-            <div className="step-card">
+          <motion.div 
+            className="steps-grid"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+          >
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">1</span>
               <span className="step-label">Step 1</span>
               <h3>Choose Challenge</h3>
               <p>Select a funding level that fits your trading style and risk appetite</p>
-            </div>
+            </motion.div>
             
-            <div className="step-card">
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">2</span>
               <span className="step-label">Step 2</span>
               <h3>Pass Evaluation</h3>
               <p>Demonstrate consistency, discipline, and risk control under real market conditions.</p>
-            </div>
+            </motion.div>
             
-            <div className="step-card">
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">3</span>
               <span className="step-label">Step 3</span>
               <h3>Get Funded</h3>
               <p>Trade with firm-backed capital and earn your share of the profits.</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/how-it-works')}>
+          <motion.button 
+            className="btn-secondary learn-more-btn"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+          >
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* Choose Your Challenge Section */}
+      <section className="challenges-preview-section">
+        <div className="section-container">
+          <motion.h2 
+            className="section-title"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            Choose Your Challenge
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            Select your path to funded trading
+          </motion.p>
+          
+          <motion.div 
+            className="challenges-preview-grid"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+          >
+            {challenges.map((challenge, index) => (
+              <motion.div 
+                key={index} 
+                className={`challenge-preview-card ${challenge.popular ? 'popular' : ''} ${!challenge.available ? 'coming-soon' : ''}`}
+                variants={scaleIn}
+              >
+                {challenge.popular && <span className="popular-badge">Popular</span>}
+                <div className="challenge-size">{challenge.size}</div>
+                <div className="challenge-price">{challenge.price}</div>
+                <div className="challenge-specs">
+                  <span>10% Profit Target</span>
+                  <span>80% Profit Split</span>
+                  <span>Up to 8x Leverage</span>
+                </div>
+                <button 
+                  className={`challenge-btn ${challenge.available ? 'btn-primary' : 'btn-disabled'}`}
+                  onClick={() => challenge.available && navigate('/waitlist')}
+                  disabled={!challenge.available}
+                >
+                  {challenge.available ? 'Start Challenge' : 'Coming Soon'}
+                </button>
+              </motion.div>
+            ))}
+          </motion.div>
+          
+          <motion.button 
+            className="btn-secondary learn-more-btn"
+            onClick={() => navigate('/challenges')}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+          >
+            View All Challenges
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* Trusted by Traders Section */}
+      <section className="trusted-section">
+        <div className="section-container">
+          <motion.div 
+            className="trusted-content"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            <h2 className="section-title">Trusted by skilled traders worldwide</h2>
+            <p className="section-subtitle">
+              Join a growing community of traders who've chosen IJGF as their path to professional trading
+            </p>
+            
+            <div className="trusted-stats">
+              <div className="stat-item">
+                <span className="stat-number">2,500+</span>
+                <span className="stat-label">Traders on Waitlist</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">15+</span>
+                <span className="stat-label">Countries</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">$500K+</span>
+                <span className="stat-label">Capital Ready</span>
+              </div>
+            </div>
+
+            <div className="trusted-avatars">
+              <div className="avatar-stack">
+                <div className="avatar-circle">👤</div>
+                <div className="avatar-circle">👤</div>
+                <div className="avatar-circle">👤</div>
+                <div className="avatar-circle">👤</div>
+                <div className="avatar-circle">👤</div>
+              </div>
+              <span className="avatar-text">Join 2,500+ traders on the waitlist</span>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="faq-section">
         <div className="section-container">
-          <h2 className="section-title">Frequently Asked Questions</h2>
-          <p className="section-subtitle">
+          <motion.h2 
+            className="section-title"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            Frequently Asked Questions
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
             Everything you need to know about how the platform works, funding, payouts, and trading rules—clearly explained before you get started.
-          </p>
+          </motion.p>
           
-          <div className="faq-list">
+          <motion.div 
+            className="faq-list"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+          >
             {faqs.map((faq, index) => (
-              <div key={index} className="faq-item">
+              <motion.div key={index} className="faq-item" variants={fadeInUp}>
                 <button 
                   className="faq-question"
                   onClick={() => toggleFaq(index)}
@@ -205,16 +445,22 @@ function LandingPage() {
                     {faq.answer}
                   </div>
                 )}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/faq')}>
+          <motion.button 
+            className="btn-secondary learn-more-btn"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+          >
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
+          </motion.button>
         </div>
       </section>
     </>

@@ -1,55 +1,26 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from './supabase'
 
 function WaitlistPage() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const navigate = useNavigate()
   const storySectionRef = useRef(null)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('Waitlist')
-        .insert([
-          { 
-            email: email.toLowerCase().trim(),
-            source: 'waitlist_page'
-          }
-        ])
-        .select()
-
-      if (supabaseError) {
-        if (supabaseError.code === '23505') {
-          setError('This email is already on the waitlist!')
-        } else {
-          throw supabaseError
-        }
-      } else {
-        setSubmitted(true)
-        setEmail('')
-        
-        setTimeout(() => {
-          storySectionRef.current?.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          })
-        }, 500)
-
-        setTimeout(() => setSubmitted(false), 5000)
-      }
-    } catch (err) {
-      console.error('Error saving to waitlist:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
+    if (email) {
+      setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 3000)
+      setEmail('')
+      
+      // Scroll to story section after a brief delay
+      setTimeout(() => {
+        storySectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        })
+      }, 500)
     }
   }
 
@@ -58,11 +29,7 @@ function WaitlistPage() {
       <div className="section-container">
         <div className="waitlist-container">
           <div className="waitlist-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
+            <img src="/images/logo.png" alt="IJGF" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
           </div>
           
           <h2 className="waitlist-title">Get Early Access to Funded Crypto Trading</h2>
@@ -72,13 +39,7 @@ function WaitlistPage() {
           
           {submitted && (
             <div className="success-message">
-              ✓ Thank you! You're on the waitlist. We'll be in touch soon.
-            </div>
-          )}
-
-          {error && (
-            <div className="error-message">
-              {error}
+              âœ“ Thank you! You're on the waitlist. We'll be in touch soon.
             </div>
           )}
           
@@ -90,18 +51,15 @@ function WaitlistPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
             />
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Joining...' : 'Join Waitlist'}
-            </button>
+            <button type="submit" className="submit-btn">Join Waitlist</button>
           </form>
           
           <div className="waitlist-count">
             <div className="avatars">
-              <div className="avatar">👤</div>
-              <div className="avatar">👤</div>
-              <div className="avatar">👤</div>
+              <div className="avatar">ðŸ‘¤</div>
+              <div className="avatar">ðŸ‘¤</div>
+              <div className="avatar">ðŸ‘¤</div>
             </div>
             Join others on the waitlist
           </div>
