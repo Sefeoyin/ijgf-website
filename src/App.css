@@ -1483,6 +1483,9 @@ body[data-theme="day"] .faq-item {
   padding: 1.75rem;
   position: relative;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  min-height: 580px;
 }
 
 .challenge-card:hover:not(.disabled) {
@@ -1491,7 +1494,14 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-card.disabled {
-  opacity: 0.5;
+  opacity: 1;
+}
+
+.challenge-card.disabled .challenge-specs,
+.challenge-card.disabled .challenge-features {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
 }
 
 .challenge-card.popular {
@@ -1533,7 +1543,8 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-specs {
-  margin-bottom: 1.5rem;
+  margin-bottom: auto;
+  flex: 0 0 auto;
 }
 
 .spec-row {
@@ -1565,6 +1576,7 @@ body[data-theme="day"] .faq-item {
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 1.5rem;
+  margin-top: auto;
   transition: all 0.2s;
 }
 
@@ -2080,7 +2092,7 @@ body[data-theme="day"] .waitlist-icon {
 .share-story-icon {
   width: 64px;
   height: 64px;
-  background: var(--bg-card);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid var(--border-accent);
   border-radius: 12px;
   display: flex;
@@ -2088,6 +2100,17 @@ body[data-theme="day"] .waitlist-icon {
   justify-content: center;
   margin: 0 auto 2.5rem;
   padding: 12px;
+  transition: background 0.3s ease;
+}
+
+body[data-theme="day"] .share-story-icon {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.share-story-logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .share-story-content {

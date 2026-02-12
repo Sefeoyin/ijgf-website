@@ -8,7 +8,7 @@ function ChallengesPage() {
   const challenges = [
     {
       name: "The $5k Challenge",
-      price: "$49.99",
+      price: "$49",
       profitTarget: "$500",
       maxDrawdown: "$500",
       dailyLimit: "$200",
@@ -19,7 +19,7 @@ function ChallengesPage() {
     },
     {
       name: "The $10k Challenge",
-      price: "$99.99",
+      price: "$99",
       profitTarget: "$1,000",
       maxDrawdown: "$750",
       dailyLimit: "$400",
@@ -30,7 +30,7 @@ function ChallengesPage() {
     },
     {
       name: "The $25k Challenge",
-      price: "$249.99",
+      price: "$249",
       profitTarget: "$2,500",
       maxDrawdown: "$1,500",
       dailyLimit: "$1,000",
@@ -52,7 +52,7 @@ function ChallengesPage() {
     },
     {
       name: "The $100k Challenge",
-      price: "$999.99",
+      price: "$999",
       profitTarget: "$10,000",
       maxDrawdown: "$6,000",
       dailyLimit: "$4,000",

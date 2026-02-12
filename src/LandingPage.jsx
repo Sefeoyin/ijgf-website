@@ -254,7 +254,7 @@ function LandingPage() {
             <div className="challenge-preview-card">
               <h3 className="challenge-preview-name">The $5k Challenge</h3>
               <div className="challenge-preview-price">
-                <span className="price">$49.99</span>
+                <span className="price">$49</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
@@ -299,7 +299,7 @@ function LandingPage() {
               <span className="popular-badge">Popular</span>
               <h3 className="challenge-preview-name">The $10k Challenge</h3>
               <div className="challenge-preview-price">
-                <span className="price">$99.99</span>
+                <span className="price">$99</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
@@ -344,7 +344,7 @@ function LandingPage() {
             <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $25k Challenge</h3>
               <div className="challenge-preview-price">
-                <span className="price">$249.99</span>
+                <span className="price">$249</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
@@ -388,7 +388,7 @@ function LandingPage() {
             <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $50k Challenge</h3>
               <div className="challenge-preview-price">
-                <span className="price">$249.99</span>
+                <span className="price">$499</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
@@ -432,7 +432,7 @@ function LandingPage() {
             <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $100k Challenge</h3>
               <div className="challenge-preview-price">
-                <span className="price">$999.99</span>
+                <span className="price">$999</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
