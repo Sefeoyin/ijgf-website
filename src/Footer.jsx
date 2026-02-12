@@ -1,6 +1,6 @@
 import React from 'react';
-import { ReactComponent as LogoIcon } from '../assets/logo.svg'; // example import
-import logoImage from '../assets/logo.svg';
+import logo from "./assets/logo.png";
+import logoIcon from "./assets/logo-icon.png";
 
 export default function Footer() {
   return (
