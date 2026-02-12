@@ -29,7 +29,6 @@ function ShareStoryPage() {
       setSubmitted(true)
       setStory('')
       
-      // Redirect to waitlist after 2 seconds
       setTimeout(() => {
         navigate('/waitlist')
       }, 2000)
@@ -47,7 +46,11 @@ function ShareStoryPage() {
       <div className="section-container">
         <div className="share-story-container">
           <div className="share-story-icon">
-            <img src="/images/logo.png" alt="IJGF" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
           </div>
 
           <div className="share-story-content">

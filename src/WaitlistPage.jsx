@@ -16,7 +16,6 @@ function WaitlistPage() {
     setError('')
 
     try {
-      // Save email to Supabase
       const { data, error: supabaseError } = await supabase
         .from('Waitlist')
         .insert([
@@ -26,9 +25,8 @@ function WaitlistPage() {
           }
         ])
         .select()
-        console.log('Supabase response:', data, supabaseError)
+
       if (supabaseError) {
-        // Check if it's a duplicate email error
         if (supabaseError.code === '23505') {
           setError('This email is already on the waitlist!')
         } else {
@@ -38,7 +36,6 @@ function WaitlistPage() {
         setSubmitted(true)
         setEmail('')
         
-        // Scroll to story section after a brief delay
         setTimeout(() => {
           storySectionRef.current?.scrollIntoView({ 
             behavior: 'smooth', 
@@ -46,7 +43,6 @@ function WaitlistPage() {
           })
         }, 500)
 
-        // Reset success message after 5 seconds
         setTimeout(() => setSubmitted(false), 5000)
       }
     } catch (err) {
@@ -62,7 +58,11 @@ function WaitlistPage() {
       <div className="section-container">
         <div className="waitlist-container">
           <div className="waitlist-icon">
-            <img src="/images/logo.png" alt="IJGF" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
           </div>
           
           <h2 className="waitlist-title">Get Early Access to Funded Crypto Trading</h2>

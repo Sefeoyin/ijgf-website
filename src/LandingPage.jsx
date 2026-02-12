@@ -16,7 +16,7 @@ function LandingPage() {
     },
     {
       question: "How much capital can I access?",
-      answer: "Challenge sizes range from $10,000 to $200,000. Once funded, you trade with real firm capital and can scale your account based on consistent performance."
+      answer: "Challenge sizes range from $5,000 to $100,000. Once funded, you trade with real firm capital and can scale your account based on consistent performance."
     },
     {
       question: "What are the profit splits?",
@@ -42,37 +42,16 @@ function LandingPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div
-          className="hero-bg"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 0,
-            margin: 0,
-            padding: 0,
-          }}
-        >
+      <section className="hero">
+        <div className="hero-bg">
           <img
             src="/images/Rectangle_6281.png"
             alt=""
             className="hero-bg-img"
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 5%',
-              margin: 0,
-              padding: 0,
-            }}
           />
         </div>
         
-        <div className="hero-content" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="hero-content">
           <h1 className="hero-title">
             Where <span className="highlight">Skill</span>, Not Capital, Determines <span className="highlight">Opportunity</span>
           </h1>
@@ -186,7 +165,7 @@ function LandingPage() {
             </div>
           </div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/waitlist')}>
+          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/how-it-works')}>
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -200,7 +179,7 @@ function LandingPage() {
         <div className="section-container">
           <h2 className="section-title">Frequently Asked Questions</h2>
           <p className="section-subtitle">
-            Everything you need to know about how the platform works, funding, payouts, and trading rules. clearly explained before you get started.
+            Everything you need to know about how the platform works, funding, payouts, and trading rules—clearly explained before you get started.
           </p>
           
           <div className="faq-list">
@@ -230,7 +209,7 @@ function LandingPage() {
             ))}
           </div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/waitlist')}>
+          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/faq')}>
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

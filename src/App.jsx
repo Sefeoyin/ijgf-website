@@ -6,6 +6,11 @@ import Footer from './Footer'
 import LandingPage from './LandingPage'
 import WaitlistPage from './WaitlistPage'
 import ShareStoryPage from './ShareStoryPage'
+import FAQPage from './FAQPage'
+import AboutUsPage from './AboutUsPage'
+import HowItWorksPage from './HowItWorksPage'
+import ChallengesPage from './ChallengesPage'
+import AuthPage from './AuthPage'
 import './App.css'
 
 // Create theme context
@@ -55,12 +60,7 @@ function AnimatedRoutes() {
         <Route 
           path="/" 
           element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
               <LandingPage />
             </motion.div>
           } 
@@ -68,12 +68,7 @@ function AnimatedRoutes() {
         <Route 
           path="/waitlist" 
           element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
               <WaitlistPage />
             </motion.div>
           } 
@@ -81,13 +76,56 @@ function AnimatedRoutes() {
         <Route 
           path="/share-story" 
           element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
               <ShareStoryPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/faq" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <FAQPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/about" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <AboutUsPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/how-it-works" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <HowItWorksPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/challenges" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <ChallengesPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/signup" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <AuthPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <AuthPage />
             </motion.div>
           } 
         />
