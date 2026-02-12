@@ -36,7 +36,7 @@ function FAQPage() {
         <div className="faq-page-header">
           <h1 className="faq-page-title">Frequently Asked Questions</h1>
           <p className="faq-page-subtitle">
-            Everything you need to know about how the platform works, funding, payouts, and trading rules—clearly explained before you get started.
+            Everything you need to know about how the platform works, funding, payouts, and trading rules - clearly explained before you get started.
           </p>
         </div>
         

@@ -119,7 +119,7 @@ function LandingPage() {
             
             <div className="benefit-card purple-card">
               <h3>Real Capital Deployment</h3>
-              <p>Trade with actual firm capital once you qualify. no paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
+              <p>Trade with actual firm capital once you qualify. No paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
               <img src="/images/capital_1.png" alt="Real Capital" className="benefit-illustration" />
             </div>
             
@@ -130,7 +130,7 @@ function LandingPage() {
             
             <div className="benefit-card dark-card">
               <h3>No Time Limits on Challenges</h3>
-              <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution. no forced timelines, no rushed decisions.</p>
+              <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution. No forced timelines, no rushed decisions.</p>
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ function LandingPage() {
             {/* Row 1 */}
             <div className="testimonial-card">
               <p className="testimonial-text">
-                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
@@ -507,7 +507,7 @@ function LandingPage() {
         <div className="section-container">
           <h2 className="section-title">Frequently Asked Questions</h2>
           <p className="section-subtitle">
-            Everything you need to know about how the platform works, funding, payouts, and trading rules—clearly explained before you get started.
+            Everything you need to know about how the platform works, funding, payouts, and trading rules clearly explained before you get started.
           </p>
           
           <div className="faq-list">

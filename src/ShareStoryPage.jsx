@@ -97,10 +97,10 @@ function ShareStoryPage() {
               </p>
               <ul className="why-share-list">
                 <li>
-                  <strong>Priority Access</strong> — Be among the first to get funded when we launch
+                  <strong>Priority Access</strong>  -  Be among the first to get funded when we launch
                 </li>
                 <li>
-                  <strong>Founding Trader Recognition</strong> — Early believers get remembered
+                  <strong>Founding Trader Recognition</strong>  -  Early believers get remembered
                 </li>
                 <li>
                   <strong>Potential Fee Discounts</strong>

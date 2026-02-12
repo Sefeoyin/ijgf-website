@@ -12,7 +12,7 @@ function HowItWorksPage() {
   const rules = [
     {
       title: "Profit Targets",
-      content: "Achieve a 10% profit target on your challenge account to pass the evaluation. There's no time limit—trade at your own pace while managing risk effectively."
+      content: "Achieve a 10% profit target on your challenge account to pass the evaluation. There's no time limit - trade at your own pace while managing risk effectively."
     },
     {
       title: "Daily Loss Limit",
@@ -20,7 +20,7 @@ function HowItWorksPage() {
     },
     {
       title: "Maximum Drawdown",
-      content: "The maximum drawdown is 6% (static) from your starting balance. This is your hard limit—breaching it will end your challenge."
+      content: "The maximum drawdown is 6% (static) from your starting balance. This is your hard limit - breaching it will end your challenge."
     },
     {
       title: "Leverage Limits",
@@ -73,12 +73,12 @@ function HowItWorksPage() {
           <div className="how-process-section">
             <h2 className="how-section-title">Step - by - Step Process</h2>
             <ol className="how-process-list">
-              <li><span>1.</span> Sign Up — Create your account</li>
-              <li><span>2.</span> Choose Challenge — Pick account size</li>
-              <li><span>3.</span> Complete Evaluation — Hit profit target while respecting drawdown rules</li>
-              <li><span>4.</span> Select Exchange — Choose your preferred exchange (Binance, Bybit, OKX, Bitget, etc.)</li>
-              <li><span>5.</span> Get Funded — Trade real capital with up to 80% profit split</li>
-              <li><span>6.</span> Withdraw Profits — On-demand payouts in USDC or USDT</li>
+              <li><span>1.</span> Sign Up  -  Create your account</li>
+              <li><span>2.</span> Choose Challenge  -  Pick account size</li>
+              <li><span>3.</span> Complete Evaluation  -  Hit profit target while respecting drawdown rules</li>
+              <li><span>4.</span> Select Exchange  -  Choose your preferred exchange (Binance, Bybit, OKX, Bitget, etc.)</li>
+              <li><span>5.</span> Get Funded  -  Trade real capital with up to 80% profit split</li>
+              <li><span>6.</span> Withdraw Profits  -  On-demand payouts in USDC or USDT</li>
             </ol>
           </div>
 
