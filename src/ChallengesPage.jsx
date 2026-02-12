@@ -1,6 +1,4 @@
 import React from 'react';
-import ChallengeCard from '../components/ChallengeCard'; // example component
-
 export default function ChallengesPage() {
   return (
     <section className="challenges-page">
