@@ -465,6 +465,7 @@ body[data-theme="day"] .btn-secondary:hover {
 .benefits-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 1.5rem;
   position: relative;
   z-index: 1;
@@ -495,8 +496,6 @@ body[data-theme="day"] .dark-card {
 .purple-card {
   background: var(--gradient-purple);
   border: 1px solid var(--border-accent);
-  grid-column: 2;
-  grid-row: 1 / 4;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
