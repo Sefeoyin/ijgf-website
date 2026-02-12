@@ -1,9 +1,72 @@
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function LandingPage() {
   const navigate = useNavigate()
   const [openFaq, setOpenFaq] = useState(null)
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const testimonialRef = useRef(null)
+
+  const testimonials = [
+    {
+      text: "The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.",
+      name: "Marcus Chen",
+      role: "$50k Trader",
+      isPurple: false
+    },
+    {
+      text: "Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.",
+      name: "Sarah Martinez",
+      role: "$25k Trader",
+      isPurple: true
+    },
+    {
+      text: "I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.",
+      name: "James Wilson",
+      role: "$100k Trader",
+      isPurple: false
+    },
+    {
+      text: "As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.",
+      name: "Ahmed Hassan",
+      role: "$10k Trader",
+      isPurple: false
+    },
+    {
+      text: "The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.",
+      name: "Emily Rodriguez",
+      role: "$50k Trader",
+      isPurple: true
+    },
+    {
+      text: "Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.",
+      name: "Thomas Kim",
+      role: "$25k Trader",
+      isPurple: false
+    }
+  ]
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobile) return
+
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+    }, 5000) // Change every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [isMobile, testimonials.length])
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index)
@@ -412,93 +475,121 @@ function LandingPage() {
           </div>
 
           {/* Testimonials Grid */}
-          <div className="testimonials-grid">
-            {/* Row 1 */}
-            <div className="testimonial-card">
-              <p className="testimonial-text">
-                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">Marcus Chen</span>
-                  <span className="author-role">$50k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+          {isMobile ? (
+            <div className="testimonials-carousel">
+              <div className="testimonial-card-wrapper">
+                <div className={`testimonial-card ${testimonials[currentTestimonial].isPurple ? 'testimonial-purple' : ''}`}>
+                  <p className="testimonial-text">
+                    {testimonials[currentTestimonial].text}
+                  </p>
+                  <div className="testimonial-author">
+                    <div className="author-avatar"></div>
+                    <div className="author-info">
+                      <span className="author-name">{testimonials[currentTestimonial].name}</span>
+                      <span className="author-role">{testimonials[currentTestimonial].role}</span>
+                      <div className="author-rating">★★★★★</div>
+                    </div>
+                  </div>
                 </div>
               </div>
+              <div className="carousel-dots">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`carousel-dot ${index === currentTestimonial ? 'active' : ''}`}
+                    onClick={() => setCurrentTestimonial(index)}
+                    aria-label={`Go to testimonial ${index + 1}`}
+                  />
+                ))}
+              </div>
             </div>
+          ) : (
+            <div className="testimonials-grid">
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Marcus Chen</span>
+                    <span className="author-role">$50k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
 
-            <div className="testimonial-card testimonial-purple">
-              <p className="testimonial-text">
-                Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">Sarah Martinez</span>
-                  <span className="author-role">$25k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+              <div className="testimonial-card testimonial-purple">
+                <p className="testimonial-text">
+                  Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Sarah Martinez</span>
+                    <span className="author-role">$25k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="testimonial-card">
-              <p className="testimonial-text">
-                I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">James Wilson</span>
-                  <span className="author-role">$100k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">James Wilson</span>
+                    <span className="author-role">$100k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Row 2 */}
-            <div className="testimonial-card">
-              <p className="testimonial-text">
-                As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">Ahmed Hassan</span>
-                  <span className="author-role">$10k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Ahmed Hassan</span>
+                    <span className="author-role">$10k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="testimonial-card testimonial-purple">
-              <p className="testimonial-text">
-                The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">Emily Rodriguez</span>
-                  <span className="author-role">$50k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+              <div className="testimonial-card testimonial-purple">
+                <p className="testimonial-text">
+                  The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Emily Rodriguez</span>
+                    <span className="author-role">$50k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="testimonial-card">
-              <p className="testimonial-text">
-                Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">Thomas Kim</span>
-                  <span className="author-role">$25k Trader</span>
-                  <div className="author-rating">★★★★★</div>
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Thomas Kim</span>
+                    <span className="author-role">$25k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
