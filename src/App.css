@@ -742,7 +742,7 @@ body[data-theme="day"] .step-card p {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  min-height: 500px;
+  min-height: 650px;
 }
 
 .challenge-preview-card:hover:not(.disabled) {
@@ -791,8 +791,8 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-specs {
-  margin-bottom: auto;
-  flex: 0 0 auto;
+  flex: 1;
+  margin-bottom: 0;
 }
 
 .challenge-preview-btn {
@@ -1485,7 +1485,7 @@ body[data-theme="day"] .faq-item {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  min-height: 580px;
+  min-height: 650px;
 }
 
 .challenge-card:hover:not(.disabled) {
@@ -1543,8 +1543,8 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-specs {
-  margin-bottom: auto;
-  flex: 0 0 auto;
+  flex: 1;
+  margin-bottom: 0;
 }
 
 .spec-row {
