@@ -174,6 +174,111 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* Choose Your Challenge Section */}
+      <section className="challenges-section">
+        <div className="section-container">
+          <h2 className="section-title">Choose Your Challenge</h2>
+          <p className="section-subtitle">
+            Select a funding level that matches your skill level and goals. All challenges use the same straightforward evaluation criteria.
+          </p>
+          
+          <div className="challenges-preview-grid">
+            <div className="challenge-preview-card">
+              <h3 className="challenge-preview-name">The $5k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$49.99</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$500</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$500</span>
+                </div>
+              </div>
+              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
+                Start Challenge
+              </button>
+            </div>
+
+            <div className="challenge-preview-card popular">
+              <span className="popular-badge">Popular</span>
+              <h3 className="challenge-preview-name">The $10k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$99.99</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$750</span>
+                </div>
+              </div>
+              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
+                Start Challenge
+              </button>
+            </div>
+
+            <div className="challenge-preview-card disabled">
+              <h3 className="challenge-preview-name">The $25k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$249.99</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$2,500</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$1,500</span>
+                </div>
+              </div>
+              <button className="btn-coming-soon challenge-preview-btn" disabled>
+                Coming Soon
+              </button>
+            </div>
+          </div>
+
+          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/challenges')}>
+            View All Challenges
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      {/* Trusted by Skilled Traders Worldwide Section */}
+      <section className="trusted-section">
+        <div className="section-container">
+          <h2 className="section-title">Trusted by Skilled Traders Worldwide</h2>
+          <p className="section-subtitle">
+            Real traders, real capital, real results. Join thousands who have already funded their trading careers through IJGF.
+          </p>
+
+          <div className="trusted-stats">
+            <div className="trusted-stat">
+              <span className="trusted-stat-value">2.5k+</span>
+              <span className="trusted-stat-label">Funded Traders</span>
+            </div>
+            <div className="trusted-stat">
+              <span className="trusted-stat-value">$1.5M+</span>
+              <span className="trusted-stat-label">Total Payouts</span>
+            </div>
+            <div className="trusted-stat">
+              <span className="trusted-stat-value">15</span>
+              <span className="trusted-stat-label">Countries Served</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section className="faq-section">
         <div className="section-container">

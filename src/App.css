@@ -99,9 +99,16 @@ body[data-theme="day"] .nav {
   color: var(--text-primary);
 }
 
+body[data-theme="day"] .logo-icon {
+  background: transparent;
+  border: none;
+  color: #000000;
+}
+
 .logo-img {
-  height: 32px;
+  height: 36px;
   width: auto;
+  display: block;
 }
 
 /* Nav Links */
@@ -444,6 +451,7 @@ body[data-theme="day"] .btn-secondary:hover {
 .benefits-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
   gap: 1.5rem;
   position: relative;
   z-index: 1;
@@ -533,9 +541,10 @@ body[data-theme="day"] .btn-secondary:hover {
 }
 
 .step-card {
-  background: var(--gradient-purple);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(20, 10, 30, 0.95) 50%, rgba(40, 20, 60, 0.9) 100%), 
+              linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(168, 85, 247, 0.15) 100%);
   border: 1px solid var(--border-accent);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 2.5rem;
   position: relative;
   overflow: hidden;
@@ -576,6 +585,130 @@ body[data-theme="day"] .btn-secondary:hover {
 .learn-more-btn {
   display: flex;
   margin: 0 auto;
+}
+
+/* ==========================================
+   Challenges Preview Section (Landing)
+   ========================================== */
+.challenges-section {
+  padding: 100px 2rem;
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.challenges-section::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: var(--gradient-glow);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.challenges-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+  position: relative;
+  z-index: 1;
+}
+
+.challenge-preview-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  position: relative;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.challenge-preview-card:hover:not(.disabled) {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+}
+
+.challenge-preview-card.disabled {
+  opacity: 0.5;
+}
+
+.challenge-preview-card.popular {
+  border-color: var(--accent-primary);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, transparent 40%);
+}
+
+.challenge-preview-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.challenge-preview-price {
+  margin-bottom: 2rem;
+}
+
+.challenge-preview-price .price {
+  font-size: 3rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1;
+}
+
+.challenge-preview-specs {
+  margin-bottom: 2rem;
+  flex: 1;
+}
+
+.challenge-preview-btn {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* ==========================================
+   Trusted Section (Landing)
+   ========================================== */
+.trusted-section {
+  padding: 100px 2rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.trusted-stats {
+  display: flex;
+  justify-content: center;
+  gap: 8rem;
+  margin-top: 4rem;
+}
+
+.trusted-stat {
+  text-align: center;
+}
+
+.trusted-stat-value {
+  display: block;
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.trusted-stat-label {
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
 /* ==========================================
@@ -1837,6 +1970,12 @@ body[data-theme="day"] .auth-google-btn:hover {
   object-fit: contain;
 }
 
+.footer-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
 .footer-tagline {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -1900,17 +2039,17 @@ body[data-theme="day"] .auth-google-btn:hover {
 }
 
 .footer-social-icons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.65rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .social-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1918,11 +2057,12 @@ body[data-theme="day"] .auth-google-btn:hover {
   font-size: 1.1rem;
   color: var(--text-secondary);
   text-decoration: none;
+  padding: 0;
 }
 
 .social-icon:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: var(--border-accent);
+  background: transparent;
+  border: none;
   color: var(--accent-light);
   transform: translateY(-2px);
 }
@@ -1976,6 +2116,17 @@ body[data-theme="day"] .auth-google-btn:hover {
   .steps-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Challenges Preview */
+  .challenges-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Trusted Stats */
+  .trusted-stats {
+    flex-direction: column;
+    gap: 3rem;
+  }
   
   /* About */
   .about-mission,
@@ -2001,6 +2152,16 @@ body[data-theme="day"] .auth-google-btn:hover {
   /* Challenges */
   .challenges-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Challenges Preview */
+  .challenges-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Trusted Stats */
+  .trusted-stats {
+    gap: 4rem;
   }
   
   /* Footer */

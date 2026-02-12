@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { useContext } from 'react'
+import { ThemeContext } from './App'
 
 function Footer() {
   const navigate = useNavigate()
+  const { theme } = useContext(ThemeContext)
 
   const comingSoonStyle = {
     opacity: 0.35,
@@ -13,14 +16,12 @@ function Footer() {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-brand">
-          <div className="footer-logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
-          </div>
-          <p className="footer-tagline">Trade on Skill. We Fund<br />the Rest.</p>
+          <img 
+            src={theme === 'night' ? '/images/logo-icon.png' : '/images/logo-icon-dark.png'} 
+            alt="IJGF Logo" 
+            className="footer-logo-img"
+          />
+          <p className="footer-tagline">Where Skill, Not Capital, Determines Opportunity.</p>
         </div>
         
         <div className="footer-links">
