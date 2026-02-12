@@ -20,7 +20,7 @@ function Footer() {
               <path d="M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <p className="footer-tagline">Trade on Skill. We Fund<br />the Rest.</p>
+          <p className="footer-tagline">Where Skill, Not Capital,<br />Determines Opportunity.</p>
         </div>
         
         <div className="footer-links">
