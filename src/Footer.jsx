@@ -13,13 +13,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-brand">
-          <div className="footer-logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
-          </div>
+          <img src="/images/logo-icon.png" alt="IJGF" className="footer-logo-img" />
           <p className="footer-tagline">Trade on Skill. We Fund<br />the Rest.</p>
         </div>
         

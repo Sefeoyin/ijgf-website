@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 
 function LandingPage() {
   const navigate = useNavigate()
@@ -32,10 +33,48 @@ function LandingPage() {
     }
   ]
 
+  const challengeTiers = [
+    { size: '$5K', price: '$49', target: '10%', maxDrawdown: '6%', dailyLimit: '4%', status: 'active' },
+    { size: '$10K', price: '$99', target: '10%', maxDrawdown: '6%', dailyLimit: '4%', status: 'popular' },
+    { size: '$25K', price: '$249', target: '10%', maxDrawdown: '6%', dailyLimit: '4%', status: 'coming' },
+    { size: '$50K', price: '$499', target: '10%', maxDrawdown: '6%', dailyLimit: '4%', status: 'coming' },
+    { size: '$100K', price: '$999', target: '10%', maxDrawdown: '6%', dailyLimit: '4%', status: 'coming' },
+  ]
+
   const scrollToSection = (id) => {
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  // Animation variants
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, ease: 'easeOut' }
+    }
+  }
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1
+      }
+    }
+  }
+
+  const scaleIn = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 0.5, ease: 'easeOut' }
     }
   }
 
@@ -51,7 +90,12 @@ function LandingPage() {
           />
         </div>
         
-        <div className="hero-content">
+        <motion.div 
+          className="hero-content"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <h1 className="hero-title">
             Where <span className="highlight">Skill</span>, Not Capital, Determines <span className="highlight">Opportunity</span>
           </h1>
@@ -99,92 +143,291 @@ function LandingPage() {
               Fast Daily Payouts
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Key Benefits Section */}
       <section className="benefits-section">
         <div className="section-container">
-          <h2 className="section-title">Key Benefits</h2>
-          <p className="section-subtitle">
+          <motion.h2 
+            className="section-title"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            Key Benefits
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
             The most transparent and trader-friendly platform in crypto prop trading
-          </p>
+          </motion.p>
           
-          <div className="benefits-grid">
-            <div className="benefit-card dark-card">
+          <motion.div 
+            className="benefits-grid"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
               <img src="/images/tdesign_secured-filled.png" alt="VARA Regulated" className="benefit-icon" />
               <h3>VARA Regulated & Compliant</h3>
               <p>Built to meet VARA regulatory standards, ensuring a secure, transparent, and compliant trading environment you can trust.</p>
-            </div>
+            </motion.div>
             
-            <div className="benefit-card purple-card">
+            <motion.div className="benefit-card purple-card" variants={scaleIn}>
               <h3>Real Capital Deployment</h3>
               <p>Trade with actual firm capital once you qualify. no paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
               <img src="/images/capital_1.png" alt="Real Capital" className="benefit-illustration" />
-            </div>
+            </motion.div>
             
-            <div className="benefit-card dark-card">
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
               <h3>Up to 80% Profit Split</h3>
               <p>Keep the majority of what you earn. Our profit-sharing model is designed to reward skill, consistency, and long-term performance.</p>
-            </div>
+            </motion.div>
             
-            <div className="benefit-card dark-card">
+            <motion.div className="benefit-card dark-card" variants={scaleIn}>
               <h3>No Time Limits on Challenges</h3>
               <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution. no forced timelines, no rushed decisions.</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* How it Works Section */}
       <section className="how-it-works-section" id="how-it-works">
         <div className="section-container">
-          <h2 className="section-title">How it Works</h2>
-          <p className="section-subtitle">Three simple steps to get funded</p>
+          <motion.h2 
+            className="section-title"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            How it Works
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            Three simple steps to get funded
+          </motion.p>
           
-          <div className="steps-grid">
-            <div className="step-card">
+          <motion.div 
+            className="steps-grid"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">1</span>
               <span className="step-label">Step 1</span>
               <h3>Choose Challenge</h3>
               <p>Select a funding level that fits your trading style and risk appetite</p>
-            </div>
+            </motion.div>
             
-            <div className="step-card">
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">2</span>
               <span className="step-label">Step 2</span>
               <h3>Pass Evaluation</h3>
               <p>Demonstrate consistency, discipline, and risk control under real market conditions.</p>
-            </div>
+            </motion.div>
             
-            <div className="step-card">
+            <motion.div className="step-card" variants={fadeInUp}>
               <span className="step-number">3</span>
               <span className="step-label">Step 3</span>
               <h3>Get Funded</h3>
               <p>Trade with firm-backed capital and earn your share of the profits.</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/how-it-works')}>
+          <motion.button 
+            className="btn-secondary learn-more-btn" 
+            onClick={() => navigate('/how-it-works')}
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* Choose Your Challenge Section */}
+      <section className="challenges-preview-section">
+        <div className="section-container">
+          <motion.h2 
+            className="section-title"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            Choose Your Challenge
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            Select your path to funded trading
+          </motion.p>
+
+          <motion.div 
+            className="challenge-cards-grid"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            {challengeTiers.map((tier, index) => (
+              <motion.div 
+                key={index}
+                className={`challenge-preview-card ${tier.status === 'popular' ? 'popular' : ''} ${tier.status === 'coming' ? 'coming-soon' : ''}`}
+                variants={scaleIn}
+              >
+                {tier.status === 'popular' && <span className="popular-badge">Popular</span>}
+                {tier.status === 'coming' && <span className="coming-badge">Coming Soon</span>}
+                
+                <div className="challenge-size">{tier.size}</div>
+                <div className="challenge-price">{tier.price}</div>
+                
+                <div className="challenge-specs">
+                  <div className="spec-row">
+                    <span>Profit Target</span>
+                    <span>{tier.target}</span>
+                  </div>
+                  <div className="spec-row">
+                    <span>Max Drawdown</span>
+                    <span>{tier.maxDrawdown}</span>
+                  </div>
+                  <div className="spec-row">
+                    <span>Daily Limit</span>
+                    <span>{tier.dailyLimit}</span>
+                  </div>
+                  <div className="spec-row">
+                    <span>Profit Split</span>
+                    <span>80%</span>
+                  </div>
+                </div>
+
+                <button 
+                  className={`challenge-btn ${tier.status === 'coming' ? 'disabled' : ''}`}
+                  onClick={() => tier.status !== 'coming' && navigate('/challenges')}
+                  disabled={tier.status === 'coming'}
+                >
+                  {tier.status === 'coming' ? 'Coming Soon' : 'Start Challenge'}
+                </button>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.button 
+            className="btn-secondary learn-more-btn"
+            onClick={() => navigate('/challenges')}
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            View All Challenges
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* Trusted By Section */}
+      <section className="trusted-section">
+        <div className="section-container">
+          <motion.div 
+            className="trusted-content"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            <h2 className="trusted-title">Trusted by skilled traders worldwide</h2>
+            
+            <div className="trusted-stats">
+              <div className="stat-item">
+                <span className="stat-number">2.5k+</span>
+                <span className="stat-label">Funded Traders</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-number">$1.5M+</span>
+                <span className="stat-label">Total Payouts</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-number">15+</span>
+                <span className="stat-label">Countries Served</span>
+              </div>
+            </div>
+
+            <div className="trusted-avatars">
+              <div className="avatar-stack">
+                <div className="avatar">👤</div>
+                <div className="avatar">👤</div>
+                <div className="avatar">👤</div>
+                <div className="avatar">👤</div>
+                <div className="avatar">👤</div>
+              </div>
+              <span className="avatar-text">Join thousands of traders</span>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="faq-section">
         <div className="section-container">
-          <h2 className="section-title">Frequently Asked Questions</h2>
-          <p className="section-subtitle">
+          <motion.h2 
+            className="section-title"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            Frequently Asked Questions
+          </motion.h2>
+          <motion.p 
+            className="section-subtitle"
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
             Everything you need to know about how the platform works, funding, payouts, and trading rules—clearly explained before you get started.
-          </p>
+          </motion.p>
           
-          <div className="faq-list">
+          <motion.div 
+            className="faq-list"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
             {faqs.map((faq, index) => (
-              <div key={index} className="faq-item">
+              <motion.div key={index} className="faq-item" variants={fadeInUp}>
                 <button 
                   className="faq-question"
                   onClick={() => toggleFaq(index)}
@@ -205,16 +448,23 @@ function LandingPage() {
                     {faq.answer}
                   </div>
                 )}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
           
-          <button className="btn-secondary learn-more-btn" onClick={() => navigate('/faq')}>
+          <motion.button 
+            className="btn-secondary learn-more-btn" 
+            onClick={() => navigate('/faq')}
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             Learn More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
+          </motion.button>
         </div>
       </section>
     </>
