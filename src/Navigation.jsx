@@ -1,11 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
-import { useTheme } from './App'
+import { useContext, useState } from 'react'
+import { ThemeContext } from './App'
 
 function Navigation() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme } = useContext(ThemeContext)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navLinks = [
@@ -16,11 +16,12 @@ function Navigation() {
     { name: 'Leaderboard', path: '/leaderboard', disabled: true },
   ]
 
+  const isActive = (path) => location.pathname === path
+
   const handleNavClick = (path, disabled) => {
-    if (!disabled) {
-      navigate(path)
-      setMobileMenuOpen(false)
-    }
+    if (disabled) return
+    navigate(path)
+    setMobileMenuOpen(false)
   }
 
   return (
@@ -28,51 +29,51 @@ function Navigation() {
       <div className="nav-container">
         {/* Logo */}
         <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <img src="/images/logo.png" alt="IJGF" className="logo-img" />
+          <div className="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
         </div>
 
-        {/* Desktop Nav Links - Centered */}
-        <div className="nav-links-desktop">
+        {/* Desktop Navigation Links */}
+        <div className="nav-links">
           {navLinks.map((link) => (
-            <button
-              key={link.name}
-              className={`nav-link ${location.pathname === link.path ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
+            <a
+              key={link.path}
+              className={`nav-link ${isActive(link.path) ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
               onClick={() => handleNavClick(link.path, link.disabled)}
-              disabled={link.disabled}
             >
               {link.name}
-              {link.disabled && <span className="coming-soon-badge">Soon</span>}
-            </button>
+            </a>
           ))}
         </div>
 
-        {/* Right Side - Get Started + Theme Toggle */}
+        {/* Right Side: Theme Toggle + CTA */}
         <div className="nav-right">
-          <button className="get-started-btn" onClick={() => navigate('/waitlist')}>
-            Get Started
-          </button>
+          {/* Theme Toggle */}
           <button 
-            className="theme-toggle" 
+            className="theme-toggle-btn"
             onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'night' ? 'light' : 'dark'} mode`}
+            aria-label="Toggle theme"
           >
             {theme === 'night' ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
             )}
+          </button>
+
+          {/* Get Started Button */}
+          <button className="nav-cta-btn" onClick={() => navigate('/waitlist')}>
+            Get Started
           </button>
 
           {/* Mobile Menu Button */}
@@ -83,14 +84,11 @@ function Navigation() {
           >
             {mobileMenuOpen ? (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+                <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
             ) : (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
+                <path d="M3 12h18M3 6h18M3 18h18"/>
               </svg>
             )}
           </button>
@@ -100,24 +98,21 @@ function Navigation() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="mobile-menu">
-          <div className="mobile-menu-links">
-            {navLinks.map((link) => (
-              <button
-                key={link.name}
-                className={`mobile-nav-link ${location.pathname === link.path ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
-                onClick={() => handleNavClick(link.path, link.disabled)}
-                disabled={link.disabled}
-              >
-                {link.name}
-                {link.disabled && <span className="coming-soon-badge">Soon</span>}
-              </button>
-            ))}
-          </div>
-          <div className="mobile-menu-actions">
-            <button className="get-started-btn mobile" onClick={() => { navigate('/waitlist'); setMobileMenuOpen(false); }}>
-              Get Started
-            </button>
-          </div>
+          {navLinks.map((link) => (
+            <a
+              key={link.path}
+              className={`mobile-nav-link ${isActive(link.path) ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
+              onClick={() => handleNavClick(link.path, link.disabled)}
+            >
+              {link.name}
+            </a>
+          ))}
+          <button 
+            className="mobile-cta-btn" 
+            onClick={() => { navigate('/waitlist'); setMobileMenuOpen(false); }}
+          >
+            Get Started
+          </button>
         </div>
       )}
     </nav>
