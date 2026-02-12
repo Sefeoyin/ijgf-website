@@ -179,7 +179,7 @@ function LandingPage() {
         <div className="section-container">
           <h2 className="section-title">Choose Your Challenge</h2>
           <p className="section-subtitle">
-            Select a funding level that matches your skill level and goals. All challenges use the same straightforward evaluation criteria.
+            Select a funding level that matches your trading goals. All plans include our comprehensive evaluation system.
           </p>
           
           <div className="challenges-preview-grid">
@@ -187,27 +187,7 @@ function LandingPage() {
               <h3 className="challenge-preview-name">The $5k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$49.99</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row">
-                  <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$500</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$500</span>
-                </div>
-              </div>
-              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
-                Start Challenge
-              </button>
-            </div>
-
-            <div className="challenge-preview-card popular">
-              <span className="popular-badge">Popular</span>
-              <h3 className="challenge-preview-name">The $10k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$99.99</span>
+                <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
                 <div className="spec-row">
@@ -216,37 +196,179 @@ function LandingPage() {
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$750</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-value">$200</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Duration</span>
+                  <span className="spec-value">30 Days</span>
                 </div>
               </div>
               <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
                 Start Challenge
               </button>
+              <ul className="challenge-preview-features">
+                <li>✓ Real-time evaluation</li>
+                <li>✓ 24/7 support</li>
+                <li>✓ Unlimited retakes</li>
+                <li>✓ Fast approval process</li>
+              </ul>
+            </div>
+
+            <div className="challenge-preview-card popular">
+              <span className="popular-badge">Popular</span>
+              <h3 className="challenge-preview-name">The $10k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$99.99</span>
+                <span className="price-period">One time</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$2,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$1,250</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-value">$500</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Duration</span>
+                  <span className="spec-value">45 Days</span>
+                </div>
+              </div>
+              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
+                Start Challenge
+              </button>
+              <ul className="challenge-preview-features">
+                <li>✓ Real-time evaluation</li>
+                <li>✓ 24/7 support</li>
+                <li>✓ Unlimited retakes</li>
+                <li>✓ Fast approval process</li>
+                <li>✓ Priority review</li>
+              </ul>
             </div>
 
             <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $25k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$249.99</span>
+                <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
                 <div className="spec-row">
                   <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$2,500</span>
+                  <span className="spec-value">$1,000</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$1,500</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-value">$200</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Duration</span>
+                  <span className="spec-value">30 Days</span>
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
                 Coming Soon
               </button>
+              <ul className="challenge-preview-features">
+                <li>✓ Real-time evaluation</li>
+                <li>✓ 24/7 support</li>
+                <li>✓ Unlimited retakes</li>
+                <li>✓ Fast approval process</li>
+                <li>✓ Priority review</li>
+                <li>✓ Account Manager</li>
+              </ul>
+            </div>
+
+            <div className="challenge-preview-card disabled">
+              <h3 className="challenge-preview-name">The $50k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$249.99</span>
+                <span className="price-period">One time</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-value">$200</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Duration</span>
+                  <span className="spec-value">30 Days</span>
+                </div>
+              </div>
+              <button className="btn-coming-soon challenge-preview-btn" disabled>
+                Coming Soon
+              </button>
+              <ul className="challenge-preview-features">
+                <li>✓ Real-time evaluation</li>
+                <li>✓ 24/7 support</li>
+                <li>✓ Unlimited retakes</li>
+                <li>✓ Fast approval process</li>
+                <li>✓ Priority review</li>
+                <li>✓ Account Manager</li>
+              </ul>
+            </div>
+
+            <div className="challenge-preview-card disabled">
+              <h3 className="challenge-preview-name">The $100k Challenge</h3>
+              <div className="challenge-preview-price">
+                <span className="price">$999.99</span>
+                <span className="price-period">One time</span>
+              </div>
+              <div className="challenge-preview-specs">
+                <div className="spec-row">
+                  <span className="spec-label">Profit Target</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Max Drawdown</span>
+                  <span className="spec-value">$1,000</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-value">$200</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Duration</span>
+                  <span className="spec-value">30 Days</span>
+                </div>
+              </div>
+              <button className="btn-coming-soon challenge-preview-btn" disabled>
+                Coming Soon
+              </button>
+              <ul className="challenge-preview-features">
+                <li>✓ Real-time evaluation</li>
+                <li>✓ 24/7 support</li>
+                <li>✓ Unlimited retakes</li>
+                <li>✓ Fast approval process</li>
+                <li>✓ Priority review</li>
+                <li>✓ Account Manager</li>
+              </ul>
             </div>
           </div>
 
           <button className="btn-secondary learn-more-btn" onClick={() => navigate('/challenges')}>
-            View All Challenges
+            Show More
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -299,7 +421,7 @@ function LandingPage() {
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
+                  <span className="author-name">Marcus Chen</span>
                   <span className="author-role">$50k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
@@ -308,13 +430,13 @@ function LandingPage() {
 
             <div className="testimonial-card testimonial-purple">
               <p className="testimonial-text">
-                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+                Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
-                  <span className="author-role">$50k Trader</span>
+                  <span className="author-name">Sarah Martinez</span>
+                  <span className="author-role">$25k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
               </div>
@@ -322,13 +444,13 @@ function LandingPage() {
 
             <div className="testimonial-card">
               <p className="testimonial-text">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices, elit eget iaculis massa ex purus, Donec sed tellus molestie, bibendum ex sed, venenatis leo. Cras nisl erat, aliquam et sapien nec, venenatis metus.
+                I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
-                  <span className="author-role">$50k Trader</span>
+                  <span className="author-name">James Wilson</span>
+                  <span className="author-role">$100k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
               </div>
@@ -337,13 +459,13 @@ function LandingPage() {
             {/* Row 2 */}
             <div className="testimonial-card">
               <p className="testimonial-text">
-                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+                As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
-                  <span className="author-role">$50k Trader</span>
+                  <span className="author-name">Ahmed Hassan</span>
+                  <span className="author-role">$10k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
               </div>
@@ -351,12 +473,12 @@ function LandingPage() {
 
             <div className="testimonial-card testimonial-purple">
               <p className="testimonial-text">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices, elit eget iacullis massa ex purus, Donec sed tellus molestie, bibendum ex sed, venenatis leo. Cras nisl erat, aliquam et sapien nec, venenatis metus. Sed egestas vehicula sem sit amet aliquam. Vivamus mi augue.
+                The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
+                  <span className="author-name">Emily Rodriguez</span>
                   <span className="author-role">$50k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
@@ -365,28 +487,13 @@ function LandingPage() {
 
             <div className="testimonial-card">
               <p className="testimonial-text">
-                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+                Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.
               </p>
               <div className="testimonial-author">
                 <div className="author-avatar"></div>
                 <div className="author-info">
-                  <span className="author-name">David J.</span>
-                  <span className="author-role">$50k Trader</span>
-                  <div className="author-rating">★★★★★</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3 */}
-            <div className="testimonial-card">
-              <p className="testimonial-text">
-                Lorem ipsum dolor sit amet, consectetur adipiscing.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-avatar"></div>
-                <div className="author-info">
-                  <span className="author-name">David J.</span>
-                  <span className="author-role">$50k Trader</span>
+                  <span className="author-name">Thomas Kim</span>
+                  <span className="author-role">$25k Trader</span>
                   <div className="author-rating">★★★★★</div>
                 </div>
               </div>
