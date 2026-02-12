@@ -679,36 +679,144 @@ body[data-theme="day"] .btn-secondary:hover {
    ========================================== */
 .trusted-section {
   padding: 100px 2rem;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
 }
 
-.trusted-stats {
-  display: flex;
-  justify-content: center;
-  gap: 8rem;
-  margin-top: 4rem;
+.trusted-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+  margin-bottom: 4rem;
 }
 
-.trusted-stat {
-  text-align: center;
+.trusted-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+.trusted-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.stat-card-content {
+  position: relative;
+  z-index: 1;
 }
 
 .trusted-stat-value {
   display: block;
   font-size: 3.5rem;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.1;
 }
 
-.trusted-stat-label {
+.trusted-stat-title {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.trusted-stat-desc {
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Testimonials Grid */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.testimonial-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+}
+
+.testimonial-purple {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%);
+  border-color: var(--border-accent);
+}
+
+.testimonial-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.author-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+  border: 2px solid var(--border-accent);
+  flex-shrink: 0;
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.author-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.author-role {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.author-rating {
+  color: #FFA500;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
 }
 
 /* ==========================================
@@ -1973,7 +2081,9 @@ body[data-theme="day"] .auth-google-btn:hover {
 .footer-logo-img {
   height: 40px;
   width: auto;
+  max-width: 40px;
   display: block;
+  object-fit: contain;
 }
 
 .footer-tagline {
@@ -2123,9 +2233,14 @@ body[data-theme="day"] .auth-google-btn:hover {
   }
 
   /* Trusted Stats */
-  .trusted-stats {
-    flex-direction: column;
-    gap: 3rem;
+  .trusted-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
   
   /* About */
@@ -2160,8 +2275,12 @@ body[data-theme="day"] .auth-google-btn:hover {
   }
 
   /* Trusted Stats */
-  .trusted-stats {
-    gap: 4rem;
+  .trusted-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .testimonials-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   
   /* Footer */

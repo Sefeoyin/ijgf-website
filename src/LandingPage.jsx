@@ -259,21 +259,137 @@ function LandingPage() {
         <div className="section-container">
           <h2 className="section-title">Trusted by Skilled Traders Worldwide</h2>
           <p className="section-subtitle">
-            Real traders, real capital, real results. Join thousands who have already funded their trading careers through IJGF.
+            Real capital deployment, consistent payouts, and a growing global network of disciplined crypto traders.
           </p>
 
-          <div className="trusted-stats">
-            <div className="trusted-stat">
-              <span className="trusted-stat-value">2.5k+</span>
-              <span className="trusted-stat-label">Funded Traders</span>
+          {/* Stats Cards with Background Graphics */}
+          <div className="trusted-stats-grid">
+            <div className="trusted-stat-card">
+              <div className="stat-card-content">
+                <span className="trusted-stat-value">2.5k+</span>
+                <span className="trusted-stat-title">Total Traders Funded</span>
+                <p className="trusted-stat-desc">Number of traders currently trading with firm-backed capital after passing evaluation.</p>
+              </div>
             </div>
-            <div className="trusted-stat">
-              <span className="trusted-stat-value">$1.5M+</span>
-              <span className="trusted-stat-label">Total Payouts</span>
+            
+            <div className="trusted-stat-card">
+              <div className="stat-card-content">
+                <span className="trusted-stat-value">$1.5M+</span>
+                <span className="trusted-stat-title">Total Payouts</span>
+                <p className="trusted-stat-desc">Cumulative profits paid out to funded traders across all accounts.</p>
+              </div>
             </div>
-            <div className="trusted-stat">
-              <span className="trusted-stat-value">15</span>
-              <span className="trusted-stat-label">Countries Served</span>
+            
+            <div className="trusted-stat-card">
+              <div className="stat-card-content">
+                <span className="trusted-stat-value">15</span>
+                <span className="trusted-stat-title">Countries</span>
+                <p className="trusted-stat-desc">Active traders participating from across the world.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonials Grid */}
+          <div className="testimonials-grid">
+            {/* Row 1 */}
+            <div className="testimonial-card">
+              <p className="testimonial-text">
+                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="testimonial-card testimonial-purple">
+              <p className="testimonial-text">
+                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="testimonial-card">
+              <p className="testimonial-text">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices, elit eget iaculis massa ex purus, Donec sed tellus molestie, bibendum ex sed, venenatis leo. Cras nisl erat, aliquam et sapien nec, venenatis metus.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="testimonial-card">
+              <p className="testimonial-text">
+                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="testimonial-card testimonial-purple">
+              <p className="testimonial-text">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ultrices, elit eget iacullis massa ex purus, Donec sed tellus molestie, bibendum ex sed, venenatis leo. Cras nisl erat, aliquam et sapien nec, venenatis metus. Sed egestas vehicula sem sit amet aliquam. Vivamus mi augue.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="testimonial-card">
+              <p className="testimonial-text">
+                The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups—and the funding followed.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="testimonial-card">
+              <p className="testimonial-text">
+                Lorem ipsum dolor sit amet, consectetur adipiscing.
+              </p>
+              <div className="testimonial-author">
+                <div className="author-avatar"></div>
+                <div className="author-info">
+                  <span className="author-name">David J.</span>
+                  <span className="author-role">$50k Trader</span>
+                  <div className="author-rating">★★★★★</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
