@@ -3,14 +3,12 @@ import Footer from "./Footer";
 
 export default function Layout({ children }) {
   return (
-    <div className="layout">
+    <div className="site">
 
       <Navigation />
 
-      <main className="main-content">
-        <div className="content-container">
-          {children}
-        </div>
+      <main className="main">
+        {children}
       </main>
 
       <Footer />

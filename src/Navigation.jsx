@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function Navigation() {
 
@@ -14,11 +14,21 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="nav">
+
+    <header className="header">
 
       <div className="nav-container">
 
-        <Link to="/" className="logo">
+        <Link to="/" className="brand">
+
+          <img
+            src={
+              theme === "dark"
+                ? "/images/logo-icon.png"
+                : "/images/logo-icon-dark.png"
+            }
+            className="brand-icon"
+          />
 
           <img
             src={
@@ -26,12 +36,13 @@ export default function Navigation() {
                 ? "/images/logo.png"
                 : "/images/logo-dark.png"
             }
-            className="logo-img"
+            className="brand-text"
           />
 
         </Link>
 
-        <div className="nav-links">
+
+        <nav className="nav-links">
 
           <Link to="/">Home</Link>
 
@@ -41,32 +52,19 @@ export default function Navigation() {
 
           <Link to="/challenges">Challenges</Link>
 
-        </div>
+        </nav>
 
-        <div className="nav-right">
+
+        <div className="nav-actions">
 
           <button
-            className="theme-toggle"
             onClick={toggleTheme}
+            className="theme-btn"
           >
-
-            {theme === "dark" ? (
-
-              <svg width="20" height="20">
-                <circle cx="10" cy="10" r="4" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-
-            ) : (
-
-              <svg width="20" height="20">
-                <path d="M10 2a8 8 0 1 0 8 8 6 6 0 0 1-8-8z" fill="currentColor"/>
-              </svg>
-
-            )}
-
+            {theme === "dark" ? "☀" : "🌙"}
           </button>
 
-          <button className="get-started">
+          <button className="cta">
             Get Started
           </button>
 
@@ -74,6 +72,7 @@ export default function Navigation() {
 
       </div>
 
-    </nav>
+    </header>
+
   );
 }
