@@ -30,7 +30,7 @@ function Navigation() {
         {/* Logo */}
         <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <img 
-            src={theme === 'night' ? '/images/logo-icon.png' : '/images/logo-icon-dark.png'} 
+            src="/images/logo-icon.png" 
             alt="IJGF Logo" 
             className="logo-img"
           />

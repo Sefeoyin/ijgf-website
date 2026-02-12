@@ -17,7 +17,7 @@ function Footer() {
       <div className="footer-container">
         <div className="footer-brand">
           <img 
-            src={theme === 'night' ? '/images/logo-icon.png' : '/images/logo-icon-dark.png'} 
+            src="/images/logo-icon.png" 
             alt="IJGF Logo" 
             className="footer-logo-img"
           />
