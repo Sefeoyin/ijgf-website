@@ -740,9 +740,36 @@ body[data-theme="day"] .step-card p {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  gap: 0;
   min-height: 650px;
+}
+
+/* Grid row assignments for challenge preview card */
+.challenge-preview-card > h3 {
+  grid-row: 1;
+}
+
+.challenge-preview-card > .challenge-preview-price {
+  grid-row: 2;
+}
+
+.challenge-preview-card > .challenge-preview-specs {
+  grid-row: 3;
+}
+
+.challenge-preview-card > .challenge-preview-btn {
+  grid-row: 5;
+  align-self: end;
+}
+
+.challenge-preview-card > .challenge-details-toggle {
+  grid-row: 6;
+}
+
+.challenge-preview-card > .challenge-preview-features {
+  grid-row: 7;
 }
 
 .challenge-preview-card:hover:not(.disabled) {
@@ -791,8 +818,7 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-specs {
-  flex: 1;
-  margin-bottom: 0;
+  margin-bottom: 1.5rem;
 }
 
 .challenge-preview-btn {
@@ -802,7 +828,6 @@ body[data-theme="day"] .step-card p {
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  margin-top: auto;
 }
 
 .challenge-details-toggle {
@@ -1483,9 +1508,32 @@ body[data-theme="day"] .faq-item {
   padding: 1.75rem;
   position: relative;
   transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  gap: 0;
   min-height: 650px;
+}
+
+/* Grid row assignments for challenge card */
+.challenge-card > .challenge-name {
+  grid-row: 1;
+}
+
+.challenge-card > .challenge-price {
+  grid-row: 2;
+}
+
+.challenge-card > .challenge-specs {
+  grid-row: 3;
+}
+
+.challenge-card > .challenge-btn {
+  grid-row: 5;
+  align-self: end;
+}
+
+.challenge-card > .challenge-features {
+  grid-row: 6;
 }
 
 .challenge-card:hover:not(.disabled) {
@@ -1543,8 +1591,7 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-specs {
-  flex: 1;
-  margin-bottom: 0;
+  margin-bottom: 1.5rem;
 }
 
 .spec-row {
@@ -1576,7 +1623,6 @@ body[data-theme="day"] .faq-item {
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 1.5rem;
-  margin-top: auto;
   transition: all 0.2s;
 }
 
