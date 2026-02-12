@@ -6,6 +6,7 @@ function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
+  const [expandedChallenge, setExpandedChallenge] = useState(null)
   const testimonialRef = useRef(null)
 
   const testimonials = [
@@ -70,6 +71,10 @@ function LandingPage() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index)
+  }
+
+  const toggleChallengeDetails = (index) => {
+    setExpandedChallenge(expandedChallenge === index ? null : index)
   }
 
   const faqs = [
@@ -273,7 +278,16 @@ function LandingPage() {
               <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
                 Start Challenge
               </button>
-              <ul className="challenge-preview-features">
+              <button 
+                className={`challenge-details-toggle ${expandedChallenge === 0 ? 'expanded' : ''}`}
+                onClick={() => toggleChallengeDetails(0)}
+              >
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <ul className={`challenge-preview-features ${expandedChallenge === 0 ? 'expanded' : ''}`}>
                 <li>✓ Real-time evaluation</li>
                 <li>✓ 24/7 support</li>
                 <li>✓ Unlimited retakes</li>
@@ -309,7 +323,16 @@ function LandingPage() {
               <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/challenges')}>
                 Start Challenge
               </button>
-              <ul className="challenge-preview-features">
+              <button 
+                className={`challenge-details-toggle ${expandedChallenge === 1 ? 'expanded' : ''}`}
+                onClick={() => toggleChallengeDetails(1)}
+              >
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <ul className={`challenge-preview-features ${expandedChallenge === 1 ? 'expanded' : ''}`}>
                 <li>✓ Real-time evaluation</li>
                 <li>✓ 24/7 support</li>
                 <li>✓ Unlimited retakes</li>
@@ -343,7 +366,14 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
+              </button>
+              <button className="challenge-details-toggle" disabled>
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
               <ul className="challenge-preview-features">
                 <li>✓ Real-time evaluation</li>
@@ -380,7 +410,14 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
+              </button>
+              <button className="challenge-details-toggle" disabled>
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
               <ul className="challenge-preview-features">
                 <li>✓ Real-time evaluation</li>
@@ -417,7 +454,14 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
+              </button>
+              <button className="challenge-details-toggle" disabled>
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
               <ul className="challenge-preview-features">
                 <li>✓ Real-time evaluation</li>

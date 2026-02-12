@@ -255,6 +255,16 @@ body[data-theme="day"] .logo-icon {
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }
 
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
 /* Mobile Menu Button */
 .mobile-menu-btn {
   display: none;
@@ -732,6 +742,7 @@ body[data-theme="day"] .step-card p {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
+  min-height: 500px;
 }
 
 .challenge-preview-card:hover:not(.disabled) {
@@ -741,7 +752,14 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-card.disabled {
-  opacity: 0.5;
+  opacity: 1;
+}
+
+.challenge-preview-card.disabled .challenge-preview-specs,
+.challenge-preview-card.disabled .challenge-preview-features {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
 }
 
 .challenge-preview-card.popular {
@@ -773,8 +791,8 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-specs {
-  margin-bottom: 1.5rem;
-  flex: 1;
+  margin-bottom: auto;
+  flex: 0 0 auto;
 }
 
 .challenge-preview-btn {
@@ -784,6 +802,11 @@ body[data-theme="day"] .step-card p {
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
+  margin-top: auto;
+}
+
+.challenge-details-toggle {
+  display: none;
 }
 
 .challenge-preview-features {
@@ -1850,7 +1873,7 @@ body[data-theme="day"] .auth-google-btn:hover {
 .waitlist-icon {
   width: 64px;
   height: 64px;
-  background: var(--bg-card);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid var(--border-accent);
   border-radius: 12px;
   display: flex;
@@ -1858,6 +1881,17 @@ body[data-theme="day"] .auth-google-btn:hover {
   justify-content: center;
   margin: 0 auto 2rem;
   padding: 12px;
+  transition: background 0.3s ease;
+}
+
+body[data-theme="day"] .waitlist-icon {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.waitlist-logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .waitlist-title {
@@ -2751,6 +2785,52 @@ body[data-theme="day"] .footer {
     flex-shrink: 0;
     scroll-snap-align: center;
     margin: 0;
+    min-height: auto;
+  }
+
+  /* Mobile: Collapsible Challenge Details */
+  .challenge-details-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--accent-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.75rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .challenge-details-toggle:hover {
+    color: var(--text-primary);
+  }
+
+  .challenge-details-toggle svg {
+    transition: transform 0.3s ease;
+  }
+
+  .challenge-details-toggle.expanded svg {
+    transform: rotate(180deg);
+  }
+
+  .challenge-preview-features {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .challenge-preview-features.expanded {
+    max-height: 300px;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    margin-top: 0.5rem;
   }
 
   .learn-more-btn {
