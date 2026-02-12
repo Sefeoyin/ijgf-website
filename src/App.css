@@ -740,36 +740,8 @@ body[data-theme="day"] .step-card p {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  display: grid;
-  grid-template-rows: auto auto auto 1fr auto auto;
-  gap: 0;
-  min-height: 650px;
-}
-
-/* Grid row assignments for challenge preview card */
-.challenge-preview-card > h3 {
-  grid-row: 1;
-}
-
-.challenge-preview-card > .challenge-preview-price {
-  grid-row: 2;
-}
-
-.challenge-preview-card > .challenge-preview-specs {
-  grid-row: 3;
-}
-
-.challenge-preview-card > .challenge-preview-btn {
-  grid-row: 5;
-  align-self: end;
-}
-
-.challenge-preview-card > .challenge-details-toggle {
-  grid-row: 6;
-}
-
-.challenge-preview-card > .challenge-preview-features {
-  grid-row: 7;
+  display: flex;
+  flex-direction: column;
 }
 
 .challenge-preview-card:hover:not(.disabled) {
@@ -798,10 +770,12 @@ body[data-theme="day"] .step-card p {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
+  min-height: 2.2rem;
 }
 
 .challenge-preview-price {
   margin-bottom: 1.5rem;
+  min-height: 4rem;
 }
 
 .challenge-preview-price .price {
@@ -819,6 +793,7 @@ body[data-theme="day"] .step-card p {
 
 .challenge-preview-specs {
   margin-bottom: 1.5rem;
+  min-height: 180px;
 }
 
 .challenge-preview-btn {
@@ -828,6 +803,7 @@ body[data-theme="day"] .step-card p {
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
+  margin-top: auto;
 }
 
 .challenge-details-toggle {
@@ -1508,32 +1484,8 @@ body[data-theme="day"] .faq-item {
   padding: 1.75rem;
   position: relative;
   transition: all 0.2s;
-  display: grid;
-  grid-template-rows: auto auto auto 1fr auto auto;
-  gap: 0;
-  min-height: 650px;
-}
-
-/* Grid row assignments for challenge card */
-.challenge-card > .challenge-name {
-  grid-row: 1;
-}
-
-.challenge-card > .challenge-price {
-  grid-row: 2;
-}
-
-.challenge-card > .challenge-specs {
-  grid-row: 3;
-}
-
-.challenge-card > .challenge-btn {
-  grid-row: 5;
-  align-self: end;
-}
-
-.challenge-card > .challenge-features {
-  grid-row: 6;
+  display: flex;
+  flex-direction: column;
 }
 
 .challenge-card:hover:not(.disabled) {
@@ -1567,16 +1519,19 @@ body[data-theme="day"] .faq-item {
   font-weight: 600;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
+  z-index: 10;
 }
 
 .challenge-name {
   font-size: 0.95rem;
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
+  min-height: 1.5rem;
 }
 
 .challenge-price {
   margin-bottom: 1.5rem;
+  min-height: 3.5rem;
 }
 
 .challenge-price .price {
@@ -1592,6 +1547,7 @@ body[data-theme="day"] .faq-item {
 
 .challenge-specs {
   margin-bottom: 1.5rem;
+  min-height: 180px;
 }
 
 .spec-row {
@@ -1623,6 +1579,7 @@ body[data-theme="day"] .faq-item {
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 1.5rem;
+  margin-top: auto;
   transition: all 0.2s;
 }
 
