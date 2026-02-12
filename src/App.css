@@ -144,6 +144,14 @@ body[data-theme="day"] .nav {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+body[data-theme="day"] .logo {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
 }
 
 .logo-icon {
@@ -165,9 +173,10 @@ body[data-theme="day"] .logo-icon {
 }
 
 .logo-img {
-  height: 36px;
+  height: 32px;
   width: auto;
   display: block;
+  object-fit: contain;
 }
 
 /* Nav Links */
@@ -1379,13 +1388,14 @@ body[data-theme="day"] .faq-item {
    Challenges Page
    ========================================== */
 .challenges-page {
-  padding: 140px 2rem 100px;
+  padding: 140px 1rem 100px;
   min-height: 100vh;
   background: var(--bg-primary);
 }
 
 .challenges-page .section-container {
   max-width: 1600px;
+  padding: 0 1rem;
 }
 
 .challenges-header {
@@ -1440,7 +1450,7 @@ body[data-theme="day"] .faq-item {
 .challenges-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
 .challenge-card {
