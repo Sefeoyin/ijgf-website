@@ -58,99 +58,113 @@ function AnimatedRoutes() {
     }
   }
 
+  // Check if current page is an auth page or dashboard
+  const isAuthPage = ['/signup', '/login', '/profile-setup', '/dashboard'].includes(location.pathname)
+
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route 
-          path="/" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <LandingPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/waitlist" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <WaitlistPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/share-story" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <ShareStoryPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/faq" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <FAQPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/about" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <AboutUsPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/how-it-works" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <HowItWorksPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/challenges" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <ChallengesPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/signup" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <AuthPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/login" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <AuthPage />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <Dashboard />
-            </motion.div>
-          } 
-        />
-        <Route 
-          path="/profile-setup" 
-          element={
-            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <ProfileSetup />
-            </motion.div>
-          } 
-        />
-      </Routes>
-    </AnimatePresence>
+    <>
+      {/* Only show Navigation on non-auth pages */}
+      {!isAuthPage && <Navigation />}
+      
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route 
+            path="/" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <LandingPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/waitlist" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <WaitlistPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/share-story" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <ShareStoryPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/faq" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <FAQPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/about" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <AboutUsPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/how-it-works" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <HowItWorksPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/challenges" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <ChallengesPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/signup" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <AuthPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/login" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <AuthPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <Dashboard />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/profile-setup" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <ProfileSetup />
+              </motion.div>
+            } 
+          />
+        </Routes>
+      </AnimatePresence>
+
+      {/* Only show Footer on non-auth pages */}
+      {!isAuthPage && <Footer />}
+      
+      {/* Only show Back to Top on non-auth pages */}
+      {!isAuthPage && <BackToTop />}
+    </>
   )
 }
 
@@ -174,10 +188,7 @@ function App() {
       <Router>
         <ScrollToTop />
         <div className="App">
-          <Navigation />
           <AnimatedRoutes />
-          <Footer />
-          <BackToTop />
         </div>
       </Router>
     </ThemeContext.Provider>

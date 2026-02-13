@@ -60,6 +60,16 @@ function ProfilePage({ isSetup = false }) {
 
   return (
     <div className="profile-page">
+      {/* Logo Header for Profile Setup */}
+      {isSetup && (
+        <div className="auth-logo-header">
+          <a href="/" className="auth-logo-link">
+            <img src="/images/logo-icon.png" alt="IJGF" className="auth-logo-icon" />
+            <span className="auth-logo-text">IJGF</span>
+          </a>
+        </div>
+      )}
+      
       <div className="profile-container">
         <h1 className="profile-title">Setup your profile</h1>
 

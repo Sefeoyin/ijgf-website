@@ -326,10 +326,40 @@ body[data-theme="day"] .back-to-top:hover {
 .auth-page-new {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 2rem;
   background: linear-gradient(180deg, rgba(124, 58, 237, 0.05) 0%, transparent 50%, rgba(124, 58, 237, 0.08) 100%);
+}
+
+.auth-logo-header {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+}
+
+.auth-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.auth-logo-link:hover {
+  opacity: 0.8;
+}
+
+.auth-logo-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.auth-logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .auth-container-new {
@@ -521,6 +551,11 @@ body[data-theme="day"] .back-to-top:hover {
   padding: 2rem;
   max-width: 900px;
   margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .profile-container {
