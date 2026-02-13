@@ -2950,6 +2950,39 @@ body[data-theme="day"] .footer {
     scroll-snap-align: center;
     margin: 0;
     min-height: auto;
+    height: auto;
+    padding: 1.5rem;
+    position: relative;
+  }
+
+  .challenge-preview-name {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .challenge-preview-price {
+    margin-bottom: 1.25rem;
+  }
+
+  .challenge-preview-specs {
+    margin-bottom: 0;
+  }
+
+  .challenge-preview-btn {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    margin-top: 1.5rem;
+  }
+
+  .challenge-preview-features {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-top: 0;
   }
 
   /* Mobile: Collapsible Challenge Details */
@@ -2966,7 +2999,7 @@ body[data-theme="day"] .footer {
     font-weight: 600;
     padding: 0.75rem;
     cursor: pointer;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
     transition: all 0.2s;
   }
 
@@ -2988,13 +3021,23 @@ body[data-theme="day"] .footer {
     transition: max-height 0.3s ease;
     padding-top: 0;
     border-top: none;
+    margin-top: 0;
+    list-style: none;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .challenge-preview-features.expanded {
     max-height: 300px;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .challenge-preview-features li {
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
   }
 
   .learn-more-btn {
