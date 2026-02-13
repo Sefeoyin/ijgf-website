@@ -11,6 +11,7 @@ import AboutUsPage from './AboutUsPage'
 import HowItWorksPage from './HowItWorksPage'
 import ChallengesPage from './ChallengesPage'
 import AuthPage from './AuthPage'
+import BackToTop from './BackToTop'
 import { useScrollAnimation, useMouseTracking } from './useScrollAnimation'
 import './App.css'
 
@@ -158,6 +159,7 @@ function App() {
           <Navigation />
           <AnimatedRoutes />
           <Footer />
+          <BackToTop />
         </div>
       </Router>
     </ThemeContext.Provider>
