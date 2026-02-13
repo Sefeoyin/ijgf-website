@@ -862,7 +862,7 @@ body[data-theme="day"] .step-card p {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  height: 580px;
+  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -938,7 +938,7 @@ body[data-theme="day"] .step-card p {
 
 .challenge-preview-features {
   position: absolute;
-  top: calc(580px - 265px + 1rem);
+  top: calc(650px - 265px + 1rem);
   left: 1.5rem;
   right: 1.5rem;
   list-style: none;
@@ -1614,7 +1614,7 @@ body[data-theme="day"] .faq-item {
   padding: 1.75rem;
   position: relative;
   transition: all 0.2s;
-  height: 580px;
+  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -1726,7 +1726,7 @@ body[data-theme="day"] .faq-item {
 
 .challenge-features {
   position: absolute;
-  top: calc(580px - 265px + 0.85rem);
+  top: calc(650px - 265px + 0.85rem);
   left: 1.75rem;
   right: 1.75rem;
   list-style: none;
