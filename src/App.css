@@ -917,7 +917,7 @@ body[data-theme="day"] .step-card p {
 }
 
 .challenge-preview-specs {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .challenge-preview-btn {
@@ -1679,7 +1679,7 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-specs {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .spec-row {
@@ -2752,6 +2752,29 @@ body[data-theme="day"] .footer {
   .challenge-card {
     max-width: 400px;
     margin: 0 auto;
+    height: auto;
+    padding: 1.5rem;
+  }
+
+  .challenge-specs {
+    margin-bottom: 0;
+  }
+
+  .challenge-btn {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    margin-top: 0.75rem;
+  }
+
+  .challenge-features {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-top: 0.75rem;
   }
   
   /* Waitlist */
@@ -2974,7 +2997,7 @@ body[data-theme="day"] .footer {
     left: auto;
     right: auto;
     width: 100%;
-    margin-top: 1.5rem;
+    margin-top: 0.75rem;
   }
 
   .challenge-preview-features {
