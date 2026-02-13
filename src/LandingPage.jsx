@@ -179,24 +179,24 @@ function LandingPage() {
           </p>
           
           <div className="benefits-grid">
-            <div className="benefit-card scroll-animate-scale dark-card">
+            <div className="benefit-card dark-card">
               <img src="/images/tdesign_secured-filled.png" alt="VARA Regulated" className="benefit-icon" />
               <h3>VARA Regulated & Compliant</h3>
               <p>Built to meet VARA regulatory standards, ensuring a secure, transparent, and compliant trading environment you can trust.</p>
             </div>
             
-            <div className="benefit-card scroll-animate-scale purple-card">
+            <div className="benefit-card purple-card">
               <h3>Real Capital Deployment</h3>
               <p>Trade with actual firm capital once you qualify. No paper trading, no simulations. Your decisions impact real positions, real markets, and real payouts.</p>
               <img src="/images/capital_1.png" alt="Real Capital" className="benefit-illustration" />
             </div>
             
-            <div className="benefit-card scroll-animate-scale dark-card">
+            <div className="benefit-card dark-card">
               <h3>Up to 80% Profit Split</h3>
               <p>Keep the majority of what you earn. Our profit-sharing model is designed to reward skill, consistency, and long-term performance.</p>
             </div>
             
-            <div className="benefit-card scroll-animate-scale dark-card">
+            <div className="benefit-card dark-card">
               <h3>No Time Limits on Challenges</h3>
               <p>Trade at your own pace without pressure. Focus on proper risk management and strategy execution. No forced timelines, no rushed decisions.</p>
             </div>
@@ -211,21 +211,21 @@ function LandingPage() {
           <p className="section-subtitle">Three simple steps to get funded</p>
           
           <div className="steps-grid">
-            <div className="step-card scroll-animate-scale">
+            <div className="step-card">
               <span className="step-number">1</span>
               <span className="step-label">Step 1</span>
               <h3>Choose Challenge</h3>
               <p>Select a funding level that fits your trading style and risk appetite</p>
             </div>
             
-            <div className="step-card scroll-animate-scale">
+            <div className="step-card">
               <span className="step-number">2</span>
               <span className="step-label">Step 2</span>
               <h3>Pass Evaluation</h3>
               <p>Demonstrate consistency, discipline, and risk control under real market conditions.</p>
             </div>
             
-            <div className="step-card scroll-animate-scale">
+            <div className="step-card">
               <span className="step-number">3</span>
               <span className="step-label">Step 3</span>
               <h3>Get Funded</h3>
@@ -251,7 +251,7 @@ function LandingPage() {
           </p>
           
           <div className="challenges-preview-grid">
-            <div className="challenge-preview-card scroll-animate-scale">
+            <div className="challenge-preview-card">
               <h3 className="challenge-preview-name">The $5k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$49</span>
@@ -295,7 +295,7 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card scroll-animate-scale popular">
+            <div className="challenge-preview-card popular">
               <span className="popular-badge">Popular</span>
               <h3 className="challenge-preview-name">The $10k Challenge</h3>
               <div className="challenge-preview-price">
@@ -341,7 +341,7 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card scroll-animate-scale disabled">
+            <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $25k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$249</span>
@@ -385,7 +385,7 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card scroll-animate-scale disabled">
+            <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $50k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$499</span>
@@ -429,7 +429,7 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card scroll-animate-scale disabled">
+            <div className="challenge-preview-card disabled">
               <h3 className="challenge-preview-name">The $100k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$999</span>
@@ -493,7 +493,7 @@ function LandingPage() {
 
           {/* Stats Cards with Background Graphics */}
           <div className="trusted-stats-grid">
-            <div className="trusted-stat-card scroll-animate">
+            <div className="trusted-stat-card">
               <div className="stat-card-content">
                 <span className="trusted-stat-value">2.5k+</span>
                 <span className="trusted-stat-title">Total Traders Funded</span>
@@ -501,7 +501,7 @@ function LandingPage() {
               </div>
             </div>
             
-            <div className="trusted-stat-card scroll-animate">
+            <div className="trusted-stat-card">
               <div className="stat-card-content">
                 <span className="trusted-stat-value">$1.5M+</span>
                 <span className="trusted-stat-title">Total Payouts</span>
@@ -509,7 +509,7 @@ function LandingPage() {
               </div>
             </div>
             
-            <div className="trusted-stat-card scroll-animate">
+            <div className="trusted-stat-card">
               <div className="stat-card-content">
                 <span className="trusted-stat-value">15</span>
                 <span className="trusted-stat-title">Countries</span>
@@ -549,7 +549,7 @@ function LandingPage() {
             </div>
           ) : (
             <div className="testimonials-grid">
-              <div className="testimonial-card scroll-animate-left>
+              <div className="testimonial-card">
                 <p className="testimonial-text">
                   The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.
                 </p>
@@ -563,7 +563,7 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="testimonial-card testimonial-purple scroll-animate-right">
+              <div className="testimonial-card testimonial-purple">
                 <p className="testimonial-text">
                   Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.
                 </p>
@@ -577,7 +577,7 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="testimonial-card scroll-animate-left>
+              <div className="testimonial-card">
                 <p className="testimonial-text">
                   I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.
                 </p>
@@ -591,7 +591,7 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="testimonial-card scroll-animate-left>
+              <div className="testimonial-card">
                 <p className="testimonial-text">
                   As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.
                 </p>
@@ -605,7 +605,7 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="testimonial-card testimonial-purple scroll-animate-right">
+              <div className="testimonial-card testimonial-purple">
                 <p className="testimonial-text">
                   The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.
                 </p>
@@ -619,7 +619,7 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="testimonial-card scroll-animate-left>
+              <div className="testimonial-card">
                 <p className="testimonial-text">
                   Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.
                 </p>
