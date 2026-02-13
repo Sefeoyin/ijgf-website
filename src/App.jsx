@@ -11,6 +11,7 @@ import AboutUsPage from './AboutUsPage'
 import HowItWorksPage from './HowItWorksPage'
 import ChallengesPage from './ChallengesPage'
 import AuthPage from './AuthPage'
+import { useScrollAnimation, useMouseTracking } from './useScrollAnimation'
 import './App.css'
 
 // Create theme context
@@ -136,6 +137,10 @@ function AnimatedRoutes() {
 
 function App() {
   const [theme, setTheme] = useState('night') // night is default
+
+  // Initialize scroll animations and mouse tracking
+  useScrollAnimation()
+  useMouseTracking()
 
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'night' ? 'day' : 'night')
