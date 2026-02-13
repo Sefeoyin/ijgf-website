@@ -18,13 +18,41 @@ export function useScrollAnimation() {
 
     // Wait for DOM to be ready
     setTimeout(() => {
+      // Section titles and subtitles - elegant fade in from top
+      const sectionTitles = document.querySelectorAll('.section-title, .hero-title, .about-hero-title, .challenges-title, .how-page-title, .faq-page-title, .waitlist-title, .share-story-title, .story-title, .about-section-title, .how-section-title')
+      const sectionSubtitles = document.querySelectorAll('.section-subtitle, .hero-subtitle, .about-hero-subtitle, .challenges-subtitle, .how-page-subtitle, .faq-page-subtitle, .waitlist-subtitle, .share-story-description, .story-subtitle')
+      
+      // Page-specific headers
+      const pageHeaders = document.querySelectorAll('.about-hero, .challenges-header, .how-page-header, .faq-page-header, .auth-header')
+      
       // Auto-detect and add scroll-animate classes
       const benefitCards = document.querySelectorAll('.benefit-card')
       const stepCards = document.querySelectorAll('.step-card')
       const challengeCards = document.querySelectorAll('.challenge-preview-card, .challenge-card')
       const testimonialCards = document.querySelectorAll('.testimonial-card')
-      const statCards = document.querySelectorAll('.trusted-stat-card')
+      const statCards = document.querySelectorAll('.trusted-stat-card, .about-stat')
       const faqItems = document.querySelectorAll('.faq-item')
+      const featureCards = document.querySelectorAll('.about-feature-card')
+      const howStepCards = document.querySelectorAll('.how-step-card')
+      const ruleItems = document.querySelectorAll('.how-rule-item')
+
+      // Elegant title animations - fade down
+      sectionTitles.forEach(el => {
+        el.classList.add('scroll-animate-title')
+        observer.observe(el)
+      })
+
+      // Subtitle animations - slight delay after title
+      sectionSubtitles.forEach(el => {
+        el.classList.add('scroll-animate-subtitle')
+        observer.observe(el)
+      })
+
+      // Page headers
+      pageHeaders.forEach(el => {
+        el.classList.add('scroll-animate-fade')
+        observer.observe(el)
+      })
 
       // Add scale animation to cards
       benefitCards.forEach(el => {
@@ -38,6 +66,16 @@ export function useScrollAnimation() {
       })
 
       challengeCards.forEach(el => {
+        el.classList.add('scroll-animate-scale')
+        observer.observe(el)
+      })
+
+      howStepCards.forEach(el => {
+        el.classList.add('scroll-animate-scale')
+        observer.observe(el)
+      })
+
+      featureCards.forEach(el => {
         el.classList.add('scroll-animate-scale')
         observer.observe(el)
       })
@@ -56,6 +94,12 @@ export function useScrollAnimation() {
 
       // Fade up for FAQ items
       faqItems.forEach(el => {
+        el.classList.add('scroll-animate')
+        observer.observe(el)
+      })
+
+      // Fade up for rule items
+      ruleItems.forEach(el => {
         el.classList.add('scroll-animate')
         observer.observe(el)
       })
