@@ -812,7 +812,7 @@ body[data-theme="day"] .step-card p {
 
 .challenge-preview-features {
   position: absolute;
-  bottom: 45px;
+  top: calc(650px - 200px + 3.5rem);
   left: 1.5rem;
   right: 1.5rem;
   list-style: none;
@@ -1596,7 +1596,7 @@ body[data-theme="day"] .faq-item {
 
 .challenge-features {
   position: absolute;
-  bottom: 45px;
+  top: calc(650px - 200px + 3.2rem);
   left: 1.75rem;
   right: 1.75rem;
   list-style: none;
