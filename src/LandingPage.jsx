@@ -64,7 +64,7 @@ function LandingPage() {
 
     const interval = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-    }, 5000)
+    }, 5000) // Change every 5 seconds
 
     return () => clearInterval(interval)
   }, [isMobile, testimonials.length])
@@ -366,6 +366,7 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
               </button>
               <button className="challenge-details-toggle" disabled>
@@ -409,6 +410,7 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
               </button>
               <button className="challenge-details-toggle" disabled>
@@ -452,6 +454,7 @@ function LandingPage() {
                 </div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>
+                
                 Coming Soon
               </button>
               <button className="challenge-details-toggle" disabled>
@@ -546,21 +549,89 @@ function LandingPage() {
             </div>
           ) : (
             <div className="testimonials-grid">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className={`testimonial-card ${testimonial.isPurple ? 'testimonial-purple' : ''}`}>
-                  <p className="testimonial-text">
-                    {testimonial.text}
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar"></div>
-                    <div className="author-info">
-                      <span className="author-name">{testimonial.name}</span>
-                      <span className="author-role">{testimonial.role}</span>
-                      <div className="author-rating">★★★★★</div>
-                    </div>
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  The lack of time pressure completely changed how I trade. I focused on execution instead of rushing setups, and the funding followed.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Marcus Chen</span>
+                    <span className="author-role">$50k Trader</span>
+                    <div className="author-rating">★★★★★</div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="testimonial-card testimonial-purple">
+                <p className="testimonial-text">
+                  Finally, a platform that values consistency over speed. Passed my evaluation in 3 weeks and got funded within 48 hours. The payout process is seamless.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Sarah Martinez</span>
+                    <span className="author-role">$25k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  I've tried other prop firms before, but IJGF's transparent rules and no hidden fees make all the difference. Been trading funded for 6 months now.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">James Wilson</span>
+                    <span className="author-role">$100k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  As a swing trader, having no time limits was crucial. I could wait for my setups without pressure. Made 12% in my first funded month.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Ahmed Hassan</span>
+                    <span className="author-role">$10k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="testimonial-card testimonial-purple">
+                <p className="testimonial-text">
+                  The support team is incredibly responsive. When I had questions about the evaluation criteria, they explained everything clearly. No runarounds, just straight answers.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Emily Rodriguez</span>
+                    <span className="author-role">$50k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="testimonial-card">
+                <p className="testimonial-text">
+                  Been profitable from day one of getting funded. The 80% profit split is industry-leading, and payouts arrive in USDC within 24 hours. Game changer.
+                </p>
+                <div className="testimonial-author">
+                  <div className="author-avatar"></div>
+                  <div className="author-info">
+                    <span className="author-name">Thomas Kim</span>
+                    <span className="author-role">$25k Trader</span>
+                    <div className="author-rating">★★★★★</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
