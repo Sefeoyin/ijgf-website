@@ -52,7 +52,7 @@ function Navigation() {
         {/* Right Side: Theme Toggle + CTA */}
         <div className="nav-right">
           {/* Get Started Button - Desktop Only */}
-          <button className="nav-cta-btn desktop-only" onClick={() => navigate('/waitlist')}>
+          <button className="nav-cta-btn desktop-only" onClick={() => navigate('/signup')}>
             Get Started
           </button>
 
@@ -107,7 +107,7 @@ function Navigation() {
           ))}
           <button 
             className="mobile-cta-btn" 
-            onClick={() => { navigate('/waitlist'); setMobileMenuOpen(false); }}
+            onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }}
           >
             Get Started
           </button>

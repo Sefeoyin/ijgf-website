@@ -11,6 +11,8 @@ import AboutUsPage from './AboutUsPage'
 import HowItWorksPage from './HowItWorksPage'
 import ChallengesPage from './ChallengesPage'
 import AuthPage from './AuthPage'
+import Dashboard from './Dashboard'
+import ProfileSetup from './ProfileSetup'
 import BackToTop from './BackToTop'
 import { useScrollAnimation, useMouseTracking } from './useScrollAnimation'
 import './App.css'
@@ -128,6 +130,22 @@ function AnimatedRoutes() {
           element={
             <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
               <AuthPage />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <Dashboard />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/profile-setup" 
+          element={
+            <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <ProfileSetup />
             </motion.div>
           } 
         />
