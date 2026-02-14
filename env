@@ -1,2 +1,3 @@
 VITE_SUPABASE_URL=https://jsmgenhhirvgkmsxxpng.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzbWdlbmhoaXJ2Z2ttc3h4cG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2OTAwMDIsImV4cCI6MjA4NjI2NjAwMn0.B4dwjSsY-WghZv4NDMNDhhzzwLPbXlmTGil-3fpYFN0
+   VITE_SUPABASE_ANON_KEY=your_anon_key_here
+   VITE_SITE_URL=https://ijgf-website.vercel.app
