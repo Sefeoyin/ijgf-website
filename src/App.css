@@ -339,6 +339,12 @@ body[data-theme="day"] .back-to-top:hover {
   left: 2rem;
 }
 
+@media (max-width: 768px) {
+  .auth-logo-header {
+    display: none;
+  }
+}
+
 .auth-logo-link {
   display: flex;
   align-items: center;
