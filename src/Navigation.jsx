@@ -2,19 +2,20 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useContext, useState } from 'react'
 import { ThemeContext } from './App'
 
+// Defined outside component so it's not recreated on every render
+const navLinks = [
+  { name: 'Home', path: '/' },
+  { name: 'About us', path: '/about' },
+  { name: 'How it Works', path: '/how-it-works' },
+  { name: 'Challenges', path: '/challenges' },
+  { name: 'Leaderboard', path: '/leaderboard', disabled: true },
+]
+
 function Navigation() {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, toggleTheme } = useContext(ThemeContext)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'About us', path: '/about' },
-    { name: 'How it Works', path: '/how-it-works' },
-    { name: 'Challenges', path: '/challenges' },
-    { name: 'Leaderboard', path: '/leaderboard', disabled: true },
-  ]
 
   const isActive = (path) => location.pathname === path
 
@@ -29,9 +30,9 @@ function Navigation() {
       <div className="nav-container">
         {/* Logo */}
         <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <img 
-            src="/images/logo.png" 
-            alt="IJGF Logo" 
+          <img
+            src="/images/logo.png"
+            alt="IJGF Logo"
             className="logo-img"
           />
         </div>
@@ -39,25 +40,24 @@ function Navigation() {
         {/* Desktop Navigation Links */}
         <div className="nav-links">
           {navLinks.map((link) => (
-            <a
+            <button
               key={link.path}
               className={`nav-link ${isActive(link.path) ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
               onClick={() => handleNavClick(link.path, link.disabled)}
+              disabled={link.disabled}
             >
               {link.name}
-            </a>
+            </button>
           ))}
         </div>
 
         {/* Right Side: Theme Toggle + CTA */}
         <div className="nav-right">
-          {/* Get Started Button - Desktop Only */}
           <button className="nav-cta-btn desktop-only" onClick={() => navigate('/signup')}>
             Get Started
           </button>
 
-          {/* Theme Toggle */}
-          <button 
+          <button
             className="theme-toggle-btn"
             onClick={toggleTheme}
             aria-label="Toggle theme"
@@ -74,8 +74,7 @@ function Navigation() {
             )}
           </button>
 
-          {/* Mobile Menu Button */}
-          <button 
+          <button
             className="mobile-menu-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
@@ -97,17 +96,18 @@ function Navigation() {
       {mobileMenuOpen && (
         <div className="mobile-menu">
           {navLinks.map((link) => (
-            <a
+            <button
               key={link.path}
               className={`mobile-nav-link ${isActive(link.path) ? 'active' : ''} ${link.disabled ? 'disabled' : ''}`}
               onClick={() => handleNavClick(link.path, link.disabled)}
+              disabled={link.disabled}
             >
               {link.name}
-            </a>
+            </button>
           ))}
-          <button 
-            className="mobile-cta-btn" 
-            onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }}
+          <button
+            className="mobile-cta-btn"
+            onClick={() => { navigate('/signup'); setMobileMenuOpen(false) }}
           >
             Get Started
           </button>

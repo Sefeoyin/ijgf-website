@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+
 function ProfilePage({ isSetup = false }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -12,6 +14,8 @@ function ProfilePage({ isSetup = false }) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     loadUserData()
@@ -19,9 +23,8 @@ function ProfilePage({ isSetup = false }) {
 
   const loadUserData = async () => {
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         navigate('/login')
         return
@@ -29,9 +32,7 @@ function ProfilePage({ isSetup = false }) {
 
       setUser(user)
       setEmail(user.email)
-      console.log('User loaded:', user.id)
 
-      // Load profile data
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -44,15 +45,12 @@ function ProfilePage({ isSetup = false }) {
       }
 
       if (profile) {
-        console.log('Profile loaded:', profile)
         setFirstName(profile.first_name || '')
         setLastName(profile.last_name || '')
         setProfileImageUrl(profile.profile_image || '')
-      } else {
-        console.log('No profile found, will create one')
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error loading user data:', err)
     }
   }
 
@@ -60,26 +58,24 @@ function ProfilePage({ isSetup = false }) {
     const file = e.target.files[0]
     if (!file || !user) return
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB')
+    setError('')
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError('File size must be less than 10MB')
       return
     }
 
-    // Check file type
     if (!file.type.match(/image\/(png|jpeg|jpg|gif)/)) {
-      alert('Please upload a PNG, JPEG, or GIF image')
+      setError('Please upload a PNG, JPEG, or GIF image')
       return
     }
 
     try {
       setUploading(true)
 
-      // Create unique filename
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('profile-images')
         .upload(fileName, file, {
@@ -89,17 +85,15 @@ function ProfilePage({ isSetup = false }) {
 
       if (error) throw error
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(data.path)
 
-      console.log('Image uploaded:', publicUrl)
       setProfileImageUrl(publicUrl)
       setProfileImage(file)
     } catch (err) {
       console.error('Error uploading image:', err)
-      alert('Failed to upload image. Please try again.')
+      setError('Failed to upload image. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -108,43 +102,34 @@ function ProfilePage({ isSetup = false }) {
   const handleRemoveImage = async () => {
     if (profileImageUrl && user) {
       try {
-        // Extract path from URL
         const path = profileImageUrl.split('/profile-images/').pop()
-        
-        // Delete from storage
-        await supabase.storage
-          .from('profile-images')
-          .remove([path])
-        
-        console.log('Image removed from storage')
+        await supabase.storage.from('profile-images').remove([path])
       } catch (err) {
         console.error('Error removing image:', err)
       }
     }
-    
+
     setProfileImage(null)
     setProfileImageUrl('')
   }
 
   const handleSave = async () => {
     if (!user) {
-      alert('Not logged in')
+      setError('Not logged in')
       return
     }
 
     if (!firstName.trim() || !lastName.trim()) {
-      alert('Please enter your first and last name')
+      setError('Please enter your first and last name')
       return
     }
 
     setLoading(true)
+    setError('')
+    setSuccess('')
 
     try {
-      console.log('Saving profile for user:', user.id)
-      console.log('Data:', { firstName, lastName, profileImageUrl })
-
-      // Update profile in database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
@@ -160,14 +145,11 @@ function ProfilePage({ isSetup = false }) {
 
       if (error) throw error
 
-      console.log('Profile saved successfully:', data)
-      alert('Profile saved!')
-
-      // Navigate to dashboard
+      setSuccess('Profile saved successfully!')
       navigate('/dashboard')
     } catch (err) {
       console.error('Error saving profile:', err)
-      alert(`Failed to save profile: ${err.message}`)
+      setError(`Failed to save profile: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -175,7 +157,6 @@ function ProfilePage({ isSetup = false }) {
 
   const handleCancel = async () => {
     if (isSetup) {
-      // If it's setup and they cancel, log them out
       await supabase.auth.signOut()
       navigate('/')
     } else {
@@ -185,7 +166,6 @@ function ProfilePage({ isSetup = false }) {
 
   return (
     <div className="profile-page">
-      {/* Logo Header for Profile Setup */}
       {isSetup && (
         <div className="auth-logo-header">
           <a href="/" className="auth-logo-link">
@@ -194,9 +174,12 @@ function ProfilePage({ isSetup = false }) {
           </a>
         </div>
       )}
-      
+
       <div className="profile-container">
         <h1 className="profile-title">Setup your profile</h1>
+
+        {error && <div className="auth-error-message">{error}</div>}
+        {success && <div className="success-message">&#10003; {success}</div>}
 
         {/* Profile Picture */}
         <div className="profile-picture-section">
@@ -220,16 +203,16 @@ function ProfilePage({ isSetup = false }) {
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 {uploading ? 'Uploading...' : 'Upload image'}
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/png, image/jpeg, image/gif"
                   onChange={handleImageUpload}
                   disabled={uploading}
                   hidden
                 />
               </label>
-              <button 
-                className="btn-remove-image" 
+              <button
+                className="btn-remove-image"
                 onClick={handleRemoveImage}
                 disabled={!profileImageUrl || uploading}
               >
@@ -283,9 +266,9 @@ function ProfilePage({ isSetup = false }) {
           <div className="profile-password-header">
             <div>
               <label>Password</label>
-              <p className="profile-input-note">Manage your password settings</p>
+              <p className="profile-input-note">Log in with your password instead of using temporary login codes</p>
             </div>
-            <button 
+            <button
               className="btn-change-password"
               onClick={() => navigate('/reset-password')}
             >

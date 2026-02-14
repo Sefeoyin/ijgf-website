@@ -6,7 +6,7 @@ function AuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isLogin = location.pathname === '/login'
-  
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -16,7 +16,7 @@ function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
+
     if (!isLogin && password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -31,15 +31,12 @@ function AuthPage() {
 
     try {
       if (isLogin) {
-        // Log in existing user
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.toLowerCase().trim(),
           password: password,
         })
 
         if (error) throw error
-
-        console.log('Login successful:', data.user.id)
 
         // Check if user has completed profile setup
         const { data: profile, error: profileError } = await supabase
@@ -52,18 +49,12 @@ function AuthPage() {
           console.error('Error fetching profile:', profileError)
         }
 
-        console.log('Profile data:', profile)
-
-        // If no name set, go to profile setup; otherwise go to dashboard
         if (!profile?.first_name || !profile?.last_name) {
-          console.log('Profile incomplete, redirecting to setup')
           navigate('/profile-setup')
         } else {
-          console.log('Profile complete, redirecting to dashboard')
           navigate('/dashboard')
         }
       } else {
-        // Sign up new user
         const { data, error } = await supabase.auth.signUp({
           email: email.toLowerCase().trim(),
           password: password,
@@ -74,15 +65,11 @@ function AuthPage() {
 
         if (error) throw error
 
-        console.log('Signup successful:', data.user?.id)
-
         if (data?.user) {
-          // Profile will be auto-created by trigger, redirect to setup
           navigate('/profile-setup')
         }
       }
     } catch (err) {
-      console.error('Auth error:', err)
       setError(err.message || 'An error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -91,7 +78,7 @@ function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -99,17 +86,13 @@ function AuthPage() {
       })
 
       if (error) throw error
-      
-      console.log('Google sign-in initiated:', data)
     } catch (err) {
-      console.error('Google sign-in error:', err)
       setError(err.message || 'Failed to sign in with Google')
     }
   }
 
   return (
     <section className="auth-page-new">
-      {/* Simple Logo Header */}
       <div className="auth-logo-header">
         <a href="/" className="auth-logo-link">
           <img src="/images/logo-icon.png" alt="IJGF" className="auth-logo-icon" />
@@ -120,13 +103,13 @@ function AuthPage() {
       <div className="auth-container-new">
         {/* Tab Toggle */}
         <div className="auth-toggle-new">
-          <button 
+          <button
             className={`auth-toggle-btn-new ${!isLogin ? 'active' : ''}`}
             onClick={() => navigate('/signup')}
           >
             Sign Up
           </button>
-          <button 
+          <button
             className={`auth-toggle-btn-new ${isLogin ? 'active' : ''}`}
             onClick={() => navigate('/login')}
           >
@@ -140,21 +123,19 @@ function AuthPage() {
             {isLogin ? 'Welcome Back' : 'Create Your Account'}
           </h1>
           <p className="auth-subtitle-new">
-            {isLogin 
+            {isLogin
               ? 'Log in to manage your challenges and funded accounts.'
               : 'Start your trading challenge in minutes.'
             }
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="auth-error-message">
             {error}
           </div>
         )}
 
-        {/* Form */}
         <form className="auth-form-new" onSubmit={handleSubmit}>
           <div className="auth-input-group-new">
             <input
@@ -201,7 +182,6 @@ function AuthPage() {
           </button>
         </form>
 
-        {/* Google Sign-in */}
         <div className="auth-divider-new">
           <span>Or</span>
         </div>
@@ -216,12 +196,11 @@ function AuthPage() {
           Sign in with Google
         </button>
 
-        {/* Footer Link */}
         <p className="auth-footer-text-new">
           {isLogin ? (
-            <>Don&apos;t have an account? <a onClick={() => navigate('/signup')}>Get Started</a></>
+            <>Don&apos;t have an account? <a onClick={() => navigate('/signup')} style={{ cursor: 'pointer' }}>Get Started</a></>
           ) : (
-            <>Already have an account? <a onClick={() => navigate('/login')}>Log in</a></>
+            <>Already have an account? <a onClick={() => navigate('/login')} style={{ cursor: 'pointer' }}>Log in</a></>
           )}
         </p>
       </div>

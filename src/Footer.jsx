@@ -16,39 +16,39 @@ function Footer() {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-brand">
-          <img 
-            src="/images/logo-icon.png" 
-            alt="IJGF Logo" 
+          <img
+            src="/images/logo-icon.png"
+            alt="IJGF Logo"
             className="footer-logo-img"
           />
           <p className="footer-tagline">Where Skill, Not Capital, Determines Opportunity.</p>
         </div>
-        
+
         <div className="footer-links">
           <div className="footer-column">
             <h4>PLATFORM</h4>
-            <a onClick={() => navigate('/how-it-works')}>How it Works</a>
-            <a onClick={() => navigate('/challenges')}>Challenges</a>
-            <a style={comingSoonStyle}>Pricing</a>
-            <a style={comingSoonStyle}>Leaderboards</a>
-            <a onClick={() => navigate('/faq')}>FAQs</a>
+            <button onClick={() => navigate('/how-it-works')}>How it Works</button>
+            <button onClick={() => navigate('/challenges')}>Challenges</button>
+            <button style={comingSoonStyle} disabled>Pricing</button>
+            <button style={comingSoonStyle} disabled>Leaderboards</button>
+            <button onClick={() => navigate('/faq')}>FAQs</button>
           </div>
-          
+
           <div className="footer-column">
             <h4>COMPANY</h4>
-            <a onClick={() => navigate('/about')}>About Us</a>
-            <a style={comingSoonStyle}>Regulation & Compliance</a>
-            <a style={comingSoonStyle}>Blog/Resources</a>
-            <a style={comingSoonStyle}>Contact</a>
+            <button onClick={() => navigate('/about')}>About Us</button>
+            <button style={comingSoonStyle} disabled>Regulation &amp; Compliance</button>
+            <button style={comingSoonStyle} disabled>Blog/Resources</button>
+            <button style={comingSoonStyle} disabled>Contact</button>
           </div>
-          
+
           <div className="footer-column">
             <h4>LEGAL</h4>
-            <a style={comingSoonStyle}>Terms of Service</a>
-            <a style={comingSoonStyle}>Privacy Policy</a>
-            <a style={comingSoonStyle}>Cookie Policy</a>
+            <button style={comingSoonStyle} disabled>Terms of Service</button>
+            <button style={comingSoonStyle} disabled>Privacy Policy</button>
+            <button style={comingSoonStyle} disabled>Cookie Policy</button>
           </div>
-          
+
           <div className="footer-column footer-socials-column">
             <h4>SOCIALS</h4>
             <div className="footer-social-icons">
@@ -76,9 +76,9 @@ function Footer() {
           </div>
         </div>
       </div>
-      
+
       <div className="footer-bottom">
-        © 2025 IJGF. All rights reserved.
+        &copy; 2025 IJGF. All rights reserved.
       </div>
     </footer>
   )

@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 
+const ANIMATION_DELAY_MS = 100
+
 export function useScrollAnimation() {
   useEffect(() => {
-    // Intersection Observer for scroll animations
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -100px 0px'
@@ -12,98 +13,51 @@ export function useScrollAnimation() {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('revealed')
+          // Unobserve after animating — no need to keep watching
+          observer.unobserve(entry.target)
         }
       })
     }, observerOptions)
 
-    // Wait for DOM to be ready
+    const observeAll = (elements, className) => {
+      elements.forEach(el => {
+        el.classList.add(className)
+        observer.observe(el)
+      })
+    }
+
     setTimeout(() => {
-      // Section titles and subtitles - elegant fade in from top
-      const sectionTitles = document.querySelectorAll('.section-title, .hero-title, .about-hero-title, .challenges-title, .how-page-title, .faq-page-title, .waitlist-title, .share-story-title, .story-title, .about-section-title, .how-section-title')
-      const sectionSubtitles = document.querySelectorAll('.section-subtitle, .hero-subtitle, .about-hero-subtitle, .challenges-subtitle, .how-page-subtitle, .faq-page-subtitle, .waitlist-subtitle, .share-story-description, .story-subtitle')
-      
-      // Page-specific headers
-      const pageHeaders = document.querySelectorAll('.about-hero, .challenges-header, .how-page-header, .faq-page-header, .auth-header')
-      
-      // Auto-detect and add scroll-animate classes
-      const benefitCards = document.querySelectorAll('.benefit-card')
-      const stepCards = document.querySelectorAll('.step-card')
-      const challengeCards = document.querySelectorAll('.challenge-preview-card, .challenge-card')
-      const testimonialCards = document.querySelectorAll('.testimonial-card')
-      const statCards = document.querySelectorAll('.trusted-stat-card, .about-stat')
-      const faqItems = document.querySelectorAll('.faq-item')
-      const featureCards = document.querySelectorAll('.about-feature-card')
-      const howStepCards = document.querySelectorAll('.how-step-card')
-      const ruleItems = document.querySelectorAll('.how-rule-item')
+      observeAll(
+        document.querySelectorAll('.section-title, .hero-title, .about-hero-title, .challenges-title, .how-page-title, .faq-page-title, .waitlist-title, .share-story-title, .story-title, .about-section-title, .how-section-title'),
+        'scroll-animate-title'
+      )
 
-      // Elegant title animations - fade down
-      sectionTitles.forEach(el => {
-        el.classList.add('scroll-animate-title')
-        observer.observe(el)
-      })
+      observeAll(
+        document.querySelectorAll('.section-subtitle, .hero-subtitle, .about-hero-subtitle, .challenges-subtitle, .how-page-subtitle, .faq-page-subtitle, .waitlist-subtitle, .share-story-description, .story-subtitle'),
+        'scroll-animate-subtitle'
+      )
 
-      // Subtitle animations - slight delay after title
-      sectionSubtitles.forEach(el => {
-        el.classList.add('scroll-animate-subtitle')
-        observer.observe(el)
-      })
+      observeAll(
+        document.querySelectorAll('.about-hero, .challenges-header, .how-page-header, .faq-page-header, .auth-header'),
+        'scroll-animate-fade'
+      )
 
-      // Page headers
-      pageHeaders.forEach(el => {
-        el.classList.add('scroll-animate-fade')
-        observer.observe(el)
-      })
+      observeAll(
+        document.querySelectorAll('.benefit-card, .step-card, .challenge-preview-card, .challenge-card, .how-step-card, .about-feature-card'),
+        'scroll-animate-scale'
+      )
 
-      // Add scale animation to cards
-      benefitCards.forEach(el => {
-        el.classList.add('scroll-animate-scale')
-        observer.observe(el)
-      })
-
-      stepCards.forEach(el => {
-        el.classList.add('scroll-animate-scale')
-        observer.observe(el)
-      })
-
-      challengeCards.forEach(el => {
-        el.classList.add('scroll-animate-scale')
-        observer.observe(el)
-      })
-
-      howStepCards.forEach(el => {
-        el.classList.add('scroll-animate-scale')
-        observer.observe(el)
-      })
-
-      featureCards.forEach(el => {
-        el.classList.add('scroll-animate-scale')
-        observer.observe(el)
-      })
+      observeAll(
+        document.querySelectorAll('.trusted-stat-card, .about-stat, .faq-item, .how-rule-item'),
+        'scroll-animate'
+      )
 
       // Alternate left/right for testimonials
-      testimonialCards.forEach((el, index) => {
+      document.querySelectorAll('.testimonial-card').forEach((el, index) => {
         el.classList.add(index % 2 === 0 ? 'scroll-animate-left' : 'scroll-animate-right')
         observer.observe(el)
       })
-
-      // Fade up for stats
-      statCards.forEach(el => {
-        el.classList.add('scroll-animate')
-        observer.observe(el)
-      })
-
-      // Fade up for FAQ items
-      faqItems.forEach(el => {
-        el.classList.add('scroll-animate')
-        observer.observe(el)
-      })
-
-      // Fade up for rule items
-      ruleItems.forEach(el => {
-        el.classList.add('scroll-animate')
-        observer.observe(el)
-      })
-    }, 100)
+    }, ANIMATION_DELAY_MS)
 
     return () => observer.disconnect()
   }, [])
@@ -112,18 +66,18 @@ export function useScrollAnimation() {
 export function useMouseTracking() {
   useEffect(() => {
     let rafId = null
-    
+
     const handleMouseMove = (e) => {
       if (rafId) return
-      
+
       rafId = requestAnimationFrame(() => {
         const x = (e.clientX / window.innerWidth) * 100
         const y = (e.clientY / window.innerHeight) * 100
-        
+
         document.body.style.setProperty('--mouse-x', `${x}%`)
         document.body.style.setProperty('--mouse-y', `${y}%`)
         document.body.classList.add('mouse-active')
-        
+
         rafId = null
       })
     }

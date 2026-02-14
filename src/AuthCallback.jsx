@@ -6,64 +6,55 @@ function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    handleCallback()
-  }, [])
+    const handleCallback = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
 
-  const handleCallback = async () => {
-    try {
-      // Get the session from the URL hash
-      const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) throw error
 
-      if (error) throw error
+        if (session) {
+          // Check if profile exists and is complete
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', session.user.id)
+            .single()
 
-      if (session) {
-        console.log('Auth callback - session found:', session.user.id)
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching profile:', profileError)
+          }
 
-        // Check if profile exists and is complete
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Error fetching profile:', profileError)
-        }
-
-        console.log('Profile data:', profile)
-
-        // If no profile or incomplete, go to setup; otherwise go to dashboard
-        if (!profile || !profile.first_name || !profile.last_name) {
-          console.log('Profile incomplete, redirecting to setup')
-          navigate('/profile-setup')
+          // If no profile or incomplete, go to setup; otherwise go to dashboard
+          if (!profile || !profile.first_name || !profile.last_name) {
+            navigate('/profile-setup')
+          } else {
+            navigate('/dashboard')
+          }
         } else {
-          console.log('Profile complete, redirecting to dashboard')
-          navigate('/dashboard')
+          navigate('/login')
         }
-      } else {
-        // No session, redirect to login
-        console.log('No session found, redirecting to login')
+      } catch (err) {
+        console.error('Auth callback error:', err)
         navigate('/login')
       }
-    } catch (err) {
-      console.error('Auth callback error:', err)
-      navigate('/login')
     }
-  }
+
+    handleCallback()
+  }, [navigate])
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       minHeight: '100vh',
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <div style={{ 
-        width: '40px', 
-        height: '40px', 
-        border: '4px solid #f3f4f6', 
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '4px solid #f3f4f6',
         borderTop: '4px solid #7c3aed',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite'
