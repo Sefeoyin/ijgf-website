@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
 
 function Dashboard() {
@@ -10,28 +11,50 @@ function Dashboard() {
   const [userEmail, setUserEmail] = useState('')
   const [profileImage, setProfileImage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is authenticated
-    const isAuth = localStorage.getItem('isAuthenticated')
-    if (!isAuth) {
-      navigate('/login')
-      return
-    }
-
-    // Load user data
-    const firstName = localStorage.getItem('userFirstName') || ''
-    const lastName = localStorage.getItem('userLastName') || ''
-    const email = localStorage.getItem('userEmail') || ''
-    const image = localStorage.getItem('profileImage') || ''
-    
-    setUserName(`${firstName} ${lastName}`.trim() || 'User')
-    setUserEmail(email)
-    setProfileImage(image)
+    checkUserAndLoadProfile()
   }, [navigate])
 
-  const handleLogout = () => {
-    localStorage.clear()
+  const checkUserAndLoadProfile = async () => {
+    try {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        navigate('/login')
+        return
+      }
+
+      setUserEmail(user.email || '')
+
+      // Load profile data
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        console.error('Error loading profile:', error)
+      }
+
+      if (profile) {
+        const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        setUserName(fullName || 'User')
+        setProfileImage(profile.profile_image || '')
+      }
+    } catch (err) {
+      console.error('Error:', err)
+      navigate('/login')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     navigate('/')
   }
 
@@ -60,6 +83,14 @@ function Dashboard() {
       settings: <><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M5.7 5.7l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.7 18.3l4.2-4.2m4.2-4.2l4.2-4.2"/></>,
     }
     return icons[iconName] || null
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (

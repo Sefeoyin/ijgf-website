@@ -11,6 +11,7 @@ import AboutUsPage from './AboutUsPage'
 import HowItWorksPage from './HowItWorksPage'
 import ChallengesPage from './ChallengesPage'
 import AuthPage from './AuthPage'
+import AuthCallback from './AuthCallback'
 import Dashboard from './Dashboard'
 import ProfileSetup from './ProfileSetup'
 import BackToTop from './BackToTop'
@@ -59,7 +60,7 @@ function AnimatedRoutes() {
   }
 
   // Check if current page is an auth page or dashboard
-  const isAuthPage = ['/signup', '/login', '/profile-setup', '/dashboard'].includes(location.pathname)
+  const isAuthPage = ['/signup', '/login', '/profile-setup', '/dashboard', '/auth/callback'].includes(location.pathname)
 
   return (
     <>
@@ -137,6 +138,14 @@ function AnimatedRoutes() {
             element={
               <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
                 <AuthPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/auth/callback" 
+            element={
+              <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                <AuthCallback />
               </motion.div>
             } 
           />

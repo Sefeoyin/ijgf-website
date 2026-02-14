@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { supabase } from './supabase'
 
 function AuthPage() {
   const navigate = useNavigate()
@@ -21,31 +22,89 @@ function AuthPage() {
       return
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false)
-      // Store auth state in localStorage (simplified for demo)
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('isNewUser', isLogin ? 'false' : 'true')
-      localStorage.setItem('userEmail', email)
-      
-      // If signing up, go to profile setup; if logging in, go to dashboard
+
+    try {
       if (isLogin) {
-        navigate('/dashboard')
+        // Log in existing user
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.toLowerCase().trim(),
+          password: password,
+        })
+
+        if (error) throw error
+
+        console.log('Login successful:', data.user.id)
+
+        // Check if user has completed profile setup
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError)
+        }
+
+        console.log('Profile data:', profile)
+
+        // If no name set, go to profile setup; otherwise go to dashboard
+        if (!profile?.first_name || !profile?.last_name) {
+          console.log('Profile incomplete, redirecting to setup')
+          navigate('/profile-setup')
+        } else {
+          console.log('Profile complete, redirecting to dashboard')
+          navigate('/dashboard')
+        }
       } else {
-        navigate('/profile-setup')
+        // Sign up new user
+        const { data, error } = await supabase.auth.signUp({
+          email: email.toLowerCase().trim(),
+          password: password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/profile-setup`,
+          }
+        })
+
+        if (error) throw error
+
+        console.log('Signup successful:', data.user?.id)
+
+        if (data?.user) {
+          // Profile will be auto-created by trigger, redirect to setup
+          navigate('/profile-setup')
+        }
       }
-    }, 1000)
+    } catch (err) {
+      console.error('Auth error:', err)
+      setError(err.message || 'An error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleGoogleSignIn = () => {
-    // Placeholder for Google OAuth
-    localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('isNewUser', 'true')
-    localStorage.setItem('userEmail', 'user@gmail.com')
-    navigate('/profile-setup')
+  const handleGoogleSignIn = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      })
+
+      if (error) throw error
+      
+      console.log('Google sign-in initiated:', data)
+    } catch (err) {
+      console.error('Google sign-in error:', err)
+      setError(err.message || 'Failed to sign in with Google')
+    }
   }
 
   return (
@@ -118,6 +177,7 @@ function AuthPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
+              minLength={6}
             />
           </div>
 
@@ -131,6 +191,7 @@ function AuthPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
+                minLength={6}
               />
             </div>
           )}
@@ -140,12 +201,12 @@ function AuthPage() {
           </button>
         </form>
 
-        {/* Google Sign-in - Show on both pages */}
+        {/* Google Sign-in */}
         <div className="auth-divider-new">
           <span>Or</span>
         </div>
 
-        <button className="auth-google-btn-new" onClick={handleGoogleSignIn}>
+        <button className="auth-google-btn-new" onClick={handleGoogleSignIn} disabled={loading}>
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>

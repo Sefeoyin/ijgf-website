@@ -1,57 +1,182 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from './supabase'
 
 function ProfilePage({ isSetup = false }) {
   const navigate = useNavigate()
+  const [user, setUser] = useState(null)
   const [profileImage, setProfileImage] = useState(null)
+  const [profileImageUrl, setProfileImageUrl] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('********')
-  const [showPasswordChange, setShowPasswordChange] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
-    // Load user data from localStorage
-    const userEmail = localStorage.getItem('userEmail') || ''
-    setEmail(userEmail)
+    loadUserData()
   }, [])
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0]
-    if (file && file.size < 10 * 1024 * 1024) { // 10MB limit
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setProfileImage(e.target.result)
+  const loadUserData = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        navigate('/login')
+        return
       }
-      reader.readAsDataURL(file)
+
+      setUser(user)
+      setEmail(user.email)
+      console.log('User loaded:', user.id)
+
+      // Load profile data
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading profile:', error)
+        return
+      }
+
+      if (profile) {
+        console.log('Profile loaded:', profile)
+        setFirstName(profile.first_name || '')
+        setLastName(profile.last_name || '')
+        setProfileImageUrl(profile.profile_image || '')
+      } else {
+        console.log('No profile found, will create one')
+      }
+    } catch (err) {
+      console.error('Error:', err)
     }
   }
 
-  const handleRemoveImage = () => {
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file || !user) return
+
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    // Check file type
+    if (!file.type.match(/image\/(png|jpeg|jpg|gif)/)) {
+      alert('Please upload a PNG, JPEG, or GIF image')
+      return
+    }
+
+    try {
+      setUploading(true)
+
+      // Create unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) throw error
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(data.path)
+
+      console.log('Image uploaded:', publicUrl)
+      setProfileImageUrl(publicUrl)
+      setProfileImage(file)
+    } catch (err) {
+      console.error('Error uploading image:', err)
+      alert('Failed to upload image. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveImage = async () => {
+    if (profileImageUrl && user) {
+      try {
+        // Extract path from URL
+        const path = profileImageUrl.split('/profile-images/').pop()
+        
+        // Delete from storage
+        await supabase.storage
+          .from('profile-images')
+          .remove([path])
+        
+        console.log('Image removed from storage')
+      } catch (err) {
+        console.error('Error removing image:', err)
+      }
+    }
+    
     setProfileImage(null)
+    setProfileImageUrl('')
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) {
+      alert('Not logged in')
+      return
+    }
+
+    if (!firstName.trim() || !lastName.trim()) {
+      alert('Please enter your first and last name')
+      return
+    }
+
     setLoading(true)
-    
-    // Save user data
-    localStorage.setItem('userFirstName', firstName)
-    localStorage.setItem('userLastName', lastName)
-    localStorage.setItem('profileImage', profileImage || '')
-    localStorage.setItem('isNewUser', 'false')
-    
-    setTimeout(() => {
-      setLoading(false)
+
+    try {
+      console.log('Saving profile for user:', user.id)
+      console.log('Data:', { firstName, lastName, profileImageUrl })
+
+      // Update profile in database
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          email: email,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          profile_image: profileImageUrl || null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+        .select()
+
+      if (error) throw error
+
+      console.log('Profile saved successfully:', data)
+      alert('Profile saved!')
+
+      // Navigate to dashboard
       navigate('/dashboard')
-    }, 1000)
+    } catch (err) {
+      console.error('Error saving profile:', err)
+      alert(`Failed to save profile: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (isSetup) {
       // If it's setup and they cancel, log them out
-      localStorage.clear()
+      await supabase.auth.signOut()
       navigate('/')
     } else {
       navigate('/dashboard')
@@ -76,8 +201,8 @@ function ProfilePage({ isSetup = false }) {
         {/* Profile Picture */}
         <div className="profile-picture-section">
           <div className="profile-avatar">
-            {profileImage ? (
-              <img src={profileImage} alt="Profile" />
+            {profileImageUrl ? (
+              <img src={profileImageUrl} alt="Profile" />
             ) : (
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -94,15 +219,20 @@ function ProfilePage({ isSetup = false }) {
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                Upload image
+                {uploading ? 'Uploading...' : 'Upload image'}
                 <input 
                   type="file" 
                   accept="image/png, image/jpeg, image/gif"
                   onChange={handleImageUpload}
+                  disabled={uploading}
                   hidden
                 />
               </label>
-              <button className="btn-remove-image" onClick={handleRemoveImage}>
+              <button 
+                className="btn-remove-image" 
+                onClick={handleRemoveImage}
+                disabled={!profileImageUrl || uploading}
+              >
                 Remove
               </button>
             </div>
@@ -120,6 +250,7 @@ function ProfilePage({ isSetup = false }) {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               className="profile-input"
+              required
             />
           </div>
           <div className="profile-input-group">
@@ -130,6 +261,7 @@ function ProfilePage({ isSetup = false }) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="profile-input"
+              required
             />
           </div>
         </div>
@@ -140,30 +272,29 @@ function ProfilePage({ isSetup = false }) {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="profile-input"
             readOnly
           />
           <p className="profile-input-note">Used to log in to your account</p>
         </div>
 
-        {/* Password */}
+        {/* Password Section */}
         <div className="profile-password-section">
           <div className="profile-password-header">
             <div>
               <label>Password</label>
-              <p className="profile-input-note">Log in with your password instead of using temporary login codes</p>
+              <p className="profile-input-note">Manage your password settings</p>
             </div>
             <button 
               className="btn-change-password"
-              onClick={() => setShowPasswordChange(!showPasswordChange)}
+              onClick={() => navigate('/reset-password')}
             >
               Change Password
             </button>
           </div>
           <input
             type="password"
-            value={password}
+            value="********"
             className="profile-input"
             readOnly
           />
@@ -171,10 +302,10 @@ function ProfilePage({ isSetup = false }) {
 
         {/* Action Buttons */}
         <div className="profile-actions">
-          <button className="btn-cancel" onClick={handleCancel}>
+          <button className="btn-cancel" onClick={handleCancel} disabled={loading}>
             Cancel
           </button>
-          <button className="btn-save" onClick={handleSave} disabled={loading}>
+          <button className="btn-save" onClick={handleSave} disabled={loading || uploading}>
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
