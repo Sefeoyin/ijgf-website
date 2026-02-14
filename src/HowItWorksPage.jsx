@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 function HowItWorksPage() {
-  const navigate = useNavigate()
   const [openRule, setOpenRule] = useState(null)
 
   const toggleRule = (index) => {

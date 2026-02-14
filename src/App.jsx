@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState, createContext } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import Navigation from './Navigation'
 import Footer from './Footer'
 import LandingPage from './LandingPage'
@@ -17,10 +17,8 @@ import ProfileSetup from './ProfileSetup'
 import ResetPasswordPage from './ResetPasswordPage'
 import BackToTop from './BackToTop'
 import { useScrollAnimation, useMouseTracking } from './useScrollAnimation'
+import { ThemeContext } from './ThemeContext'
 import './App.css'
-
-// Create theme context
-export const ThemeContext = createContext()
 
 // Scroll to top on route change
 function ScrollToTop() {

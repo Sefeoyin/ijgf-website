@@ -7,7 +7,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 function ProfilePage({ isSetup = false }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  const [profileImage, setProfileImage] = useState(null)
   const [profileImageUrl, setProfileImageUrl] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -19,6 +18,7 @@ function ProfilePage({ isSetup = false }) {
 
   useEffect(() => {
     loadUserData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadUserData = async () => {
@@ -90,7 +90,6 @@ function ProfilePage({ isSetup = false }) {
         .getPublicUrl(data.path)
 
       setProfileImageUrl(publicUrl)
-      setProfileImage(file)
     } catch (err) {
       console.error('Error uploading image:', err)
       setError('Failed to upload image. Please try again.')
@@ -109,7 +108,6 @@ function ProfilePage({ isSetup = false }) {
       }
     }
 
-    setProfileImage(null)
     setProfileImageUrl('')
   }
 

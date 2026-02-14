@@ -16,7 +16,7 @@ function WaitlistPage() {
     setError('')
 
     try {
-      const { data, error: supabaseError } = await supabase
+      const { error: supabaseError } = await supabase
         .from('Waitlist')
         .insert([
           { 

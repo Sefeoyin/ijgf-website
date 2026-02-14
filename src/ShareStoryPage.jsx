@@ -15,7 +15,7 @@ function ShareStoryPage() {
     setError('')
 
     try {
-      const { data, error: supabaseError } = await supabase
+      const { error: supabaseError } = await supabase
         .from('Stories')
         .insert([
           { story: story.trim() }

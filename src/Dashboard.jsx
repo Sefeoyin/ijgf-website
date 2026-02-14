@@ -15,7 +15,8 @@ function Dashboard() {
 
   useEffect(() => {
     checkUserAndLoadProfile()
-  }, [navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const checkUserAndLoadProfile = async () => {
     try {

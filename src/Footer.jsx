@@ -1,10 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useContext } from 'react'
-import { ThemeContext } from './App'
 
 function Footer() {
   const navigate = useNavigate()
-  const { theme } = useContext(ThemeContext)
 
   const comingSoonStyle = {
     opacity: 0.35,

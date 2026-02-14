@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useContext, useState } from 'react'
-import { ThemeContext } from './App'
+import { ThemeContext } from './ThemeContext'
 
 // Defined outside component so it's not recreated on every render
 const navLinks = [
