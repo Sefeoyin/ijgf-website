@@ -100,8 +100,7 @@ function Dashboard() {
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/images/logo-icon.png" alt="IJGF" />
-            <span>IJGF</span>
+            <img src="/images/logo.png" alt="IJGF" />
           </div>
         </div>
 
@@ -192,13 +191,6 @@ function Dashboard() {
                 <span className="user-name">{userName}</span>
                 <span className="user-email">{userEmail}</span>
               </div>
-              <button className="user-menu-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="1"/>
-                  <circle cx="12" cy="5" r="1"/>
-                  <circle cx="12" cy="19" r="1"/>
-                </svg>
-              </button>
             </div>
           </div>
         </header>

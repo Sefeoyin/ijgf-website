@@ -50,7 +50,6 @@ function ResetPasswordPage() {
       <div className="auth-logo-header">
         <a href="/" className="auth-logo-link">
           <img src="/images/logo-icon.png" alt="IJGF" className="auth-logo-icon" />
-          <span className="auth-logo-text">IJGF</span>
         </a>
       </div>
 
