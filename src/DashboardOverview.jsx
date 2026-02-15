@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 function DashboardOverview() {
   const [timeRange, setTimeRange] = useState('1H')
@@ -23,17 +23,6 @@ function DashboardOverview() {
     { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 },
     { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 },
     { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 }
-  ])
-
-  // Mock equity chart data
-  const [equityData] = useState([
-    { date: 'Dec 17', value: 17500 },
-    { date: 'Dec 17', value: 16000 },
-    { date: 'Dec 18', value: 20000 },
-    { date: 'Dec 18', value: 15000 },
-    { date: 'Dec 18', value: 19500 },
-    { date: 'Dec 19', value: 16500 },
-    { date: 'Dec 19', value: 12980 }
   ])
 
   const formatCurrency = (value) => {
