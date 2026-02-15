@@ -1,4 +1,4 @@
-function LoadingAnimation({ message = 'Loading...' }) {
+function LoadingAnimation() {
   return (
     <div className="loading-container">
       <div className="candlestick-chart">
