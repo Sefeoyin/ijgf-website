@@ -40,7 +40,7 @@ function DashboardOverview() {
 
   return (
     <div className="dashboard-overview">
-      {/* Stats Cards Row */}
+      {/* Top Stats Cards - 4 cards in one row */}
       <div className="stats-cards-row">
         <div className="stats-card">
           <div className="stats-card-header">
@@ -98,9 +98,9 @@ function DashboardOverview() {
         </div>
       </div>
 
-      {/* Main Content Row */}
-      <div className="dashboard-main-row">
-        {/* Equity Chart */}
+      {/* Middle Row - Equity Chart + Markets Side by Side */}
+      <div className="dashboard-middle-row">
+        {/* Equity Chart - Takes 2/3 width */}
         <div className="equity-chart-widget">
           <div className="widget-header">
             <div>
@@ -125,9 +125,9 @@ function DashboardOverview() {
             ))}
           </div>
 
-          {/* Simple SVG Chart */}
+          {/* Compact SVG Chart */}
           <div className="chart-container">
-            <svg width="100%" height="300" viewBox="0 0 800 300" preserveAspectRatio="none">
+            <svg width="100%" height="220" viewBox="0 0 800 220" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" style={{ stopColor: 'rgba(124, 58, 237, 0.3)', stopOpacity: 1 }} />
@@ -135,29 +135,18 @@ function DashboardOverview() {
                 </linearGradient>
               </defs>
               
-              {/* Chart path */}
               <path
-                d="M 50 150 Q 150 200 200 80 T 400 120 T 600 180 T 750 250"
+                d="M 50 110 Q 150 160 200 60 T 400 90 T 600 140 T 750 200"
                 fill="none"
                 stroke="#7c3aed"
-                strokeWidth="3"
+                strokeWidth="2.5"
               />
               
-              {/* Fill area */}
               <path
-                d="M 50 150 Q 150 200 200 80 T 400 120 T 600 180 T 750 250 L 750 300 L 50 300 Z"
+                d="M 50 110 Q 150 160 200 60 T 400 90 T 600 140 T 750 200 L 750 220 L 50 220 Z"
                 fill="url(#chartGradient)"
               />
             </svg>
-            
-            {/* Chart labels */}
-            <div className="chart-labels">
-              <div>$5,000</div>
-              <div>$10,000</div>
-              <div>$15,000</div>
-              <div>$20,000</div>
-              <div>$25,000</div>
-            </div>
             
             <div className="chart-dates">
               <span>Dec 17</span>
@@ -169,7 +158,7 @@ function DashboardOverview() {
           </div>
         </div>
 
-        {/* Markets Widget */}
+        {/* Markets Widget - Takes 1/3 width */}
         <div className="markets-widget">
           <div className="widget-header">
             <h3>Markets</h3>
@@ -194,31 +183,29 @@ function DashboardOverview() {
         </div>
       </div>
 
-      {/* Bottom Row */}
+      {/* Bottom Row - Active Challenges + History Side by Side */}
       <div className="dashboard-bottom-row">
-        {/* Active Challenges Widget */}
+        {/* Active Challenges - Takes 1/3 width */}
         <div className="active-challenges-widget">
           <h3>Active Challenges</h3>
           <div className="challenge-card">
-            <div className="challenge-info">
-              <div className="challenge-title">$25,000 Challenge</div>
-              <div className="challenge-progress-bar">
-                <div className="progress-fill" style={{ width: '64%' }}></div>
-              </div>
-              <div className="challenge-labels">
-                <span>$0</span>
-                <span>$25,000</span>
-              </div>
+            <div className="challenge-title">$25,000 Challenge</div>
+            <div className="challenge-progress-bar">
+              <div className="progress-fill" style={{ width: '64%' }}></div>
+            </div>
+            <div className="challenge-labels">
+              <span>$0</span>
+              <span>$25,000</span>
             </div>
           </div>
           <button className="btn-start-challenge">Start New Challenge</button>
         </div>
 
-        {/* History Widget */}
+        {/* History Widget - Takes 2/3 width */}
         <div className="history-widget">
           <div className="widget-header">
             <h3>History</h3>
-            <button className="btn-view-all">View All</button>
+            <button className="btn-view-all-link">View All</button>
           </div>
           <div className="history-table">
             <div className="table-header">
