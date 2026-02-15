@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import TermsAcceptancePopup from './TermsAcceptancePopup'
 
 const CAROUSEL_INTERVAL_MS = 5000
 const MOBILE_BREAKPOINT = '(max-width: 768px)'
@@ -130,6 +131,9 @@ function LandingPage() {
 
   return (
     <>
+      {/* Terms Acceptance Popup */}
+      <TermsAcceptancePopup />
+
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-bg">
