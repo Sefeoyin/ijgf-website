@@ -4692,7 +4692,7 @@ body[data-theme="day"] .footer {
 /* Stats Cards Row - More Compact */
 .stats-cards-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
@@ -5187,12 +5187,6 @@ body[data-theme="day"] .footer {
   .history-widget {
     height: auto;
     min-height: 250px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .stats-cards-row {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 

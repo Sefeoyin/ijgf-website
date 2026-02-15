@@ -146,15 +146,16 @@ function DashboardOverview() {
                   </linearGradient>
                 </defs>
                 
+                {/* Adjusted path with better curvature - lowered peaks to fit frame */}
                 <path
-                  d="M 50 70 Q 150 110 200 30 T 400 55 T 600 95 T 750 145"
+                  d="M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155"
                   fill="none"
                   stroke="#7c3aed"
                   strokeWidth="2.5"
                 />
                 
                 <path
-                  d="M 50 70 Q 150 110 200 30 T 400 55 T 600 95 T 750 145 L 750 170 L 50 170 Z"
+                  d="M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155 L 750 170 L 50 170 Z"
                   fill="url(#chartGradient)"
                 />
                 
