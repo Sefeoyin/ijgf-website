@@ -4693,27 +4693,27 @@ body[data-theme="day"] .footer {
 .stats-cards-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .stats-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.75rem;
+  border-radius: 10px;
+  padding: 0.625rem;
 }
 
 .stats-card-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
 }
 
 .stats-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4721,8 +4721,8 @@ body[data-theme="day"] .footer {
 }
 
 .stats-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .stats-icon.blue {
@@ -4746,21 +4746,24 @@ body[data-theme="day"] .footer {
 }
 
 .stats-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--text-muted);
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .stats-value {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.125rem;
+  line-height: 1.2;
 }
 
 .stats-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--text-muted);
+  line-height: 1.2;
 }
 
 /* Middle Row - Equity Chart + Markets */
