@@ -88,7 +88,7 @@ function Dashboard() {
   }
 
   if (loading) {
-    return <LoadingAnimation message="Loading dashboard..." />
+    return <LoadingAnimation />
   }
 
   return (

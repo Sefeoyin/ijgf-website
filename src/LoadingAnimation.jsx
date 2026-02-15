@@ -23,7 +23,6 @@ function LoadingAnimation({ message = 'Loading...' }) {
           <div className="body"></div>
         </div>
       </div>
-      <p className="loading-message">{message}</p>
     </div>
   )
 }

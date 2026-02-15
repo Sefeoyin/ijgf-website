@@ -43,7 +43,7 @@ function AuthCallback() {
     handleCallback()
   }, [navigate])
 
-  return <LoadingAnimation message="Completing sign in..." />
+  return <LoadingAnimation />
 }
 
 export default AuthCallback
