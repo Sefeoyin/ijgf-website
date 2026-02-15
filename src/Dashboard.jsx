@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
 import LoadingAnimation from './LoadingAnimation'
+import DashboardOverview from './DashboardOverview'
 import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useContext(ThemeContext)
-  const [activeTab, setActiveTab] = useState('profile')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
@@ -63,7 +64,7 @@ function Dashboard() {
   }
 
   const menuItems = [
-    { id: 'dashboard', icon: 'grid', label: 'Dashboard', disabled: true },
+    { id: 'dashboard', icon: 'grid', label: 'Dashboard', disabled: false },
     { id: 'market', icon: 'chart', label: 'Market', disabled: true },
     { id: 'analytics', icon: 'trending', label: 'Analytics', disabled: true },
     { id: 'history', icon: 'clock', label: 'Trade History', disabled: true },
@@ -215,13 +216,8 @@ function Dashboard() {
 
         {/* Content Area */}
         <div className="dashboard-content">
+          {activeTab === 'dashboard' && <DashboardOverview />}
           {activeTab === 'profile' && <ProfilePage isSetup={false} />}
-          {activeTab === 'dashboard' && (
-            <div className="dashboard-placeholder">
-              <h2>Dashboard</h2>
-              <p>Coming soon...</p>
-            </div>
-          )}
         </div>
       </div>
 
