@@ -4378,3 +4378,234 @@ body[data-theme="day"] .footer {
   }
 }
 
+/* ==========================================
+   Sophisticated Loading Animation (Candlesticks)
+   ========================================== */
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 2rem;
+  background: var(--bg-primary);
+}
+
+.candlestick-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  height: 120px;
+  padding: 0 1rem;
+}
+
+.candlestick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  animation: candlestickPulse 2s ease-in-out infinite;
+}
+
+.candlestick-1 {
+  animation-delay: 0s;
+}
+
+.candlestick-2 {
+  animation-delay: 0.2s;
+}
+
+.candlestick-3 {
+  animation-delay: 0.4s;
+}
+
+.candlestick-4 {
+  animation-delay: 0.6s;
+}
+
+.candlestick-5 {
+  animation-delay: 0.8s;
+}
+
+.candlestick .wick {
+  width: 2px;
+  background: currentColor;
+  opacity: 0.6;
+  transition: height 0.3s ease;
+}
+
+.candlestick .body {
+  width: 16px;
+  border-radius: 2px;
+  transition: height 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.candlestick.green {
+  color: #10b981;
+}
+
+.candlestick.green .body {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+.candlestick.red {
+  color: #ef4444;
+}
+
+.candlestick.red .body {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Candlestick 1 - Green, tall */
+.candlestick-1 .wick {
+  height: 45px;
+}
+
+.candlestick-1 .body {
+  height: 60px;
+}
+
+/* Candlestick 2 - Red, medium-short */
+.candlestick-2 .wick {
+  height: 30px;
+}
+
+.candlestick-2 .body {
+  height: 35px;
+}
+
+/* Candlestick 3 - Green, very tall */
+.candlestick-3 .wick {
+  height: 55px;
+}
+
+.candlestick-3 .body {
+  height: 75px;
+}
+
+/* Candlestick 4 - Red, short */
+.candlestick-4 .wick {
+  height: 25px;
+}
+
+.candlestick-4 .body {
+  height: 30px;
+}
+
+/* Candlestick 5 - Green, tall */
+.candlestick-5 .wick {
+  height: 50px;
+}
+
+.candlestick-5 .body {
+  height: 65px;
+}
+
+@keyframes candlestickPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateY(-5px) scaleY(1.05);
+  }
+}
+
+.loading-message {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Apple-style blur backdrop for loading overlays */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-overlay .loading-container {
+  min-height: auto;
+  background: transparent;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .candlestick-chart {
+    height: 100px;
+    gap: 0.5rem;
+  }
+
+  .candlestick .body {
+    width: 14px;
+  }
+
+  .candlestick-1 .wick {
+    height: 38px;
+  }
+
+  .candlestick-1 .body {
+    height: 50px;
+  }
+
+  .candlestick-2 .wick {
+    height: 25px;
+  }
+
+  .candlestick-2 .body {
+    height: 30px;
+  }
+
+  .candlestick-3 .wick {
+    height: 45px;
+  }
+
+  .candlestick-3 .body {
+    height: 62px;
+  }
+
+  .candlestick-4 .wick {
+    height: 20px;
+  }
+
+  .candlestick-4 .body {
+    height: 25px;
+  }
+
+  .candlestick-5 .wick {
+    height: 42px;
+  }
+
+  .candlestick-5 .body {
+    height: 55px;
+  }
+
+  .loading-message {
+    font-size: 0.95rem;
+  }
+}
+

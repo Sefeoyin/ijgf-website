@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
+import LoadingAnimation from './LoadingAnimation'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -87,11 +88,7 @@ function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <p>Loading...</p>
-      </div>
-    )
+    return <LoadingAnimation message="Loading dashboard..." />
   }
 
   return (

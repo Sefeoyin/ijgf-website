@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
+import LoadingAnimation from './LoadingAnimation'
 
 function AuthCallback() {
   const navigate = useNavigate()
@@ -42,32 +43,7 @@ function AuthCallback() {
     handleCallback()
   }, [navigate])
 
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      flexDirection: 'column',
-      gap: '1rem'
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        border: '4px solid #f3f4f6',
-        borderTop: '4px solid #7c3aed',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite'
-      }} />
-      <p style={{ color: 'var(--text-secondary)' }}>Completing sign in...</p>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-  )
+  return <LoadingAnimation message="Completing sign in..." />
 }
 
 export default AuthCallback
