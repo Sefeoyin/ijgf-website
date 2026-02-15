@@ -337,6 +337,33 @@ body[data-theme="day"] .back-to-top:hover {
   position: absolute;
   top: 2rem;
   left: 2rem;
+  right: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auth-logo-header .theme-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.auth-logo-header .theme-toggle-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+.auth-logo-header .theme-toggle-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 @media (max-width: 768px) {
@@ -960,6 +987,29 @@ body[data-theme="day"] .back-to-top:hover {
   height: 8px;
   background: #EF4444;
   border-radius: 50%;
+}
+
+.dashboard-user .theme-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.dashboard-user .theme-toggle-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+.dashboard-user .theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .user-profile {

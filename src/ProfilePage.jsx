@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
+import { ThemeContext } from './ThemeContext'
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
 function ProfilePage({ isSetup = false }) {
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useContext(ThemeContext)
   const [user, setUser] = useState(null)
   const [profileImageUrl, setProfileImageUrl] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -59,6 +61,9 @@ function ProfilePage({ isSetup = false }) {
     if (!file || !user) return
 
     setError('')
+    setSuccess('')
+
+    console.log('Starting image upload...', { fileName: file.name, fileSize: file.size })
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError('File size must be less than 10MB')
@@ -76,39 +81,111 @@ function ProfilePage({ isSetup = false }) {
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-      const { data, error } = await supabase.storage
+      console.log('Uploading to Supabase storage...', { fileName })
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
         })
 
-      if (error) throw error
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError)
+        throw new Error(`Storage upload failed: ${uploadError.message}`)
+      }
 
+      console.log('Upload successful:', data)
+
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(data.path)
 
+      console.log('Public URL generated:', publicUrl)
+
+      // Update state
       setProfileImageUrl(publicUrl)
+
+      // Save to database immediately
+      console.log('Saving to database...', { userId: user.id, publicUrl })
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          profile_image: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
+        console.error('Database update error:', updateError)
+        throw new Error(`Database update failed: ${updateError.message}`)
+      }
+
+      console.log('Profile image saved successfully!')
+      setSuccess('Profile image uploaded successfully!')
     } catch (err) {
       console.error('Error uploading image:', err)
-      setError('Failed to upload image. Please try again.')
+      
+      // Provide specific error messages
+      let errorMessage = 'Failed to upload image. '
+      
+      if (err.message.includes('Bucket not found')) {
+        errorMessage += 'The storage bucket "profile-images" does not exist. Please create it in your Supabase dashboard.'
+      } else if (err.message.includes('permission')) {
+        errorMessage += 'Permission denied. Please check your storage policies in Supabase.'
+      } else if (err.message.includes('profile_image')) {
+        errorMessage += 'The "profile_image" column may not exist in your profiles table. Please add it.'
+      } else {
+        errorMessage += err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setUploading(false)
     }
   }
 
   const handleRemoveImage = async () => {
-    if (profileImageUrl && user) {
-      try {
-        const path = profileImageUrl.split('/profile-images/').pop()
-        await supabase.storage.from('profile-images').remove([path])
-      } catch (err) {
-        console.error('Error removing image:', err)
-      }
-    }
+    if (!user) return
 
-    setProfileImageUrl('')
+    setError('')
+    setSuccess('')
+
+    try {
+      setUploading(true)
+
+      // Remove from storage if exists
+      if (profileImageUrl) {
+        const path = profileImageUrl.split('/profile-images/').pop()
+        if (path) {
+          await supabase.storage.from('profile-images').remove([path])
+        }
+      }
+
+      // Update state
+      setProfileImageUrl('')
+
+      // Save to database immediately
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          profile_image: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      setSuccess('Profile image removed successfully!')
+    } catch (err) {
+      console.error('Error removing image:', err)
+      setError('Failed to remove image. Please try again.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleSave = async () => {
@@ -169,6 +246,23 @@ function ProfilePage({ isSetup = false }) {
           <a href="/" className="auth-logo-link">
             <img src="/images/logo-icon.png" alt="IJGF" className="auth-logo-icon" />
           </a>
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title={theme === 'night' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'night' ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            )}
+          </button>
         </div>
       )}
 

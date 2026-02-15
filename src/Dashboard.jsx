@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
 import LoadingAnimation from './LoadingAnimation'
+import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useContext(ThemeContext)
   const [activeTab, setActiveTab] = useState('profile')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userName, setUserName] = useState('')
@@ -173,6 +175,25 @@ function Dashboard() {
               </svg>
               <span className="notification-dot"></span>
             </button>
+
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              title={theme === 'night' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'night' ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                </svg>
+              )}
+            </button>
+
             <div className="user-profile">
               <div className="user-avatar">
                 {profileImage ? (
