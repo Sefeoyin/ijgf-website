@@ -98,9 +98,9 @@ function DashboardOverview() {
         </div>
       </div>
 
-      {/* Middle Row - Equity Chart + Markets Side by Side */}
-      <div className="dashboard-middle-row">
-        {/* Equity Chart - Takes 2/3 width */}
+      {/* Main Widgets - 2x2 Grid */}
+      <div className="dashboard-widgets-grid">
+        {/* Equity Chart - Top Left */}
         <div className="equity-chart-widget">
           <div className="widget-header">
             <div>
@@ -170,7 +170,7 @@ function DashboardOverview() {
           </div>
         </div>
 
-        {/* Markets Widget - Takes 1/3 width */}
+        {/* Markets Widget - Top Right */}
         <div className="markets-widget">
           <div className="widget-header">
             <h3>Markets</h3>
@@ -193,11 +193,8 @@ function DashboardOverview() {
           </div>
           <button className="btn-view-all">View All</button>
         </div>
-      </div>
 
-      {/* Bottom Row - Active Challenges + History Side by Side */}
-      <div className="dashboard-bottom-row">
-        {/* Active Challenges - Takes 1/3 width */}
+        {/* Active Challenges - Bottom Left */}
         <div className="active-challenges-widget">
           <h3>Active Challenges</h3>
           <div className="challenge-card">
@@ -213,7 +210,7 @@ function DashboardOverview() {
           <button className="btn-start-challenge">Start New Challenge</button>
         </div>
 
-        {/* History Widget - Takes 2/3 width */}
+        {/* History Widget - Bottom Right */}
         <div className="history-widget">
           <div className="widget-header">
             <h3>History</h3>

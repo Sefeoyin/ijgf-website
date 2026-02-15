@@ -4692,7 +4692,7 @@ body[data-theme="day"] .footer {
 /* Stats Cards Row - More Compact */
 .stats-cards-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
 }
 
@@ -4763,12 +4763,11 @@ body[data-theme="day"] .footer {
   color: var(--text-muted);
 }
 
-/* Middle Row - Equity Chart + Markets */
-.dashboard-middle-row {
+/* Main Widgets - 2x2 Grid Layout */
+.dashboard-widgets-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
-  height: auto;
 }
 
 /* Equity Chart Widget - Compact */
@@ -4980,13 +4979,6 @@ body[data-theme="day"] .footer {
 }
 
 /* Bottom Row - Compact */
-.dashboard-bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  height: auto;
-}
-
 /* Active Challenges Widget - Compact */
 .active-challenges-widget {
   background: var(--bg-card);
@@ -5165,9 +5157,8 @@ body[data-theme="day"] .footer {
 
 /* Responsive Design */
 @media (max-width: 1400px) {
-  .dashboard-middle-row {
+  .dashboard-widgets-grid {
     grid-template-columns: 1fr;
-    height: auto;
   }
   
   .equity-chart-widget {
@@ -5178,15 +5169,16 @@ body[data-theme="day"] .footer {
     height: 300px;
   }
   
-  .dashboard-bottom-row {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  
   .active-challenges-widget,
   .history-widget {
     height: auto;
     min-height: 250px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .stats-cards-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
