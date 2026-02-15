@@ -24,7 +24,6 @@ function Dashboard() {
 
   const checkUserAndLoadProfile = async () => {
     try {
-      // Check if user is authenticated
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -34,7 +33,6 @@ function Dashboard() {
 
       setUserEmail(user.email || '')
 
-      // Load profile data
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -155,22 +153,23 @@ function Dashboard() {
             </svg>
           </button>
 
-          <div className="dashboard-search">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
+          {/* Search — icon on RIGHT to match Figma */}
+          <div className="dashboard-search search-icon-right">
             <input 
               type="text" 
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
           </div>
 
           <div className="dashboard-user">
             <button className="notification-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
