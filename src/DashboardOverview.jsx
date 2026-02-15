@@ -127,7 +127,7 @@ function DashboardOverview() {
 
           {/* Compact SVG Chart */}
           <div className="chart-container">
-            <svg width="100%" height="220" viewBox="0 0 800 220" preserveAspectRatio="none">
+            <svg width="100%" height="180" viewBox="0 0 800 180" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" style={{ stopColor: 'rgba(124, 58, 237, 0.3)', stopOpacity: 1 }} />
@@ -136,14 +136,14 @@ function DashboardOverview() {
               </defs>
               
               <path
-                d="M 50 110 Q 150 160 200 60 T 400 90 T 600 140 T 750 200"
+                d="M 50 90 Q 150 130 200 50 T 400 75 T 600 115 T 750 165"
                 fill="none"
                 stroke="#7c3aed"
                 strokeWidth="2.5"
               />
               
               <path
-                d="M 50 110 Q 150 160 200 60 T 400 90 T 600 140 T 750 200 L 750 220 L 50 220 Z"
+                d="M 50 90 Q 150 130 200 50 T 400 75 T 600 115 T 750 165 L 750 180 L 50 180 Z"
                 fill="url(#chartGradient)"
               />
             </svg>
