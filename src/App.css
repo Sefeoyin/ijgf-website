@@ -4780,6 +4780,7 @@ body[data-theme="day"] .footer {
   display: flex;
   flex-direction: column;
   height: 280px;
+  overflow: hidden; /* Ensure nothing escapes the card */
 }
 
 .widget-header {
@@ -4858,20 +4859,44 @@ body[data-theme="day"] .footer {
   color: var(--text-primary);
 }
 
-/* Chart Container - Compact */
+/* Chart Container - With Y-axis labels */
 .chart-container {
   flex: 1;
   position: relative;
   width: 100%;
   min-height: 0;
+  display: flex;
+  gap: 0.75rem;
+  overflow: hidden; /* Prevent overflow */
 }
 
-.chart-dates {
+.chart-y-axis {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
+  padding: 0.5rem 0;
+  min-width: 55px;
+  text-align: right;
+}
+
+.chart-svg-wrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden; /* Contain SVG within bounds */
+}
+
+.chart-svg-wrapper svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Remove old chart-dates as dates are now in SVG */
+.chart-dates {
+  display: none;
 }
 
 /* Markets Widget - Compact Scrollable */

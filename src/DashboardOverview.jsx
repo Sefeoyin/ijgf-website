@@ -125,35 +125,46 @@ function DashboardOverview() {
             ))}
           </div>
 
-          {/* Compact SVG Chart */}
+          {/* Chart with Y-axis and X-axis labels */}
           <div className="chart-container">
-            <svg width="100%" height="180" viewBox="0 0 800 180" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: 'rgba(124, 58, 237, 0.3)', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: 'rgba(124, 58, 237, 0)', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-              
-              <path
-                d="M 50 90 Q 150 130 200 50 T 400 75 T 600 115 T 750 165"
-                fill="none"
-                stroke="#7c3aed"
-                strokeWidth="2.5"
-              />
-              
-              <path
-                d="M 50 90 Q 150 130 200 50 T 400 75 T 600 115 T 750 165 L 750 180 L 50 180 Z"
-                fill="url(#chartGradient)"
-              />
-            </svg>
+            {/* Y-axis labels */}
+            <div className="chart-y-axis">
+              <span>$25,000</span>
+              <span>$20,000</span>
+              <span>$15,000</span>
+              <span>$10,000</span>
+              <span>$5,000</span>
+            </div>
             
-            <div className="chart-dates">
-              <span>Dec 17</span>
-              <span>Dec 18</span>
-              <span>Dec 18</span>
-              <span>Dec 19</span>
-              <span>Dec 19</span>
+            {/* Chart SVG */}
+            <div className="chart-svg-wrapper">
+              <svg width="100%" height="100%" viewBox="0 0 800 200" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: 'rgba(124, 58, 237, 0.3)', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: 'rgba(124, 58, 237, 0)', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                
+                <path
+                  d="M 50 70 Q 150 110 200 30 T 400 55 T 600 95 T 750 145"
+                  fill="none"
+                  stroke="#7c3aed"
+                  strokeWidth="2.5"
+                />
+                
+                <path
+                  d="M 50 70 Q 150 110 200 30 T 400 55 T 600 95 T 750 145 L 750 170 L 50 170 Z"
+                  fill="url(#chartGradient)"
+                />
+                
+                {/* X-axis date labels embedded in SVG */}
+                <text x="100" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 17</text>
+                <text x="280" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 18</text>
+                <text x="460" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 18</text>
+                <text x="640" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 19</text>
+                <text x="750" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 19</text>
+              </svg>
             </div>
           </div>
         </div>
