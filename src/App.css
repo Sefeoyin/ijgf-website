@@ -598,6 +598,11 @@ body[data-theme="day"] .back-to-top:hover {
   padding: 2.5rem;
 }
 
+body[data-theme="day"] .profile-container {
+  background: rgba(230, 224, 245, 0.3);
+  border-color: rgba(124, 58, 237, 0.2);
+}
+
 .profile-title {
   font-size: 2rem;
   font-weight: 700;
@@ -842,6 +847,11 @@ body[data-theme="day"] .back-to-top:hover {
   transition: transform 0.3s;
 }
 
+body[data-theme="day"] .dashboard-sidebar {
+  background: rgba(230, 224, 245, 0.95);
+  backdrop-filter: blur(10px);
+}
+
 .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
@@ -923,6 +933,11 @@ body[data-theme="day"] .back-to-top:hover {
   position: sticky;
   top: 0;
   z-index: 90;
+}
+
+body[data-theme="day"] .dashboard-header {
+  background: rgba(230, 224, 245, 0.95);
+  backdrop-filter: blur(10px);
 }
 
 .mobile-menu-toggle {
