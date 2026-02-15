@@ -41,8 +41,8 @@ function Footer() {
 
           <div className="footer-column">
             <h4>LEGAL</h4>
-            <button style={comingSoonStyle} disabled>Terms of Service</button>
-            <button style={comingSoonStyle} disabled>Privacy Policy</button>
+            <button onClick={() => navigate('/terms')}>Terms of Service</button>
+            <button onClick={() => navigate('/privacy')}>Privacy Policy</button>
             <button style={comingSoonStyle} disabled>Cookie Policy</button>
           </div>
 

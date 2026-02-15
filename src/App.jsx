@@ -10,6 +10,8 @@ import FAQPage from './FAQPage'
 import AboutUsPage from './AboutUsPage'
 import HowItWorksPage from './HowItWorksPage'
 import ChallengesPage from './ChallengesPage'
+import PrivacyPolicyPage from './PrivacyPolicyPage'
+import TermsOfServicePage from './TermsOfServicePage'
 import AuthPage from './AuthPage'
 import AuthCallback from './AuthCallback'
 import Dashboard from './Dashboard'
@@ -72,6 +74,8 @@ function AnimatedRoutes() {
           <Route path="/about" element={<PageWrapper><AboutUsPage /></PageWrapper>} />
           <Route path="/how-it-works" element={<PageWrapper><HowItWorksPage /></PageWrapper>} />
           <Route path="/challenges" element={<PageWrapper><ChallengesPage /></PageWrapper>} />
+          <Route path="/privacy" element={<PageWrapper><PrivacyPolicyPage /></PageWrapper>} />
+          <Route path="/terms" element={<PageWrapper><TermsOfServicePage /></PageWrapper>} />
           <Route path="/signup" element={<PageWrapper><AuthPage /></PageWrapper>} />
           <Route path="/login" element={<PageWrapper><AuthPage /></PageWrapper>} />
           <Route path="/auth/callback" element={<PageWrapper><AuthCallback /></PageWrapper>} />
