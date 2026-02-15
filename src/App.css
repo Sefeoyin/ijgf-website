@@ -4766,9 +4766,9 @@ body[data-theme="day"] .footer {
 /* Middle Row - Equity Chart + Markets */
 .dashboard-middle-row {
   display: grid;
-  grid-template-columns: 1.85fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  height: 280px;
+  height: auto;
 }
 
 /* Equity Chart Widget - Compact */
@@ -4779,6 +4779,7 @@ body[data-theme="day"] .footer {
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
+  height: 280px;
 }
 
 .widget-header {
@@ -4882,6 +4883,7 @@ body[data-theme="day"] .footer {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 280px;
 }
 
 .markets-widget .widget-header {
@@ -4955,9 +4957,9 @@ body[data-theme="day"] .footer {
 /* Bottom Row - Compact */
 .dashboard-bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1.8fr;
+  grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  height: 220px;
+  height: auto;
 }
 
 /* Active Challenges Widget - Compact */
@@ -4968,6 +4970,7 @@ body[data-theme="day"] .footer {
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
+  height: 280px;
 }
 
 .active-challenges-widget h3 {
@@ -5041,6 +5044,7 @@ body[data-theme="day"] .footer {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 280px;
 }
 
 .history-widget .widget-header {
