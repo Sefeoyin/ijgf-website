@@ -4761,7 +4761,7 @@ body[data-theme="day"] .footer {
 /* Middle Row - Equity Chart + Markets */
 .dashboard-middle-row {
   display: grid;
-  grid-template-columns: 1.8fr 1fr;
+  grid-template-columns: 1.85fr 1fr;
   gap: 1rem;
   height: 350px;
 }
