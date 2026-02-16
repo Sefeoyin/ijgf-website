@@ -27,7 +27,7 @@ function MarketsPage() {
   const [orderHistory, setOrderHistory] = useState([])
   
   // Account Info
-  const [accountBalance, setAccountBalance] = useState(10000) // Demo balance
+  const [accountBalance] = useState(10000) // Demo balance
   const [availableMargin, setAvailableMargin] = useState(10000)
   const [unrealizedPnL, setUnrealizedPnL] = useState(0)
   
