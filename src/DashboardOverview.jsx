@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 function DashboardOverview() {
   const [timeRange, setTimeRange] = useState('1H')
   const [selectedMarket, setSelectedMarket] = useState(null)
+  const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   
   // Stats reset to zero for new users
   const [stats] = useState({
@@ -31,18 +32,32 @@ function DashboardOverview() {
     const fetchPrices = async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT']
       
+      console.log('🔄 Fetching prices from Binance...')
+      
       try {
         // Fetch prices and 24h changes in parallel for all symbols
         const pricePromises = symbols.map(symbol =>
           fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
-            .then(res => res.json())
-            .catch(() => null)
+            .then(res => {
+              console.log(`✅ Price response for ${symbol}:`, res.status)
+              return res.json()
+            })
+            .catch(err => {
+              console.error(`❌ Price fetch failed for ${symbol}:`, err)
+              return null
+            })
         )
         
         const changePromises = symbols.map(symbol =>
           fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
-            .then(res => res.json())
-            .catch(() => null)
+            .then(res => {
+              console.log(`✅ 24hr response for ${symbol}:`, res.status)
+              return res.json()
+            })
+            .catch(err => {
+              console.error(`❌ 24hr fetch failed for ${symbol}:`, err)
+              return null
+            })
         )
         
         const [priceResults, changeResults] = await Promise.all([
@@ -50,12 +65,16 @@ function DashboardOverview() {
           Promise.all(changePromises)
         ])
         
+        console.log('📊 Price results:', priceResults)
+        console.log('📈 Change results:', changeResults)
+        
         setMarkets(prevMarkets =>
           prevMarkets.map((market, index) => {
             const priceData = priceResults[index]
             const changeData = changeResults[index]
             
             if (priceData && priceData.price) {
+              console.log(`✅ Updating ${market.symbol}: $${priceData.price}`)
               return {
                 ...market,
                 price: parseFloat(priceData.price),
@@ -64,11 +83,16 @@ function DashboardOverview() {
                   : market.change
               }
             }
+            console.log(`⚠️ No data for ${market.symbol}`)
             return market
           })
         )
+        
+        setIsLoadingPrices(false)
+        console.log('✅ Price update complete')
       } catch (error) {
-        console.error('Error fetching Binance prices:', error)
+        console.error('❌ Error fetching Binance prices:', error)
+        setIsLoadingPrices(false)
       }
     }
 
@@ -347,7 +371,9 @@ function DashboardOverview() {
                   </div>
                   <div className="market-stats">
                     <div className="market-price">
-                      {market.price === 0 ? '...' : (
+                      {market.price === 0 ? (
+                        isLoadingPrices ? 'Loading...' : 'N/A'
+                      ) : (
                         market.price < 1 
                           ? formatPrice(market.price, 4)
                           : market.price < 100
@@ -356,7 +382,9 @@ function DashboardOverview() {
                       )}
                     </div>
                     <div className={`market-change ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
-                      {market.price === 0 ? '...' : formatPercent(market.change)}
+                      {market.price === 0 ? (
+                        isLoadingPrices ? '...' : 'N/A'
+                      ) : formatPercent(market.change)}
                     </div>
                   </div>
                 </div>
