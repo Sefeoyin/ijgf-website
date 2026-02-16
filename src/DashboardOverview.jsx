@@ -35,9 +35,12 @@ function DashboardOverview() {
       console.log('🔄 Fetching prices from Binance...')
       
       try {
+        // Use CORS proxy to bypass browser restrictions
+        const corsProxy = 'https://api.allorigins.win/raw?url='
+        
         // Fetch prices and 24h changes in parallel for all symbols
         const pricePromises = symbols.map(symbol =>
-          fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+          fetch(`${corsProxy}${encodeURIComponent(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)}`)
             .then(res => {
               console.log(`✅ Price response for ${symbol}:`, res.status)
               return res.json()
@@ -49,7 +52,7 @@ function DashboardOverview() {
         )
         
         const changePromises = symbols.map(symbol =>
-          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+          fetch(`${corsProxy}${encodeURIComponent(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)}`)
             .then(res => {
               console.log(`✅ 24hr response for ${symbol}:`, res.status)
               return res.json()
@@ -99,8 +102,8 @@ function DashboardOverview() {
     // Fetch immediately
     fetchPrices()
 
-    // Then update every 10 seconds
-    const interval = setInterval(fetchPrices, 10000)
+    // Then update every 15 seconds (to avoid rate limits on proxy)
+    const interval = setInterval(fetchPrices, 15000)
 
     return () => clearInterval(interval)
   }, []) // Empty dependency array is intentional - we only want to set up the interval once
