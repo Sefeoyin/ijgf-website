@@ -100,21 +100,43 @@ function DashboardOverview() {
 
   // Remove price alert - wrapped in useCallback
   const removePriceAlert = useCallback((alertId) => {
-    setPriceAlerts(prev => prev.filter(alert => alert.id !== alertId))
+    setPriceAlerts(prev => {
+      const updated = prev.filter(alert => alert.id !== alertId)
+      localStorage.setItem('priceAlerts', JSON.stringify(updated))
+      return updated
+    })
   }, [])
 
   // Set price alert
   const setPriceAlert = useCallback((symbol, targetPrice, condition) => {
-    setPriceAlerts(prev => [...prev, {
+    const newAlert = {
       id: Date.now(),
       symbol,
       targetPrice,
       condition,
       triggered: false
-    }])
+    }
+    setPriceAlerts(prev => {
+      const updated = [...prev, newAlert]
+      localStorage.setItem('priceAlerts', JSON.stringify(updated))
+      return updated
+    })
     addNotification(`Alert set for ${symbol} ${condition} $${targetPrice}`, 'info')
     setShowAlertModal(false)
   }, [addNotification])
+
+  // Load alerts from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('priceAlerts')
+      if (saved) {
+        const alerts = JSON.parse(saved)
+        setPriceAlerts(alerts)
+      }
+    } catch (error) {
+      console.error('Error loading price alerts:', error)
+    }
+  }, [])
 
   // Check price alerts whenever markets update
   useEffect(() => {
@@ -165,7 +187,7 @@ function DashboardOverview() {
         'DOGEUSDT': { id: 'dogecoin', symbol: 'DOGE' },
         'AVAXUSDT': { id: 'avalanche-2', symbol: 'AVAX' },
         'DOTUSDT': { id: 'polkadot', symbol: 'DOT' },
-        'MATICUSDT': { id: 'matic-network', symbol: 'MATIC' },
+        'MATICUSDT': { id: 'polygon-ecosystem-token', symbol: 'MATIC' },
         'LINKUSDT': { id: 'chainlink', symbol: 'LINK' },
         'UNIUSDT': { id: 'uniswap', symbol: 'UNI' },
         'ATOMUSDT': { id: 'cosmos', symbol: 'ATOM' },

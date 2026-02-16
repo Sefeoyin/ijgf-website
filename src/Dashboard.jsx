@@ -16,8 +16,28 @@ function Dashboard() {
   const [profileImage, setProfileImage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false)
+  const [activeAlertCount, setActiveAlertCount] = useState(0)
 
+  // Check for active price alerts in localStorage
   useEffect(() => {
+    const checkAlerts = () => {
+      try {
+        const alerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+        const activeAlerts = alerts.filter(a => !a.triggered)
+        setActiveAlertCount(activeAlerts.length)
+      } catch {
+        setActiveAlertCount(0)
+      }
+    }
+    
+    checkAlerts()
+    // Check every 5 seconds
+    const interval = setInterval(checkAlerts, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() {
     checkUserAndLoadProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -168,13 +188,46 @@ function Dashboard() {
           </div>
 
           <div className="dashboard-user">
-            <button className="notification-btn">
+            <button 
+              className="notification-btn"
+              onClick={() => setShowNotificationPanel(!showNotificationPanel)}
+              title="Price Alerts"
+            >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
-              <span className="notification-dot"></span>
+              {activeAlertCount > 0 && (
+                <span className="notification-badge">{activeAlertCount}</span>
+              )}
             </button>
+
+            {/* Notification Panel */}
+            {showNotificationPanel && (
+              <div className="notification-panel">
+                <div className="notification-panel-header">
+                  <h3>Price Alerts</h3>
+                  <span className="alert-count">{activeAlertCount} active</span>
+                </div>
+                <div className="notification-panel-body">
+                  {activeAlertCount === 0 ? (
+                    <div className="no-notifications">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                      <p>No active alerts</p>
+                      <span>Set price alerts on any crypto in the Markets widget</span>
+                    </div>
+                  ) : (
+                    <div className="alert-message">
+                      <p>You have {activeAlertCount} active price alert{activeAlertCount > 1 ? 's' : ''}</p>
+                      <span>Manage them in the Markets widget on your dashboard</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <button
               className="theme-toggle-btn"
