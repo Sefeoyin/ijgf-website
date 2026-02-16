@@ -5198,3 +5198,73 @@ body[data-theme="day"] .footer {
     padding: 0.625rem 0.5rem;
   }
 }
+
+/* ==========================================
+   Custom Scrollbar Styling - Subtle & Professional
+   ========================================== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.3);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
+}
+
+/* Dashboard specific scrollbars - even more subtle */
+.dashboard-content ::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dashboard-content ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.dashboard-content ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.4);
+}
+
+/* Markets widget scrollbar */
+.markets-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.markets-list::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.25);
+  border-radius: 10px;
+}
+
+.markets-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.4);
+}
+
+/* Light mode scrollbars */
+body[data-theme="day"] * {
+  scrollbar-color: rgba(124, 58, 237, 0.2) transparent;
+}
+
+body[data-theme="day"] ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.2);
+}
+
+body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.35);
+}
