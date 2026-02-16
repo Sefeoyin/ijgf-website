@@ -1,101 +1,55 @@
 import { useState, useEffect } from 'react'
 
 function MarketsPage() {
-  // Market selection
+  // Market Selection
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [marketPrice, setMarketPrice] = useState(0)
-  const [priceChange24h, setPriceChange24h] = useState(0)
+  const [priceChange, setPriceChange] = useState(0)
   const [high24h, setHigh24h] = useState(0)
   const [low24h, setLow24h] = useState(0)
   const [volume24h, setVolume24h] = useState(0)
-
-  // Trading state
-  const [orderType, setOrderType] = useState('limit') // limit, market, stop-limit
-  const [side, setSide] = useState('buy') // buy, sell
+  
+  // Order Entry
+  const [orderTab, setOrderTab] = useState('LONG') // LONG or SHORT
+  const [orderType, setOrderType] = useState('Market') // Market, Limit, Stop-Limit
+  const [quantity, setQuantity] = useState('')
   const [price, setPrice] = useState('')
-  const [amount, setAmount] = useState('')
-  const [total, setTotal] = useState('')
+  const [stopPrice, setStopPrice] = useState('')
   const [leverage, setLeverage] = useState(1)
-
-  // Account balance (demo)
-  const [balance] = useState({
-    USDT: 10000,
-    BTC: 0,
-    ETH: 0
-  })
-
-  // Open positions (demo data)
-  const [positions, setPositions] = useState([
-    {
-      id: 1,
-      symbol: 'BTCUSDT',
-      side: 'LONG',
-      size: 0.5,
-      entryPrice: 96420.00,
-      markPrice: 96850.00,
-      leverage: 5,
-      pnl: 215.00,
-      pnlPercent: 2.23,
-      liquidationPrice: 92150.00,
-      margin: 9642.00
-    }
-  ])
-
-  // Open orders (demo data)
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      symbol: 'ETHUSDT',
-      side: 'BUY',
-      type: 'LIMIT',
-      price: 3500.00,
-      amount: 2.5,
-      filled: 0,
-      total: 8750.00,
-      status: 'OPEN',
-      time: new Date().toISOString()
-    }
-  ])
-
-  // Trade history (demo data)
-  const [tradeHistory] = useState([
-    {
-      id: 1,
-      symbol: 'BTCUSDT',
-      side: 'BUY',
-      price: 96420.00,
-      amount: 0.5,
-      total: 48210.00,
-      fee: 48.21,
-      time: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-      id: 2,
-      symbol: 'ETHUSDT',
-      side: 'SELL',
-      price: 3520.00,
-      amount: 1.5,
-      total: 5280.00,
-      fee: 5.28,
-      time: new Date(Date.now() - 7200000).toISOString()
-    }
-  ])
-
+  const [tpslEnabled, setTpslEnabled] = useState(false)
+  const [takeProfit, setTakeProfit] = useState('')
+  const [stopLoss, setStopLoss] = useState('')
+  
+  // Positions & Orders
+  const [activeTab, setActiveTab] = useState('positions') // positions, openOrders, orderHistory
+  const [positions, setPositions] = useState([])
+  const [openOrders, setOpenOrders] = useState([])
+  const [orderHistory, setOrderHistory] = useState([])
+  
+  // Account Info
+  const [accountBalance, setAccountBalance] = useState(10000) // Demo balance
+  const [availableMargin, setAvailableMargin] = useState(10000)
+  const [unrealizedPnL, setUnrealizedPnL] = useState(0)
+  
+  // Loading states
+  const [isLoadingPrice, setIsLoadingPrice] = useState(true)
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  
   // Popular trading pairs
-  const [tradingPairs] = useState([
-    { symbol: 'BTCUSDT', name: 'BTC/USDT', price: 0, change: 0 },
-    { symbol: 'ETHUSDT', name: 'ETH/USDT', price: 0, change: 0 },
-    { symbol: 'SOLUSDT', name: 'SOL/USDT', price: 0, change: 0 },
-    { symbol: 'BNBUSDT', name: 'BNB/USDT', price: 0, change: 0 },
-    { symbol: 'XRPUSDT', name: 'XRP/USDT', price: 0, change: 0 },
-    { symbol: 'ADAUSDT', name: 'ADA/USDT', price: 0, change: 0 },
-    { symbol: 'DOGEUSDT', name: 'DOGE/USDT', price: 0, change: 0 },
-    { symbol: 'AVAXUSDT', name: 'AVAX/USDT', price: 0, change: 0 }
-  ])
+  const tradingPairs = [
+    { symbol: 'BTCUSDT', name: 'Bitcoin', maxLeverage: 8 },
+    { symbol: 'ETHUSDT', name: 'Ethereum', maxLeverage: 8 },
+    { symbol: 'SOLUSDT', name: 'Solana', maxLeverage: 5 },
+    { symbol: 'BNBUSDT', name: 'BNB', maxLeverage: 5 },
+    { symbol: 'XRPUSDT', name: 'XRP', maxLeverage: 5 },
+    { symbol: 'ADAUSDT', name: 'Cardano', maxLeverage: 5 },
+    { symbol: 'DOGEUSDT', name: 'Dogecoin', maxLeverage: 5 },
+    { symbol: 'AVAXUSDT', name: 'Avalanche', maxLeverage: 5 },
+  ]
 
-  // Fetch real-time prices from CoinGecko
+  // Fetch real-time price from CoinGecko
   useEffect(() => {
-    const fetchPrices = async () => {
+    const fetchPrice = async () => {
       const coinGeckoMap = {
         'BTCUSDT': 'bitcoin',
         'ETHUSDT': 'ethereum',
@@ -104,490 +58,638 @@ function MarketsPage() {
         'XRPUSDT': 'ripple',
         'ADAUSDT': 'cardano',
         'DOGEUSDT': 'dogecoin',
-        'AVAXUSDT': 'avalanche-2'
+        'AVAXUSDT': 'avalanche-2',
       }
 
-      const ids = Object.values(coinGeckoMap).join(',')
-
       try {
+        setIsLoadingPrice(true)
+        const coinId = coinGeckoMap[selectedPair]
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_24hr_high_low=true`
+          `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`
         )
         const data = await response.json()
 
-        // Update selected pair details
-        const selectedCoinId = coinGeckoMap[selectedPair]
-        if (data[selectedCoinId]) {
-          setMarketPrice(data[selectedCoinId].usd)
-          setPriceChange24h(data[selectedCoinId].usd_24h_change || 0)
-          setHigh24h(data[selectedCoinId].usd_24h_high || 0)
-          setLow24h(data[selectedCoinId].usd_24h_low || 0)
-          setVolume24h(data[selectedCoinId].usd_24h_vol || 0)
-        }
+        setMarketPrice(data.market_data.current_price.usd)
+        setPriceChange(data.market_data.price_change_percentage_24h || 0)
+        setHigh24h(data.market_data.high_24h.usd || 0)
+        setLow24h(data.market_data.low_24h.usd || 0)
+        setVolume24h(data.market_data.total_volume.usd || 0)
       } catch (error) {
-        console.error('Error fetching prices:', error)
+        console.error('Error fetching price:', error)
+      } finally {
+        setIsLoadingPrice(false)
       }
     }
 
-    fetchPrices()
-    const interval = setInterval(fetchPrices, 10000) // Update every 10 seconds
+    fetchPrice()
+    const interval = setInterval(fetchPrice, 10000) // Update every 10 seconds
     return () => clearInterval(interval)
   }, [selectedPair])
 
-  // Calculate total when price or amount changes
+  // Auto-fill price for Limit orders
   useEffect(() => {
-    if (price && amount) {
-      const calculatedTotal = (parseFloat(price) * parseFloat(amount)).toFixed(2)
-      setTotal(calculatedTotal)
-    }
-  }, [price, amount])
-
-  // Use market price for market orders
-  useEffect(() => {
-    if (orderType === 'market' && marketPrice > 0) {
-      setPrice(marketPrice.toFixed(2))
+    if (orderType === 'Limit' && marketPrice > 0) {
+      setPrice(marketPrice.toString())
     }
   }, [orderType, marketPrice])
 
-  const handlePlaceOrder = () => {
-    if (!price || !amount) {
-      alert('Please enter price and amount')
+  // Calculate order value
+  const calculateOrderValue = () => {
+    if (!quantity) return 0
+    const qty = parseFloat(quantity)
+    const priceToUse = orderType === 'Market' ? marketPrice : parseFloat(price || 0)
+    return qty * priceToUse
+  }
+
+  // Calculate required margin
+  const calculateMargin = () => {
+    const orderValue = calculateOrderValue()
+    return orderValue / leverage
+  }
+
+  // Handle order placement
+  const handlePlaceOrder = async () => {
+    if (!quantity || parseFloat(quantity) <= 0) {
+      alert('Please enter a valid quantity')
       return
     }
 
-    const newOrder = {
-      id: Date.now(),
-      symbol: selectedPair,
-      side: side.toUpperCase(),
-      type: orderType.toUpperCase(),
-      price: parseFloat(price),
-      amount: parseFloat(amount),
-      filled: 0,
-      total: parseFloat(total),
-      status: 'OPEN',
-      time: new Date().toISOString()
+    if (orderType === 'Limit' && (!price || parseFloat(price) <= 0)) {
+      alert('Please enter a valid price')
+      return
     }
 
-    setOrders([...orders, newOrder])
-    
-    // Reset form
-    setPrice('')
-    setAmount('')
-    setTotal('')
-    
-    alert(`${side.toUpperCase()} order placed successfully!`)
+    if (orderType === 'Stop-Limit' && (!price || !stopPrice)) {
+      alert('Please enter valid price and stop price')
+      return
+    }
+
+    const requiredMargin = calculateMargin()
+    if (requiredMargin > availableMargin) {
+      alert('Insufficient margin')
+      return
+    }
+
+    setIsPlacingOrder(true)
+
+    // Simulate order placement (will be replaced with actual Binance API call)
+    setTimeout(() => {
+      const newOrder = {
+        id: Date.now(),
+        pair: selectedPair,
+        side: orderTab,
+        type: orderType,
+        quantity: parseFloat(quantity),
+        price: orderType === 'Market' ? marketPrice : parseFloat(price),
+        stopPrice: stopPrice ? parseFloat(stopPrice) : null,
+        leverage: leverage,
+        takeProfit: takeProfit ? parseFloat(takeProfit) : null,
+        stopLoss: stopLoss ? parseFloat(stopLoss) : null,
+        status: orderType === 'Market' ? 'Filled' : 'Open',
+        timestamp: new Date().toISOString()
+      }
+
+      if (orderType === 'Market') {
+        // Add to positions
+        setPositions(prev => [...prev, {
+          ...newOrder,
+          entryPrice: marketPrice,
+          currentPrice: marketPrice,
+          pnl: 0,
+          pnlPercent: 0
+        }])
+        
+        // Add to order history
+        setOrderHistory(prev => [newOrder, ...prev])
+      } else {
+        // Add to open orders
+        setOpenOrders(prev => [...prev, newOrder])
+      }
+
+      // Update available margin
+      setAvailableMargin(prev => prev - requiredMargin)
+
+      // Reset form
+      setQuantity('')
+      setPrice('')
+      setStopPrice('')
+      setTakeProfit('')
+      setStopLoss('')
+      setTpslEnabled(false)
+
+      alert(`${orderType} ${orderTab} order placed successfully!`)
+      setIsPlacingOrder(false)
+    }, 1000)
   }
 
-  const handleCancelOrder = (orderId) => {
-    setOrders(orders.filter(order => order.id !== orderId))
+  // Close position
+  const closePosition = (positionId) => {
+    const position = positions.find(p => p.id === positionId)
+    if (!position) return
+
+    // Return margin
+    const margin = (position.entryPrice * position.quantity) / position.leverage
+    setAvailableMargin(prev => prev + margin)
+
+    // Update unrealized PnL
+    setUnrealizedPnL(prev => prev - position.pnl)
+
+    // Remove from positions
+    setPositions(prev => prev.filter(p => p.id !== positionId))
+
+    // Add to order history as closed
+    setOrderHistory(prev => [{
+      ...position,
+      status: 'Closed',
+      closePrice: position.currentPrice,
+      timestamp: new Date().toISOString()
+    }, ...prev])
+
+    alert(`Position closed with P/L: $${position.pnl.toFixed(2)}`)
+  }
+
+  // Cancel order
+  const cancelOrder = (orderId) => {
+    const order = openOrders.find(o => o.id === orderId)
+    if (!order) return
+
+    // Return margin
+    const margin = (order.price * order.quantity) / order.leverage
+    setAvailableMargin(prev => prev + margin)
+
+    // Remove from open orders
+    setOpenOrders(prev => prev.filter(o => o.id !== orderId))
+
+    // Add to order history as cancelled
+    setOrderHistory(prev => [{
+      ...order,
+      status: 'Cancelled',
+      timestamp: new Date().toISOString()
+    }, ...prev])
+
     alert('Order cancelled')
   }
 
-  const handleClosePosition = (positionId) => {
-    setPositions(positions.filter(pos => pos.id !== positionId))
-    alert('Position closed')
+  // Format number helpers
+  const formatPrice = (num) => {
+    if (num === 0) return '0.00'
+    if (num < 1) return num.toFixed(4)
+    if (num < 100) return num.toFixed(2)
+    return num.toFixed(0)
   }
 
-  const formatPrice = (price, decimals = 2) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    }).format(price)
-  }
-
-  const formatPercent = (percent) => {
-    const sign = percent > 0 ? '+' : ''
-    return `${sign}${percent.toFixed(2)}%`
-  }
-
-  const formatTime = (isoString) => {
-    const date = new Date(isoString)
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false
-    })
+  const formatVolume = (num) => {
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
+    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
+    return `$${num.toFixed(2)}`
   }
 
   return (
     <div className="markets-page">
-      {/* Top Bar - Pair Info */}
-      <div className="markets-header">
-        <div className="pair-selector">
+      {/* Top Bar - Market Info */}
+      <div className="market-top-bar">
+        <div className="market-selector">
           <select 
-            value={selectedPair} 
-            onChange={(e) => setSelectedPair(e.target.value)}
             className="pair-select"
+            value={selectedPair}
+            onChange={(e) => setSelectedPair(e.target.value)}
           >
             {tradingPairs.map(pair => (
-              <option key={pair.symbol} value={pair.symbol}>{pair.name}</option>
+              <option key={pair.symbol} value={pair.symbol}>
+                {pair.symbol}
+              </option>
             ))}
           </select>
+          <div className="market-info">
+            <div className="market-price">
+              {isLoadingPrice ? (
+                <span className="loading-price">Loading...</span>
+              ) : (
+                <>
+                  <span className="price-value">${formatPrice(marketPrice)}</span>
+                  <span className={`price-change ${priceChange >= 0 ? 'positive' : 'negative'}`}>
+                    {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="market-stats">
+              <div className="stat-item">
+                <span className="stat-label">24h High</span>
+                <span className="stat-value">${formatPrice(high24h)}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">24h Low</span>
+                <span className="stat-value">${formatPrice(low24h)}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">24h Volume</span>
+                <span className="stat-value">{formatVolume(volume24h)}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="pair-stats">
-          <div className="stat-item">
-            <span className="stat-label">Last Price</span>
-            <span className={`stat-value ${priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-              ${formatPrice(marketPrice, marketPrice < 1 ? 4 : 2)}
+        {/* Account Summary */}
+        <div className="account-summary">
+          <div className="account-item">
+            <span className="account-label">Balance</span>
+            <span className="account-value">${accountBalance.toFixed(2)}</span>
+          </div>
+          <div className="account-item">
+            <span className="account-label">Available Margin</span>
+            <span className="account-value">${availableMargin.toFixed(2)}</span>
+          </div>
+          <div className="account-item">
+            <span className="account-label">Unrealized P/L</span>
+            <span className={`account-value ${unrealizedPnL >= 0 ? 'positive' : 'negative'}`}>
+              {unrealizedPnL >= 0 ? '+' : ''}${unrealizedPnL.toFixed(2)}
             </span>
-          </div>
-
-          <div className="stat-item">
-            <span className="stat-label">24h Change</span>
-            <span className={`stat-value ${priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-              {formatPercent(priceChange24h)}
-            </span>
-          </div>
-
-          <div className="stat-item">
-            <span className="stat-label">24h High</span>
-            <span className="stat-value">${formatPrice(high24h, high24h < 1 ? 4 : 2)}</span>
-          </div>
-
-          <div className="stat-item">
-            <span className="stat-label">24h Low</span>
-            <span className="stat-value">${formatPrice(low24h, low24h < 1 ? 4 : 2)}</span>
-          </div>
-
-          <div className="stat-item">
-            <span className="stat-label">24h Volume</span>
-            <span className="stat-value">${formatPrice(volume24h, 0)}</span>
           </div>
         </div>
       </div>
 
       {/* Main Trading Area */}
-      <div className="markets-content">
-        {/* Left: Chart Area */}
+      <div className="trading-area">
+        {/* Left Side - Chart Area */}
         <div className="chart-section">
           <div className="chart-placeholder">
-            <div className="chart-header">
-              <div className="chart-title">{selectedPair} Chart</div>
-              <div className="chart-timeframes">
-                <button className="timeframe-btn">1m</button>
-                <button className="timeframe-btn">5m</button>
-                <button className="timeframe-btn active">15m</button>
-                <button className="timeframe-btn">1h</button>
-                <button className="timeframe-btn">4h</button>
-                <button className="timeframe-btn">1D</button>
-              </div>
-            </div>
-            <div className="chart-body">
-              {/* TradingView chart will go here */}
-              <div className="chart-coming-soon">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                <h3>Chart Integration Coming Soon</h3>
-                <p>TradingView chart will be integrated here</p>
-              </div>
+            <div className="chart-coming-soon">
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              <h3>TradingView Chart</h3>
+              <p>Interactive chart will be integrated here</p>
+              <span className="chart-note">Shows real-time price action for {selectedPair}</span>
             </div>
           </div>
         </div>
 
-        {/* Right: Order Entry Panel */}
+        {/* Right Side - Order Entry */}
         <div className="order-panel">
-          {/* Balance Info */}
-          <div className="balance-section">
-            <div className="balance-row">
-              <span className="balance-label">Available</span>
-              <span className="balance-value">{formatPrice(balance.USDT)} USDT</span>
-            </div>
-          </div>
-
-          {/* Buy/Sell Tabs */}
+          {/* LONG/SHORT Tabs */}
           <div className="order-tabs">
             <button 
-              className={`order-tab buy-tab ${side === 'buy' ? 'active' : ''}`}
-              onClick={() => setSide('buy')}
+              className={`order-tab long ${orderTab === 'LONG' ? 'active' : ''}`}
+              onClick={() => setOrderTab('LONG')}
             >
-              Buy / Long
+              LONG
             </button>
             <button 
-              className={`order-tab sell-tab ${side === 'sell' ? 'active' : ''}`}
-              onClick={() => setSide('sell')}
+              className={`order-tab short ${orderTab === 'SHORT' ? 'active' : ''}`}
+              onClick={() => setOrderTab('SHORT')}
             >
-              Sell / Short
+              SHORT
             </button>
           </div>
 
-          {/* Order Type Selection */}
-          <div className="order-type-tabs">
+          {/* Order Type Selector */}
+          <div className="order-type-selector">
             <button 
-              className={`type-tab ${orderType === 'limit' ? 'active' : ''}`}
-              onClick={() => setOrderType('limit')}
-            >
-              Limit
-            </button>
-            <button 
-              className={`type-tab ${orderType === 'market' ? 'active' : ''}`}
-              onClick={() => setOrderType('market')}
+              className={`type-btn ${orderType === 'Market' ? 'active' : ''}`}
+              onClick={() => setOrderType('Market')}
             >
               Market
             </button>
             <button 
-              className={`type-tab ${orderType === 'stop-limit' ? 'active' : ''}`}
-              onClick={() => setOrderType('stop-limit')}
+              className={`type-btn ${orderType === 'Limit' ? 'active' : ''}`}
+              onClick={() => setOrderType('Limit')}
+            >
+              Limit
+            </button>
+            <button 
+              className={`type-btn ${orderType === 'Stop-Limit' ? 'active' : ''}`}
+              onClick={() => setOrderType('Stop-Limit')}
             >
               Stop-Limit
             </button>
           </div>
 
-          {/* Leverage Selector */}
+          {/* Leverage Slider */}
           <div className="leverage-section">
-            <label className="input-label">
-              Leverage: {leverage}x
-            </label>
-            <input 
-              type="range" 
-              min="1" 
-              max="10" 
+            <div className="leverage-header">
+              <label>Leverage</label>
+              <span className="leverage-value">{leverage}x</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max={tradingPairs.find(p => p.symbol === selectedPair)?.maxLeverage || 8}
               value={leverage}
               onChange={(e) => setLeverage(parseInt(e.target.value))}
               className="leverage-slider"
             />
-            <div className="leverage-marks">
+            <div className="leverage-info">
               <span>1x</span>
-              <span>5x</span>
-              <span>10x</span>
+              <span>{tradingPairs.find(p => p.symbol === selectedPair)?.maxLeverage || 8}x</span>
             </div>
           </div>
 
           {/* Order Inputs */}
           <div className="order-inputs">
-            {orderType !== 'market' && (
+            {orderType === 'Stop-Limit' && (
               <div className="input-group">
-                <label className="input-label">Price (USDT)</label>
-                <input 
-                  type="number" 
+                <label>Stop Price</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={stopPrice}
+                  onChange={(e) => setStopPrice(e.target.value)}
+                  className="order-input"
+                />
+              </div>
+            )}
+
+            {orderType !== 'Market' && (
+              <div className="input-group">
+                <label>Price</label>
+                <input
+                  type="number"
                   placeholder="0.00"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   className="order-input"
-                  disabled={orderType === 'market'}
                 />
               </div>
             )}
 
             <div className="input-group">
-              <label className="input-label">Amount ({selectedPair.replace('USDT', '')})</label>
-              <input 
-                type="number" 
+              <label>Quantity</label>
+              <input
+                type="number"
                 placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="order-input"
               />
-              <div className="amount-shortcuts">
-                <button onClick={() => setAmount((balance.USDT * 0.25 / marketPrice).toFixed(6))}>25%</button>
-                <button onClick={() => setAmount((balance.USDT * 0.50 / marketPrice).toFixed(6))}>50%</button>
-                <button onClick={() => setAmount((balance.USDT * 0.75 / marketPrice).toFixed(6))}>75%</button>
-                <button onClick={() => setAmount((balance.USDT / marketPrice).toFixed(6))}>100%</button>
-              </div>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Total (USDT)</label>
-              <input 
-                type="number" 
-                placeholder="0.00"
-                value={total}
-                onChange={(e) => setTotal(e.target.value)}
-                className="order-input"
-                readOnly
-              />
+            {/* TP/SL Toggle */}
+            <div className="tpsl-toggle">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={tpslEnabled}
+                  onChange={(e) => setTpslEnabled(e.target.checked)}
+                />
+                <span>Take Profit / Stop Loss</span>
+              </label>
+            </div>
+
+            {tpslEnabled && (
+              <>
+                <div className="input-group">
+                  <label>Take Profit</label>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={takeProfit}
+                    onChange={(e) => setTakeProfit(e.target.value)}
+                    className="order-input"
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Stop Loss</label>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={stopLoss}
+                    onChange={(e) => setStopLoss(e.target.value)}
+                    className="order-input"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Order Summary */}
+          <div className="order-summary">
+            <div className="summary-row">
+              <span>Order Value</span>
+              <span>${calculateOrderValue().toFixed(2)}</span>
+            </div>
+            <div className="summary-row">
+              <span>Required Margin</span>
+              <span>${calculateMargin().toFixed(2)}</span>
             </div>
           </div>
 
           {/* Place Order Button */}
           <button 
-            className={`place-order-btn ${side === 'buy' ? 'buy' : 'sell'}`}
+            className={`place-order-btn ${orderTab.toLowerCase()}`}
             onClick={handlePlaceOrder}
+            disabled={isPlacingOrder || isLoadingPrice}
           >
-            {side === 'buy' ? 'Buy / Long' : 'Sell / Short'}
+            {isPlacingOrder ? 'Placing Order...' : `${orderTab} ${selectedPair.replace('USDT', '')}`}
           </button>
 
           {/* Risk Warning */}
           <div className="risk-warning">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            <span>Demo trading account. No real money at risk.</span>
+            <span>Demo trading - No real funds at risk</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Section - Positions, Orders, History */}
-      <div className="trading-tables">
-        <div className="table-tabs">
-          <button className="table-tab active">Positions ({positions.length})</button>
-          <button className="table-tab">Open Orders ({orders.length})</button>
-          <button className="table-tab">Trade History</button>
+      {/* Bottom Section - Positions & Orders */}
+      <div className="positions-section">
+        <div className="positions-tabs">
+          <button 
+            className={`pos-tab ${activeTab === 'positions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('positions')}
+          >
+            Positions ({positions.length})
+          </button>
+          <button 
+            className={`pos-tab ${activeTab === 'openOrders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('openOrders')}
+          >
+            Open Orders ({openOrders.length})
+          </button>
+          <button 
+            className={`pos-tab ${activeTab === 'orderHistory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orderHistory')}
+          >
+            Order History ({orderHistory.length})
+          </button>
         </div>
 
-        {/* Positions Table */}
-        <div className="table-section positions-table">
-          {positions.length === 0 ? (
-            <div className="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <line x1="9" y1="9" x2="15" y2="9"/>
-                <line x1="9" y1="15" x2="15" y2="15"/>
-              </svg>
-              <p>No open positions</p>
-              <span>Your active positions will appear here</span>
-            </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Symbol</th>
-                  <th>Side</th>
-                  <th>Size</th>
-                  <th>Entry Price</th>
-                  <th>Mark Price</th>
-                  <th>Liq. Price</th>
-                  <th>Margin</th>
-                  <th>PNL (ROE%)</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map(position => (
-                  <tr key={position.id}>
-                    <td className="symbol-cell">{position.symbol}</td>
-                    <td>
-                      <span className={`side-badge ${position.side.toLowerCase()}`}>
-                        {position.side}
-                      </span>
-                    </td>
-                    <td>{position.size} {position.symbol.replace('USDT', '')}</td>
-                    <td>${formatPrice(position.entryPrice)}</td>
-                    <td>${formatPrice(position.markPrice)}</td>
-                    <td className="liq-price">${formatPrice(position.liquidationPrice)}</td>
-                    <td>${formatPrice(position.margin)}</td>
-                    <td className={position.pnl >= 0 ? 'positive' : 'negative'}>
-                      ${formatPrice(position.pnl)} ({formatPercent(position.pnlPercent)})
-                    </td>
-                    <td>
-                      <button 
-                        className="action-btn close-btn"
-                        onClick={() => handleClosePosition(position.id)}
-                      >
-                        Close
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="positions-content">
+          {activeTab === 'positions' && (
+            <>
+              {positions.length === 0 ? (
+                <div className="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="9" y1="9" x2="15" y2="9"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                  </svg>
+                  <p>No open positions</p>
+                  <span>Your active positions will appear here</span>
+                </div>
+              ) : (
+                <table className="positions-table">
+                  <thead>
+                    <tr>
+                      <th>Pair</th>
+                      <th>Side</th>
+                      <th>Quantity</th>
+                      <th>Entry Price</th>
+                      <th>Current Price</th>
+                      <th>Leverage</th>
+                      <th>P/L</th>
+                      <th>P/L %</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {positions.map(position => (
+                      <tr key={position.id}>
+                        <td className="pair-cell">{position.pair}</td>
+                        <td>
+                          <span className={`side-badge ${position.side.toLowerCase()}`}>
+                            {position.side}
+                          </span>
+                        </td>
+                        <td>{position.quantity}</td>
+                        <td>${formatPrice(position.entryPrice)}</td>
+                        <td>${formatPrice(position.currentPrice)}</td>
+                        <td>{position.leverage}x</td>
+                        <td className={position.pnl >= 0 ? 'positive' : 'negative'}>
+                          {position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(2)}
+                        </td>
+                        <td className={position.pnlPercent >= 0 ? 'positive' : 'negative'}>
+                          {position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
+                        </td>
+                        <td>
+                          <button 
+                            className="close-btn"
+                            onClick={() => closePosition(position.id)}
+                          >
+                            Close
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
           )}
-        </div>
 
-        {/* Open Orders Table */}
-        <div className="table-section orders-table" style={{ display: 'none' }}>
-          {orders.length === 0 ? (
-            <div className="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <p>No open orders</p>
-              <span>Your pending orders will appear here</span>
-            </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Symbol</th>
-                  <th>Type</th>
-                  <th>Side</th>
-                  <th>Price</th>
-                  <th>Amount</th>
-                  <th>Filled</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order => (
-                  <tr key={order.id}>
-                    <td>{formatTime(order.time)}</td>
-                    <td className="symbol-cell">{order.symbol}</td>
-                    <td>{order.type}</td>
-                    <td>
-                      <span className={`side-badge ${order.side.toLowerCase()}`}>
-                        {order.side}
-                      </span>
-                    </td>
-                    <td>${formatPrice(order.price)}</td>
-                    <td>{order.amount}</td>
-                    <td>{order.filled}</td>
-                    <td>${formatPrice(order.total)}</td>
-                    <td>
-                      <span className="status-badge">{order.status}</span>
-                    </td>
-                    <td>
-                      <button 
-                        className="action-btn cancel-btn"
-                        onClick={() => handleCancelOrder(order.id)}
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {activeTab === 'openOrders' && (
+            <>
+              {openOrders.length === 0 ? (
+                <div className="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <p>No open orders</p>
+                  <span>Your pending orders will appear here</span>
+                </div>
+              ) : (
+                <table className="positions-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Pair</th>
+                      <th>Type</th>
+                      <th>Side</th>
+                      <th>Price</th>
+                      <th>Quantity</th>
+                      <th>Leverage</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {openOrders.map(order => (
+                      <tr key={order.id}>
+                        <td>{new Date(order.timestamp).toLocaleTimeString()}</td>
+                        <td className="pair-cell">{order.pair}</td>
+                        <td>{order.type}</td>
+                        <td>
+                          <span className={`side-badge ${order.side.toLowerCase()}`}>
+                            {order.side}
+                          </span>
+                        </td>
+                        <td>${formatPrice(order.price)}</td>
+                        <td>{order.quantity}</td>
+                        <td>{order.leverage}x</td>
+                        <td>
+                          <button 
+                            className="cancel-btn"
+                            onClick={() => cancelOrder(order.id)}
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
           )}
-        </div>
 
-        {/* Trade History Table */}
-        <div className="table-section history-table" style={{ display: 'none' }}>
-          {tradeHistory.length === 0 ? (
-            <div className="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 2v20M2 12h20"/>
-              </svg>
-              <p>No trade history</p>
-              <span>Your completed trades will appear here</span>
-            </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Symbol</th>
-                  <th>Side</th>
-                  <th>Price</th>
-                  <th>Amount</th>
-                  <th>Total</th>
-                  <th>Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tradeHistory.map(trade => (
-                  <tr key={trade.id}>
-                    <td>{formatTime(trade.time)}</td>
-                    <td className="symbol-cell">{trade.symbol}</td>
-                    <td>
-                      <span className={`side-badge ${trade.side.toLowerCase()}`}>
-                        {trade.side}
-                      </span>
-                    </td>
-                    <td>${formatPrice(trade.price)}</td>
-                    <td>{trade.amount}</td>
-                    <td>${formatPrice(trade.total)}</td>
-                    <td>${formatPrice(trade.fee)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {activeTab === 'orderHistory' && (
+            <>
+              {orderHistory.length === 0 ? (
+                <div className="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M3 3h18v18H3z"/>
+                    <path d="M3 9h18"/>
+                    <path d="M9 3v18"/>
+                  </svg>
+                  <p>No order history</p>
+                  <span>Your completed orders will appear here</span>
+                </div>
+              ) : (
+                <table className="positions-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Pair</th>
+                      <th>Type</th>
+                      <th>Side</th>
+                      <th>Price</th>
+                      <th>Quantity</th>
+                      <th>Status</th>
+                      <th>P/L</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderHistory.map(order => (
+                      <tr key={order.id}>
+                        <td>{new Date(order.timestamp).toLocaleTimeString()}</td>
+                        <td className="pair-cell">{order.pair}</td>
+                        <td>{order.type}</td>
+                        <td>
+                          <span className={`side-badge ${order.side.toLowerCase()}`}>
+                            {order.side}
+                          </span>
+                        </td>
+                        <td>${formatPrice(order.price)}</td>
+                        <td>{order.quantity}</td>
+                        <td>
+                          <span className={`status-badge ${order.status.toLowerCase()}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className={order.pnl >= 0 ? 'positive' : 'negative'}>
+                          {order.pnl ? `${order.pnl >= 0 ? '+' : ''}$${order.pnl.toFixed(2)}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
           )}
         </div>
       </div>
