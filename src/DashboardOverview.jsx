@@ -11,6 +11,7 @@ function DashboardOverview() {
   const [showAlertModal, setShowAlertModal] = useState(false)
   const [alertModalMarket, setAlertModalMarket] = useState(null)
   const [notifications, setNotifications] = useState([]) // { id, message, type: 'success' | 'info' }
+  const [showMarketsModal, setShowMarketsModal] = useState(false)
   
   // Stats reset to zero for new users
   const [stats] = useState({
@@ -621,7 +622,9 @@ function DashboardOverview() {
               ))
             )}
           </div>
-          <button className="btn-view-all">View All Markets</button>
+          <button className="btn-view-all" onClick={() => setShowMarketsModal(true)}>
+            View All Markets
+          </button>
         </div>
 
         {/* Active Challenges - Bottom Left */}
@@ -758,6 +761,152 @@ function DashboardOverview() {
                     ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Markets Modal */}
+      {showMarketsModal && (
+        <div className="modal-overlay" onClick={() => setShowMarketsModal(false)}>
+          <div className="markets-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>All Markets</h3>
+              <button className="modal-close" onClick={() => setShowMarketsModal(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="markets-modal-body">
+              {/* Search and Controls */}
+              <div className="market-search">
+                <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search BTC, ETH, SOL..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button 
+                    className="clear-search"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              <div className="market-controls">
+                <button 
+                  className={`filter-toggle ${showFavoritesOnly ? 'active' : ''}`}
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={showFavoritesOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span>{showFavoritesOnly ? 'Favorites' : 'All'}</span>
+                </button>
+
+                <select 
+                  className="sort-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="default">Default</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="change-high">Gainers</option>
+                  <option value="change-low">Losers</option>
+                  <option value="name">A-Z</option>
+                </select>
+              </div>
+
+              {/* Markets Grid */}
+              <div className="markets-modal-grid">
+                {sortedMarkets.length === 0 ? (
+                  <div className="no-results">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <p>No markets found</p>
+                    <span>
+                      {showFavoritesOnly 
+                        ? 'No favorite markets. Star some coins!'
+                        : 'Try searching for BTC, ETH, or SOL'
+                      }
+                    </span>
+                  </div>
+                ) : (
+                  sortedMarkets.map((market) => (
+                    <div 
+                      key={market.symbol} 
+                      className="market-modal-card"
+                      onClick={() => handleMarketClick(market)}
+                    >
+                      <div className="market-modal-header">
+                        <div className="market-modal-info">
+                          <div className="market-modal-symbol">{market.symbol}</div>
+                          <div className="market-modal-name">{market.name}</div>
+                        </div>
+                        <div className="market-modal-actions">
+                          <button 
+                            className={`favorite-btn ${market.favorite ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleFavorite(market.symbol)
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                          </button>
+                          <button 
+                            className="alert-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAlertModalMarket(market)
+                              setShowAlertModal(true)
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="market-modal-price">
+                        {market.price === 0 ? (
+                          isLoadingPrices ? 'Loading...' : 'N/A'
+                        ) : (
+                          market.price < 1 
+                            ? formatPrice(market.price, 4)
+                            : market.price < 100
+                            ? formatPrice(market.price, 2)
+                            : formatPrice(market.price, 0)
+                        )}
+                      </div>
+                      <div className={`market-modal-change ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
+                        {market.price === 0 ? (
+                          isLoadingPrices ? '...' : 'N/A'
+                        ) : formatPercent(market.change)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
