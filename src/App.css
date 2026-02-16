@@ -5966,9 +5966,7 @@ body[data-theme="day"] .footer {
   width: 17%; /* Alert column */
 }
 
-.markets-table td:nth-child(3) {
-  padding-left: 1rem; /* Space from price column - only on body cells */
-}
+/* Alert column cells are centered by text-center class, no extra padding needed */
 
 .markets-table th.text-left {
   text-align: left;
