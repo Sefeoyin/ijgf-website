@@ -854,7 +854,7 @@ function DashboardOverview() {
                       <tr>
                         <th className="text-left">Name</th>
                         <th className="text-right">Last Price / 24h Change</th>
-                        <th className="text-center">Actions</th>
+                        <th className="text-center">Alert</th>
                       </tr>
                     </thead>
                     <tbody>

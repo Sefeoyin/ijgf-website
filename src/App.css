@@ -5952,17 +5952,19 @@ body[data-theme="day"] .footer {
 /* Column widths for proper alignment - 3 columns */
 .markets-table th:nth-child(1),
 .markets-table td:nth-child(1) {
-  width: 50%; /* Name column - more space */
+  width: 48%; /* Name column */
 }
 
 .markets-table th:nth-child(2),
 .markets-table td:nth-child(2) {
   width: 35%; /* Price/Change column */
+  padding-right: 1.5rem; /* More space from alert column */
 }
 
 .markets-table th:nth-child(3),
 .markets-table td:nth-child(3) {
-  width: 15%; /* Actions column */
+  width: 17%; /* Alert column */
+  padding-left: 1rem; /* More space from price column */
 }
 
 .markets-table th.text-left {
@@ -6134,22 +6136,22 @@ body[data-theme="day"] .footer {
   /* Better column widths on mobile - 3 columns */
   .markets-table th:nth-child(1),
   .markets-table td:nth-child(1) {
-    width: 55%; /* Name column - much more space */
+    width: 50%; /* Name column */
     padding-left: 0.5rem;
     padding-right: 0.25rem;
   }
 
   .markets-table th:nth-child(2),
   .markets-table td:nth-child(2) {
-    width: 33%; /* Price/Change column */
+    width: 35%; /* Price/Change column */
     padding-left: 0.25rem;
-    padding-right: 0.25rem;
+    padding-right: 0.75rem; /* More space from alert */
   }
 
   .markets-table th:nth-child(3),
   .markets-table td:nth-child(3) {
-    width: 12%; /* Actions */
-    padding-left: 0;
+    width: 15%; /* Alert */
+    padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
 
