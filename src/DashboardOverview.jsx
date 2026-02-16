@@ -832,8 +832,8 @@ function DashboardOverview() {
                 </select>
               </div>
 
-              {/* Markets Grid */}
-              <div className="markets-modal-grid">
+              {/* Markets Table - Binance Style */}
+              <div className="markets-table-container">
                 {sortedMarkets.length === 0 ? (
                   <div className="no-results">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -849,62 +849,77 @@ function DashboardOverview() {
                     </span>
                   </div>
                 ) : (
-                  sortedMarkets.map((market) => (
-                    <div 
-                      key={market.symbol} 
-                      className="market-modal-card"
-                      onClick={() => handleMarketClick(market)}
-                    >
-                      <div className="market-modal-header">
-                        <div className="market-modal-info">
-                          <div className="market-modal-symbol">{market.symbol}</div>
-                          <div className="market-modal-name">{market.name}</div>
-                        </div>
-                        <div className="market-modal-actions">
-                          <button 
-                            className={`favorite-btn ${market.favorite ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleFavorite(market.symbol)
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                            </svg>
-                          </button>
-                          <button 
-                            className="alert-btn"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setAlertModalMarket(market)
-                              setShowAlertModal(true)
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      <div className="market-modal-price">
-                        {market.price === 0 ? (
-                          isLoadingPrices ? 'Loading...' : 'N/A'
-                        ) : (
-                          market.price < 1 
-                            ? formatPrice(market.price, 4)
-                            : market.price < 100
-                            ? formatPrice(market.price, 2)
-                            : formatPrice(market.price, 0)
-                        )}
-                      </div>
-                      <div className={`market-modal-change ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
-                        {market.price === 0 ? (
-                          isLoadingPrices ? '...' : 'N/A'
-                        ) : formatPercent(market.change)}
-                      </div>
-                    </div>
-                  ))
+                  <table className="markets-table">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Name</th>
+                        <th className="text-right">Last Price</th>
+                        <th className="text-right">24h Change</th>
+                        <th className="text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedMarkets.map((market) => (
+                        <tr 
+                          key={market.symbol} 
+                          className="market-table-row"
+                          onClick={() => handleMarketClick(market)}
+                        >
+                          <td className="market-name-cell">
+                            <button 
+                              className={`favorite-btn-table ${market.favorite ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleFavorite(market.symbol)
+                              }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                              </svg>
+                            </button>
+                            <div className="market-name-info">
+                              <div className="market-symbol-table">{market.symbol}</div>
+                              <div className="market-name-table">{market.name}</div>
+                            </div>
+                          </td>
+                          <td className="text-right market-price-cell">
+                            {market.price === 0 ? (
+                              isLoadingPrices ? 'Loading...' : 'N/A'
+                            ) : (
+                              market.price < 1 
+                                ? formatPrice(market.price, 4)
+                                : market.price < 100
+                                ? formatPrice(market.price, 2)
+                                : formatPrice(market.price, 0)
+                            )}
+                          </td>
+                          <td className="text-right">
+                            <span className={`change-badge ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
+                              {market.price === 0 ? (
+                                isLoadingPrices ? '...' : 'N/A'
+                              ) : formatPercent(market.change)}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <button 
+                              className="alert-btn-table"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setAlertModalMarket(market)
+                                setShowAlertModal(true)
+                              }}
+                              title="Set price alert"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
             </div>
