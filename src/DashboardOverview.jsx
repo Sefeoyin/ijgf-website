@@ -29,26 +29,39 @@ function DashboardOverview() {
   // Fetch real prices from Binance API
   useEffect(() => {
     const fetchPrices = async () => {
+      const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT']
+      
       try {
-        // Fetch all tickers at once - more efficient
-        const response = await fetch(
-          'https://api.binance.com/api/v3/ticker/24hr'
+        // Fetch prices and 24h changes in parallel for all symbols
+        const pricePromises = symbols.map(symbol =>
+          fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+            .then(res => res.json())
+            .catch(() => null)
         )
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch prices')
-        }
+        const changePromises = symbols.map(symbol =>
+          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+            .then(res => res.json())
+            .catch(() => null)
+        )
         
-        const data = await response.json()
+        const [priceResults, changeResults] = await Promise.all([
+          Promise.all(pricePromises),
+          Promise.all(changePromises)
+        ])
         
         setMarkets(prevMarkets =>
-          prevMarkets.map(market => {
-            const binanceData = data.find(d => d.symbol === market.symbol)
-            if (binanceData) {
+          prevMarkets.map((market, index) => {
+            const priceData = priceResults[index]
+            const changeData = changeResults[index]
+            
+            if (priceData && priceData.price) {
               return {
                 ...market,
-                price: parseFloat(binanceData.lastPrice),
-                change: parseFloat(binanceData.priceChangePercent)
+                price: parseFloat(priceData.price),
+                change: changeData && changeData.priceChangePercent 
+                  ? parseFloat(changeData.priceChangePercent) 
+                  : market.change
               }
             }
             return market
@@ -56,38 +69,6 @@ function DashboardOverview() {
         )
       } catch (error) {
         console.error('Error fetching Binance prices:', error)
-        // Fallback: Try individual symbols
-        fetchIndividualPrices()
-      }
-    }
-
-    const fetchIndividualPrices = async () => {
-      const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT']
-      
-      try {
-        const promises = symbols.map(symbol =>
-          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
-            .then(res => res.json())
-            .catch(() => null)
-        )
-        
-        const results = await Promise.all(promises)
-        
-        setMarkets(prevMarkets =>
-          prevMarkets.map((market, index) => {
-            const binanceData = results[index]
-            if (binanceData && binanceData.symbol) {
-              return {
-                ...market,
-                price: parseFloat(binanceData.lastPrice),
-                change: parseFloat(binanceData.priceChangePercent)
-              }
-            }
-            return market
-          })
-        )
-      } catch (error) {
-        console.error('Error fetching individual prices:', error)
       }
     }
 
