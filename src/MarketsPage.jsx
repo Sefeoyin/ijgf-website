@@ -7,8 +7,8 @@ function MarketsPage() {
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
   const [high24h, setHigh24h] = useState(0)
-  const [low24h, setLow24h] = useState(0)
-  const [volume24h, setVolume24h] = useState(0)
+  const [low24h] = useState(0)
+  const [volume24h] = useState(0)
   
   // Order Entry
   const [orderType, setOrderType] = useState('Limit')
@@ -83,13 +83,6 @@ function MarketsPage() {
     if (num < 1) return num.toFixed(6)
     if (num < 100) return num.toFixed(1)
     return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-  }
-
-  const formatVolume = (num) => {
-    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`
-    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`
-    if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`
-    return num.toFixed(2)
   }
 
   return (
