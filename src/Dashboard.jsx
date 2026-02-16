@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
 import LoadingAnimation from './LoadingAnimation'
 import DashboardOverview from './DashboardOverview'
+import MarketsPage from './MarketsPage'
 import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
@@ -82,7 +83,7 @@ function Dashboard() {
 
   const menuItems = [
     { id: 'dashboard', icon: 'grid', label: 'Dashboard', disabled: false },
-    { id: 'market', icon: 'chart', label: 'Market', disabled: true },
+    { id: 'market', icon: 'chart', label: 'Market', disabled: false },
     { id: 'analytics', icon: 'trending', label: 'Analytics', disabled: true },
     { id: 'history', icon: 'clock', label: 'Trade History', disabled: true },
     { id: 'rules', icon: 'book', label: 'Rules & Objectives', disabled: true },
@@ -267,6 +268,7 @@ function Dashboard() {
         {/* Content Area */}
         <div className="dashboard-content">
           {activeTab === 'dashboard' && <DashboardOverview />}
+          {activeTab === 'market' && <MarketsPage />}
           {activeTab === 'profile' && <ProfilePage isSetup={false} />}
         </div>
       </div>
