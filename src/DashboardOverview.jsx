@@ -5,7 +5,7 @@ function DashboardOverview() {
   const [selectedMarket, setSelectedMarket] = useState(null)
   
   // Stats reset to zero for new users
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     activeChallenges: 0,
     totalPNL: 0,
     winRate: 0,
@@ -30,9 +30,8 @@ function DashboardOverview() {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const symbols = markets.map(m => m.symbol).join(',')
         const response = await fetch(
-          `https://api.binance.com/api/v3/ticker/24hr?symbols=["${markets.map(m => `"${m.symbol}"`).join(',')}"]`
+          `https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","ADAUSDT","XRPUSDT"]`
         )
         const data = await response.json()
         
@@ -62,7 +61,7 @@ function DashboardOverview() {
     const interval = setInterval(fetchPrices, 10000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, []) // Empty dependency array is intentional - we only want to set up the interval once
 
   // Chart data based on time range - empty for new users
   const chartData = {
