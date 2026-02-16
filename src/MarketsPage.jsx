@@ -29,11 +29,11 @@ function MarketsPage() {
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
   
   const popularPairs = [
-    { symbol: 'KGENUSDT', name: 'KGeN' },
-    { symbol: 'MOODENGUSDT', name: 'MooDeng' },
-    { symbol: 'TURBOUSDT', name: 'Turbo' },
-    { symbol: 'DOGEUSDT', name: 'Doge' },
-    { symbol: 'NEIROUSDT', name: 'Neiro' },
+    { symbol: 'BTCUSDT', name: 'Bitcoin' },
+    { symbol: 'ETHUSDT', name: 'Ethereum' },
+    { symbol: 'SOLUSDT', name: 'Solana' },
+    { symbol: 'BNBUSDT', name: 'BNB' },
+    { symbol: 'DOGEUSDT', name: 'Dogecoin' },
   ]
 
   // Fetch real-time price
@@ -92,7 +92,9 @@ function MarketsPage() {
             onClick={() => setSelectedPair(pair.symbol)}
           >
             <span className="ticker-symbol">{pair.symbol}</span>
-            <span className="ticker-change positive">+14.36%</span>
+            <span className={`ticker-change ${selectedPair === pair.symbol && priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+              {selectedPair === pair.symbol ? `${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%` : '...'}
+            </span>
           </button>
         ))}
       </div>
