@@ -5142,6 +5142,33 @@ body[data-theme="day"] .footer {
   font-weight: 600;
   color: var(--text-primary);
 }
+
+/* Empty State for Challenges */
+.challenge-card.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.empty-icon {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.empty-subtext {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .btn-start-challenge {
@@ -5213,6 +5240,34 @@ body[data-theme="day"] .footer {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Empty State for History */
+.empty-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-history svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-history p {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.empty-history span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .table-header {
