@@ -30,9 +30,15 @@ function DashboardOverview() {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
+        // Fetch all tickers at once - more efficient
         const response = await fetch(
-          `https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","ADAUSDT","XRPUSDT"]`
+          'https://api.binance.com/api/v3/ticker/24hr'
         )
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch prices')
+        }
+        
         const data = await response.json()
         
         setMarkets(prevMarkets =>
@@ -50,7 +56,38 @@ function DashboardOverview() {
         )
       } catch (error) {
         console.error('Error fetching Binance prices:', error)
-        // Fallback: Keep trying
+        // Fallback: Try individual symbols
+        fetchIndividualPrices()
+      }
+    }
+
+    const fetchIndividualPrices = async () => {
+      const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT']
+      
+      try {
+        const promises = symbols.map(symbol =>
+          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+            .then(res => res.json())
+            .catch(() => null)
+        )
+        
+        const results = await Promise.all(promises)
+        
+        setMarkets(prevMarkets =>
+          prevMarkets.map((market, index) => {
+            const binanceData = results[index]
+            if (binanceData && binanceData.symbol) {
+              return {
+                ...market,
+                price: parseFloat(binanceData.lastPrice),
+                change: parseFloat(binanceData.priceChangePercent)
+              }
+            }
+            return market
+          })
+        )
+      } catch (error) {
+        console.error('Error fetching individual prices:', error)
       }
     }
 
