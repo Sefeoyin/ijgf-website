@@ -19,25 +19,7 @@ function Dashboard() {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
 
-  // Check for active price alerts in localStorage
   useEffect(() => {
-    const checkAlerts = () => {
-      try {
-        const alerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
-        const activeAlerts = alerts.filter(a => !a.triggered)
-        setActiveAlertCount(activeAlerts.length)
-      } catch {
-        setActiveAlertCount(0)
-      }
-    }
-    
-    checkAlerts()
-    // Check every 5 seconds
-    const interval = setInterval(checkAlerts, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() {
     checkUserAndLoadProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -75,6 +57,23 @@ function Dashboard() {
       setLoading(false)
     }
   }
+
+  // Check for active price alerts in localStorage
+  useEffect(() => {
+    const checkAlerts = () => {
+      try {
+        const alerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+        const activeAlerts = alerts.filter(a => !a.triggered)
+        setActiveAlertCount(activeAlerts.length)
+      } catch {
+        setActiveAlertCount(0)
+      }
+    }
+    
+    checkAlerts()
+    const interval = setInterval(checkAlerts, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -202,7 +201,6 @@ function Dashboard() {
               )}
             </button>
 
-            {/* Notification Panel */}
             {showNotificationPanel && (
               <div className="notification-panel">
                 <div className="notification-panel-header">
