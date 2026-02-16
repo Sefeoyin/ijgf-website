@@ -853,8 +853,7 @@ function DashboardOverview() {
                     <thead>
                       <tr>
                         <th className="text-left">Name</th>
-                        <th className="text-right">Last Price</th>
-                        <th className="text-right">24h Change</th>
+                        <th className="text-right">Last Price / 24h Change</th>
                         <th className="text-center">Actions</th>
                       </tr>
                     </thead>
@@ -883,22 +882,24 @@ function DashboardOverview() {
                             </div>
                           </td>
                           <td className="text-right market-price-cell">
-                            {market.price === 0 ? (
-                              isLoadingPrices ? 'Loading...' : 'N/A'
-                            ) : (
-                              market.price < 1 
-                                ? formatPrice(market.price, 4)
-                                : market.price < 100
-                                ? formatPrice(market.price, 2)
-                                : formatPrice(market.price, 0)
-                            )}
-                          </td>
-                          <td className="text-right">
-                            <span className={`change-badge ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
-                              {market.price === 0 ? (
-                                isLoadingPrices ? '...' : 'N/A'
-                              ) : formatPercent(market.change)}
-                            </span>
+                            <div className="price-and-change">
+                              <div className="market-price-value">
+                                {market.price === 0 ? (
+                                  isLoadingPrices ? 'Loading...' : 'N/A'
+                                ) : (
+                                  market.price < 1 
+                                    ? formatPrice(market.price, 4)
+                                    : market.price < 100
+                                    ? formatPrice(market.price, 2)
+                                    : formatPrice(market.price, 0)
+                                )}
+                              </div>
+                              <span className={`change-badge ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
+                                {market.price === 0 ? (
+                                  isLoadingPrices ? '...' : 'N/A'
+                                ) : formatPercent(market.change)}
+                              </span>
+                            </div>
                           </td>
                           <td className="text-center">
                             <button 
