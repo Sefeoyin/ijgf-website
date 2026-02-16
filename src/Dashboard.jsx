@@ -12,6 +12,7 @@ function Dashboard() {
   const { theme, toggleTheme } = useContext(ThemeContext)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [profileImage, setProfileImage] = useState('')
@@ -115,11 +116,33 @@ function Dashboard() {
   return (
     <div className="dashboard-layout">
       {/* Sidebar */}
-      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img src="/images/logo.png" alt="IJGF" />
           </div>
+          {!sidebarCollapsed && (
+            <button 
+              className="sidebar-collapse-btn"
+              onClick={() => setSidebarCollapsed(true)}
+              title="Collapse sidebar"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+          )}
+          {sidebarCollapsed && (
+            <button 
+              className="sidebar-expand-btn"
+              onClick={() => setSidebarCollapsed(false)}
+              title="Expand sidebar"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+          )}
         </div>
 
         <nav className="sidebar-nav">

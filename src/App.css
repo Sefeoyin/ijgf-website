@@ -7267,3 +7267,798 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     display: none;
   }
 }
+/* ==========================================
+   Binance-Style Markets Page
+   ========================================== */
+
+.binance-markets-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Top Ticker Bar */
+.binance-ticker-bar {
+  display: flex;
+  gap: 0;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.ticker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.ticker-item.active {
+  border-bottom-color: var(--accent-primary);
+}
+
+.ticker-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.ticker-symbol {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ticker-change {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.ticker-change.positive {
+  color: #0ecb81;
+}
+
+.ticker-change.negative {
+  color: #f6465d;
+}
+
+/* Main Grid Layout */
+.binance-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left: Chart Section */
+.binance-chart-section {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+/* Pair Header */
+.binance-pair-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  gap: 2rem;
+}
+
+.pair-info-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pair-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pair-symbol {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pair-type {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.current-price {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.price-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.price-value.positive {
+  color: #0ecb81;
+}
+
+.price-value.negative {
+  color: #f6465d;
+}
+
+.price-change {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.price-change.positive {
+  color: #0ecb81;
+}
+
+.price-change.negative {
+  color: #f6465d;
+}
+
+.pair-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Chart Tabs */
+.binance-chart-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem;
+}
+
+.chart-tab {
+  padding: 0.875rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chart-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.chart-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+/* Chart Container */
+.binance-chart-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+.chart-placeholder {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.chart-placeholder svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.chart-placeholder h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.chart-placeholder p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Right Panel: Order Book + Order Entry */
+.binance-right-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Order Book */
+.orderbook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.orderbook-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.orderbook-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.orderbook-view-btn {
+  padding: 0.375rem 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.orderbook-view-btn.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.binance-orderbook {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 0.75rem;
+}
+
+.orderbook-headers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.5rem 1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.orderbook-sells,
+.orderbook-buys {
+  display: flex;
+  flex-direction: column;
+}
+
+.orderbook-sells {
+  flex-direction: column-reverse;
+}
+
+.orderbook-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.25rem 1rem;
+  font-family: 'Courier New', monospace;
+  transition: background 0.1s ease;
+}
+
+.orderbook-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.orderbook-row.sell .ob-price {
+  color: #f6465d;
+}
+
+.orderbook-row.buy .ob-price {
+  color: #0ecb81;
+}
+
+.ob-price {
+  font-weight: 600;
+}
+
+.ob-size,
+.ob-sum {
+  color: var(--text-secondary);
+}
+
+.text-right {
+  text-align: right;
+}
+
+.orderbook-current-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0.5rem 0;
+}
+
+.current-price-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.current-price-value.positive {
+  color: #0ecb81;
+}
+
+.current-price-value.negative {
+  color: #f6465d;
+}
+
+.current-price-usd {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Order Entry Panel */
+.binance-order-panel {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.order-panel-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.isolated-btn,
+.leverage-btn {
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.isolated-btn:hover,
+.leverage-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+}
+
+/* Order Type Tabs */
+.order-type-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg-card);
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.order-type-tab {
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-type-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.order-type-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+/* Buy/Sell Panels */
+.buy-sell-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.order-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.avbl-balance {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.75rem;
+  padding-right: 3.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+}
+
+.input-wrapper input::placeholder {
+  color: var(--text-muted);
+}
+
+.input-suffix {
+  position: absolute;
+  right: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Percentage Buttons */
+.percentage-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.375rem;
+}
+
+.percentage-btns button {
+  padding: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.percentage-btns button:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+/* Total Display */
+.total-display {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  font-size: 0.8125rem;
+}
+
+.total-display span:first-child {
+  color: var(--text-muted);
+}
+
+.total-display span:last-child {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Order Submit Buttons */
+.order-submit-btn {
+  padding: 0.875rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buy-btn {
+  background: #0ecb81;
+  color: white;
+}
+
+.buy-btn:hover {
+  background: #0eb876;
+}
+
+.sell-btn {
+  background: #f6465d;
+  color: white;
+}
+
+.sell-btn:hover {
+  background: #f23c52;
+}
+
+/* Bottom: Positions Section */
+.binance-positions-section {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  min-height: 250px;
+}
+
+.positions-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem;
+  justify-content: space-between;
+}
+
+.pos-tab {
+  padding: 0.875rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pos-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.pos-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+/* Account Info Tabs - Right Side */
+.account-info-tabs {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  padding-right: 0.5rem;
+}
+
+.account-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.account-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.account-value.positive {
+  color: #0ecb81;
+}
+
+.account-value.negative {
+  color: #f6465d;
+}
+
+/* Positions Content */
+.positions-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.empty-positions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+  height: 100%;
+}
+
+.empty-positions svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-positions p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .binance-main-grid {
+    grid-template-columns: 1fr 350px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .binance-main-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .binance-right-panel {
+    border-right: none;
+    border-top: 1px solid var(--border-color);
+    max-height: 600px;
+  }
+
+  .buy-sell-panels {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .binance-ticker-bar {
+    padding: 0 0.5rem;
+  }
+
+  .ticker-item {
+    min-width: 120px;
+    padding: 0.625rem 1rem;
+  }
+
+  .binance-pair-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .pair-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .buy-sell-panels {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .positions-tabs {
+    padding: 0 1rem;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .account-info-tabs {
+    display: none;
+  }
+
+  .binance-positions-section {
+    max-height: none;
+  }
+}
+
+/* Sidebar Collapse Styles */
+.dashboard-sidebar.collapsed {
+  width: 70px;
+}
+
+.dashboard-sidebar.collapsed .sidebar-logo img {
+  width: 40px;
+}
+
+.dashboard-sidebar.collapsed .sidebar-nav-item span {
+  display: none;
+}
+
+.dashboard-sidebar.collapsed .sidebar-footer {
+  padding: 1rem 0.5rem;
+}
+
+.dashboard-sidebar.collapsed .sidebar-footer .sidebar-nav-item span {
+  display: none;
+}
+
+.sidebar-collapse-btn,
+.sidebar-expand-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-collapse-btn:hover,
+.sidebar-expand-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.dashboard-sidebar.collapsed .sidebar-header {
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0.5rem;
+}
