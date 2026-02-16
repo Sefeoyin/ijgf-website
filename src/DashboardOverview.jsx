@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function DashboardOverview() {
   const [timeRange, setTimeRange] = useState('1H')
-  const [stats] = useState({
+  const [selectedMarket, setSelectedMarket] = useState(null)
+  const [stats, setStats] = useState({
     activeChallenges: 2,
     totalPNL: 2980.00,
     winRate: 85,
@@ -10,20 +11,94 @@ function DashboardOverview() {
     daysActive: 7
   })
 
-  const [markets] = useState([
-    { symbol: 'BTCUSDT', name: 'Bitcoin', price: 23495, change: 23.4 },
-    { symbol: 'AXSUSDT', name: 'Axie Infinity', price: 15.9, change: -7.8 },
-    { symbol: 'ETHUSDT', name: 'Ethereum', price: 15978, change: -0.3 },
-    { symbol: 'SOLUSDT', name: 'Solana', price: 495, change: 11.1 },
-    { symbol: 'BNBUSDT', name: 'Binance', price: 267, change: 6.7 },
-    { symbol: 'ADAUSDT', name: 'Cardano', price: 0.49, change: -1.4 }
+  const [markets, setMarkets] = useState([
+    { symbol: 'SOLUSDT', name: 'Solana', price: 495, change: 11.1, favorite: false },
+    { symbol: 'BNBUSDT', name: 'Binance', price: 267, change: 6.7, favorite: false },
+    { symbol: 'ADAUSDT', name: 'Cardano', price: 0.49, change: -1.4, favorite: false },
+    { symbol: 'BTCUSDT', name: 'Bitcoin', price: 23495, change: 23.4, favorite: true },
+    { symbol: 'ETHUSDT', name: 'Ethereum', price: 15978, change: -0.3, favorite: true },
+    { symbol: 'AXSUSDT', name: 'Axie Infinity', price: 15.9, change: -7.8, favorite: false }
   ])
 
   const [recentTrades] = useState([
     { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 },
-    { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 },
-    { id: 'TRD-10482', date: '08/12/25 2:41pm', symbol: 'BTC/USDT', side: 'Long', leverage: '5x', pnl: 553.50, change: 2.01 }
+    { id: 'TRD-10481', date: '08/12/25 2:38pm', symbol: 'ETH/USDT', side: 'Short', leverage: '3x', pnl: -124.30, change: -0.8 },
+    { id: 'TRD-10480', date: '08/12/25 2:35pm', symbol: 'SOL/USDT', side: 'Long', leverage: '5x', pnl: 287.90, change: 1.5 }
   ])
+
+  // Chart data based on time range
+  const chartData = {
+    '1H': {
+      path: 'M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155',
+      fillPath: 'M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155 L 750 170 L 50 170 Z',
+      dates: ['12:00', '12:15', '12:30', '12:45', '1:00'],
+      equity: 12980,
+      change: 2.3
+    },
+    '3H': {
+      path: 'M 50 110 Q 150 95 200 70 T 400 85 T 600 95 T 750 140',
+      fillPath: 'M 50 110 Q 150 95 200 70 T 400 85 T 600 95 T 750 140 L 750 170 L 50 170 Z',
+      dates: ['10:00', '11:00', '12:00', '1:00', '2:00'],
+      equity: 12845,
+      change: 1.8
+    },
+    '5H': {
+      path: 'M 50 125 Q 150 110 200 85 T 400 100 T 600 110 T 750 135',
+      fillPath: 'M 50 125 Q 150 110 200 85 T 400 100 T 600 110 T 750 135 L 750 170 L 50 170 Z',
+      dates: ['9:00', '10:30', '12:00', '1:30', '3:00'],
+      equity: 12720,
+      change: 1.2
+    },
+    '1D': {
+      path: 'M 50 135 Q 150 125 200 95 T 400 110 T 600 120 T 750 145',
+      fillPath: 'M 50 135 Q 150 125 200 95 T 400 110 T 600 120 T 750 145 L 750 170 L 50 170 Z',
+      dates: ['9am', '12pm', '3pm', '6pm', '9pm'],
+      equity: 12580,
+      change: 0.8
+    },
+    '1W': {
+      path: 'M 50 145 Q 150 135 200 105 T 400 120 T 600 130 T 750 150',
+      fillPath: 'M 50 145 Q 150 135 200 105 T 400 120 T 600 130 T 750 150 L 750 170 L 50 170 Z',
+      dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      equity: 12350,
+      change: -0.5
+    },
+    '1M': {
+      path: 'M 50 150 Q 150 140 200 115 T 400 125 T 600 135 T 750 155',
+      fillPath: 'M 50 150 Q 150 140 200 115 T 400 125 T 600 135 T 750 155 L 750 170 L 50 170 Z',
+      dates: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+      equity: 11980,
+      change: -7.7
+    }
+  }
+
+  // Simulate real-time price updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarkets(prevMarkets => 
+        prevMarkets.map(market => ({
+          ...market,
+          price: market.price * (1 + (Math.random() - 0.5) * 0.002), // ±0.1% change
+          change: market.change + (Math.random() - 0.5) * 0.2
+        }))
+      )
+    }, 3000) // Update every 3 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Simulate equity updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStats(prevStats => ({
+        ...prevStats,
+        currentEquity: prevStats.currentEquity * (1 + (Math.random() - 0.5) * 0.001),
+        totalPNL: prevStats.totalPNL * (1 + (Math.random() - 0.5) * 0.001)
+      }))
+    }, 5000) // Update every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [])
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -34,9 +109,36 @@ function DashboardOverview() {
     }).format(value)
   }
 
+  const formatPrice = (value, decimals = 0) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    }).format(value)
+  }
+
   const formatPercent = (value) => {
     return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
   }
+
+  const toggleFavorite = (symbol) => {
+    setMarkets(prevMarkets =>
+      prevMarkets.map(market =>
+        market.symbol === symbol
+          ? { ...market, favorite: !market.favorite }
+          : market
+      )
+    )
+  }
+
+  const handleMarketClick = (market) => {
+    setSelectedMarket(market)
+    console.log('Market selected:', market)
+    // TODO: Navigate to detailed trading view or show modal
+  }
+
+  const currentChart = chartData[timeRange]
 
   return (
     <div className="dashboard-overview">
@@ -108,8 +210,10 @@ function DashboardOverview() {
               <p className="widget-subtitle">All time performance</p>
             </div>
             <div className="equity-stats">
-              <div className="equity-value">{formatCurrency(stats.currentEquity)}</div>
-              <div className="equity-change positive">+23.6%</div>
+              <div className="equity-value">{formatCurrency(currentChart.equity)}</div>
+              <div className={`equity-change ${currentChart.change >= 0 ? 'positive' : 'negative'}`}>
+                {formatPercent(currentChart.change)}
+              </div>
             </div>
           </div>
 
@@ -146,25 +250,34 @@ function DashboardOverview() {
                   </linearGradient>
                 </defs>
                 
-                {/* Adjusted path with better curvature - lowered peaks to fit frame */}
+                {/* Chart path - animates when time range changes */}
                 <path
-                  d="M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155"
+                  d={currentChart.path}
                   fill="none"
                   stroke="#7c3aed"
                   strokeWidth="2.5"
+                  style={{ transition: 'd 0.5s ease' }}
                 />
                 
                 <path
-                  d="M 50 90 Q 150 120 200 50 T 400 75 T 600 105 T 750 155 L 750 170 L 50 170 Z"
+                  d={currentChart.fillPath}
                   fill="url(#chartGradient)"
+                  style={{ transition: 'd 0.5s ease' }}
                 />
                 
-                {/* X-axis date labels embedded in SVG */}
-                <text x="100" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 17</text>
-                <text x="280" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 18</text>
-                <text x="460" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 18</text>
-                <text x="640" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 19</text>
-                <text x="750" y="195" fill="rgba(255, 255, 255, 0.45)" fontSize="11" textAnchor="middle">Dec 19</text>
+                {/* X-axis date labels */}
+                {currentChart.dates.map((date, index) => (
+                  <text 
+                    key={index}
+                    x={100 + (index * 160)} 
+                    y="195" 
+                    fill="rgba(255, 255, 255, 0.45)" 
+                    fontSize="11" 
+                    textAnchor="middle"
+                  >
+                    {date}
+                  </text>
+                ))}
               </svg>
             </div>
           </div>
@@ -174,24 +287,54 @@ function DashboardOverview() {
         <div className="markets-widget">
           <div className="widget-header">
             <h3>Markets</h3>
+            <span className="live-indicator">
+              <span className="live-dot"></span>
+              Live
+            </span>
           </div>
           <div className="markets-list">
-            {markets.map((market) => (
-              <div key={market.symbol} className="market-item">
-                <div className="market-info">
-                  <div className="market-symbol">{market.symbol}</div>
-                  <div className="market-name">{market.name}</div>
-                </div>
-                <div className="market-stats">
-                  <div className="market-price">${market.price.toLocaleString()}</div>
-                  <div className={`market-change ${market.change > 0 ? 'positive' : 'negative'}`}>
-                    {formatPercent(market.change)}
+            {markets
+              .sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0))
+              .map((market) => (
+                <div 
+                  key={market.symbol} 
+                  className={`market-item ${selectedMarket?.symbol === market.symbol ? 'selected' : ''}`}
+                  onClick={() => handleMarketClick(market)}
+                >
+                  <div className="market-info">
+                    <div className="market-symbol-row">
+                      <div className="market-symbol">{market.symbol}</div>
+                      <button 
+                        className={`favorite-btn ${market.favorite ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFavorite(market.symbol)
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="market-name">{market.name}</div>
+                  </div>
+                  <div className="market-stats">
+                    <div className="market-price">
+                      {market.price < 1 
+                        ? formatPrice(market.price, 2)
+                        : market.price < 100
+                        ? formatPrice(market.price, 1)
+                        : formatPrice(market.price, 0)
+                      }
+                    </div>
+                    <div className={`market-change ${market.change > 0 ? 'positive' : 'negative'}`}>
+                      {formatPercent(market.change)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
-          <button className="btn-view-all">View All</button>
+          <button className="btn-view-all">View All Markets</button>
         </div>
 
         {/* Active Challenges - Bottom Left */}
@@ -204,7 +347,17 @@ function DashboardOverview() {
             </div>
             <div className="challenge-labels">
               <span>$0</span>
-              <span>$25,000</span>
+              <span>$16,000 / $25,000</span>
+            </div>
+            <div className="challenge-stats">
+              <div className="challenge-stat">
+                <span className="stat-label">Daily Limit</span>
+                <span className="stat-value">4%</span>
+              </div>
+              <div className="challenge-stat">
+                <span className="stat-label">Max Drawdown</span>
+                <span className="stat-value">6%</span>
+              </div>
             </div>
           </div>
           <button className="btn-start-challenge">Start New Challenge</button>
@@ -230,10 +383,10 @@ function DashboardOverview() {
                 <div>{trade.id}</div>
                 <div>{trade.date}</div>
                 <div>{trade.symbol}</div>
-                <div className={trade.side.toLowerCase()}>{trade.side}</div>
+                <div className={`trade-side ${trade.side.toLowerCase()}`}>{trade.side}</div>
                 <div>{trade.leverage}</div>
-                <div className="positive">
-                  +${trade.pnl.toFixed(2)} ({formatPercent(trade.change)})
+                <div className={trade.pnl >= 0 ? 'positive' : 'negative'}>
+                  {trade.pnl >= 0 ? '+' : ''}${Math.abs(trade.pnl).toFixed(2)} ({formatPercent(trade.change)})
                 </div>
               </div>
             ))}
