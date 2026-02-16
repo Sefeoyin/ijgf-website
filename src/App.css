@@ -4949,6 +4949,7 @@ body[data-theme="day"] .footer {
 .markets-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   margin-bottom: 0.5rem;
   min-height: 0;
 }
@@ -4965,6 +4966,7 @@ body[data-theme="day"] .footer {
   margin: 0 -0.5rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+  min-width: 0; /* Allow flex children to shrink */
 }
 
 .market-item:hover {
@@ -4986,18 +4988,24 @@ body[data-theme="day"] .footer {
   flex-direction: column;
   gap: 0.25rem;
   flex: 1;
+  min-width: 0; /* Allow shrinking */
+  overflow: hidden; /* Prevent overflow */
 }
 
 .market-symbol-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0; /* Allow shrinking */
 }
 
 .market-symbol {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap; /* Keep symbol on one line */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .favorite-btn {
@@ -5024,17 +5032,26 @@ body[data-theme="day"] .footer {
 .market-name {
   font-size: 0.75rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .market-stats {
   text-align: right;
+  flex-shrink: 0; /* Prevent shrinking */
+  min-width: 80px; /* Reserve space for price and change */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
 }
 
 .market-price {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  white-space: nowrap;
 }
 
 .market-change {
@@ -5042,6 +5059,8 @@ body[data-theme="day"] .footer {
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .market-change.positive {

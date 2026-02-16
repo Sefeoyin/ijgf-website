@@ -27,63 +27,46 @@ function DashboardOverview() {
   // No trades for new users
   const [recentTrades] = useState([])
 
-  // Fetch real prices from Binance API
+  // Fetch real prices from CoinGecko API (better CORS support than Binance)
   useEffect(() => {
     const fetchPrices = async () => {
-      const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT']
+      // Map Binance symbols to CoinGecko IDs
+      const coinGeckoMap = {
+        'BTCUSDT': { id: 'bitcoin', symbol: 'BTC' },
+        'ETHUSDT': { id: 'ethereum', symbol: 'ETH' },
+        'SOLUSDT': { id: 'solana', symbol: 'SOL' },
+        'BNBUSDT': { id: 'binancecoin', symbol: 'BNB' },
+        'ADAUSDT': { id: 'cardano', symbol: 'ADA' },
+        'XRPUSDT': { id: 'ripple', symbol: 'XRP' }
+      }
       
-      console.log('🔄 Fetching prices from Binance...')
+      console.log('🔄 Fetching prices from CoinGecko...')
       
       try {
-        // Use CORS proxy to bypass browser restrictions
-        const corsProxy = 'https://api.allorigins.win/raw?url='
-        
-        // Fetch prices and 24h changes in parallel for all symbols
-        const pricePromises = symbols.map(symbol =>
-          fetch(`${corsProxy}${encodeURIComponent(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)}`)
-            .then(res => {
-              console.log(`✅ Price response for ${symbol}:`, res.status)
-              return res.json()
-            })
-            .catch(err => {
-              console.error(`❌ Price fetch failed for ${symbol}:`, err)
-              return null
-            })
+        // CoinGecko API - fetch all coins at once
+        const ids = Object.values(coinGeckoMap).map(coin => coin.id).join(',')
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
         )
         
-        const changePromises = symbols.map(symbol =>
-          fetch(`${corsProxy}${encodeURIComponent(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)}`)
-            .then(res => {
-              console.log(`✅ 24hr response for ${symbol}:`, res.status)
-              return res.json()
-            })
-            .catch(err => {
-              console.error(`❌ 24hr fetch failed for ${symbol}:`, err)
-              return null
-            })
-        )
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
         
-        const [priceResults, changeResults] = await Promise.all([
-          Promise.all(pricePromises),
-          Promise.all(changePromises)
-        ])
-        
-        console.log('📊 Price results:', priceResults)
-        console.log('📈 Change results:', changeResults)
+        const data = await response.json()
+        console.log('📊 CoinGecko response:', data)
         
         setMarkets(prevMarkets =>
-          prevMarkets.map((market, index) => {
-            const priceData = priceResults[index]
-            const changeData = changeResults[index]
+          prevMarkets.map(market => {
+            const coinInfo = coinGeckoMap[market.symbol]
+            const coinData = data[coinInfo.id]
             
-            if (priceData && priceData.price) {
-              console.log(`✅ Updating ${market.symbol}: $${priceData.price}`)
+            if (coinData) {
+              console.log(`✅ Updating ${market.symbol}: $${coinData.usd}`)
               return {
                 ...market,
-                price: parseFloat(priceData.price),
-                change: changeData && changeData.priceChangePercent 
-                  ? parseFloat(changeData.priceChangePercent) 
-                  : market.change
+                price: coinData.usd,
+                change: coinData.usd_24h_change || 0
               }
             }
             console.log(`⚠️ No data for ${market.symbol}`)
@@ -94,7 +77,7 @@ function DashboardOverview() {
         setIsLoadingPrices(false)
         console.log('✅ Price update complete')
       } catch (error) {
-        console.error('❌ Error fetching Binance prices:', error)
+        console.error('❌ Error fetching CoinGecko prices:', error)
         setIsLoadingPrices(false)
       }
     }
@@ -102,8 +85,8 @@ function DashboardOverview() {
     // Fetch immediately
     fetchPrices()
 
-    // Then update every 15 seconds (to avoid rate limits on proxy)
-    const interval = setInterval(fetchPrices, 15000)
+    // Then update every 30 seconds (CoinGecko rate limit is generous)
+    const interval = setInterval(fetchPrices, 30000)
 
     return () => clearInterval(interval)
   }, []) // Empty dependency array is intentional - we only want to set up the interval once
