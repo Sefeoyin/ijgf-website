@@ -114,12 +114,16 @@ function Dashboard() {
   }
 
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/images/logo.png" alt="IJGF" />
+            {sidebarCollapsed ? (
+              <img src="/images/logo-icon.png" alt="IJGF" className="sidebar-logo-icon" />
+            ) : (
+              <img src="/images/logo.png" alt="IJGF" className="sidebar-logo-full" />
+            )}
           </div>
           {!sidebarCollapsed && (
             <button 
