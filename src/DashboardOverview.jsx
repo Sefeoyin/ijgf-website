@@ -5,6 +5,12 @@ function DashboardOverview() {
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [sortBy, setSortBy] = useState('default') // default, price-high, price-low, change-high, change-low, name
+  const [priceAlerts, setPriceAlerts] = useState([]) // { symbol, targetPrice, condition: 'above' | 'below', triggered: false }
+  const [showAlertModal, setShowAlertModal] = useState(false)
+  const [alertModalMarket, setAlertModalMarket] = useState(null)
+  const [notifications, setNotifications] = useState([]) // { id, message, type: 'success' | 'info' }
   
   // Stats reset to zero for new users
   const [stats] = useState({
@@ -15,48 +21,164 @@ function DashboardOverview() {
     daysActive: 0
   })
 
-  // Real-time market data from CoinGecko
+  // Real-time market data from CoinGecko - Expanded list
   const [markets, setMarkets] = useState([
+    // Top favorites
     { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0, favorite: true },
     { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0, favorite: true },
+    
+    // Popular coins
     { symbol: 'SOLUSDT', name: 'Solana', price: 0, change: 0, favorite: false },
-    { symbol: 'BNBUSDT', name: 'Binance', price: 0, change: 0, favorite: false },
+    { symbol: 'BNBUSDT', name: 'Binance Coin', price: 0, change: 0, favorite: false },
+    { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0, favorite: false },
     { symbol: 'ADAUSDT', name: 'Cardano', price: 0, change: 0, favorite: false },
-    { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0, favorite: false }
+    { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0, change: 0, favorite: false },
+    { symbol: 'AVAXUSDT', name: 'Avalanche', price: 0, change: 0, favorite: false },
+    { symbol: 'DOTUSDT', name: 'Polkadot', price: 0, change: 0, favorite: false },
+    { symbol: 'MATICUSDT', name: 'Polygon', price: 0, change: 0, favorite: false },
+    { symbol: 'LINKUSDT', name: 'Chainlink', price: 0, change: 0, favorite: false },
+    { symbol: 'UNIUSDT', name: 'Uniswap', price: 0, change: 0, favorite: false },
+    { symbol: 'ATOMUSDT', name: 'Cosmos', price: 0, change: 0, favorite: false },
+    { symbol: 'LTCUSDT', name: 'Litecoin', price: 0, change: 0, favorite: false },
+    { symbol: 'NEARUSDT', name: 'NEAR Protocol', price: 0, change: 0, favorite: false },
+    { symbol: 'APTUSDT', name: 'Aptos', price: 0, change: 0, favorite: false },
+    { symbol: 'ARBUSDT', name: 'Arbitrum', price: 0, change: 0, favorite: false },
+    { symbol: 'OPUSDT', name: 'Optimism', price: 0, change: 0, favorite: false }
   ])
 
   // No trades for new users
   const [recentTrades] = useState([])
 
-  // Filter markets based on search query
+  // Filter markets based on search query and favorites filter
   const filteredMarkets = markets.filter(market => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      market.symbol.toLowerCase().includes(query) ||
-      market.name.toLowerCase().includes(query)
-    )
+    // Search filter
+    const matchesSearch = !searchQuery || 
+      market.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.name.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    // Favorites filter
+    const matchesFavorites = !showFavoritesOnly || market.favorite
+    
+    return matchesSearch && matchesFavorites
   })
 
-  // Sort filtered markets (favorites first, then by search relevance)
+  // Sort filtered markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
-    // Favorites always on top
-    if (a.favorite && !b.favorite) return -1
-    if (!a.favorite && b.favorite) return 1
+    // If default sorting, favorites first
+    if (sortBy === 'default') {
+      if (a.favorite && !b.favorite) return -1
+      if (!a.favorite && b.favorite) return 1
+      return 0
+    }
+    
+    // Price sorting
+    if (sortBy === 'price-high') return b.price - a.price
+    if (sortBy === 'price-low') return a.price - b.price
+    
+    // Change % sorting
+    if (sortBy === 'change-high') return b.change - a.change
+    if (sortBy === 'change-low') return a.change - b.change
+    
+    // Alphabetical sorting
+    if (sortBy === 'name') return a.name.localeCompare(b.name)
+    
     return 0
   })
+
+  // Add notification
+  const addNotification = (message, type = 'info') => {
+    const id = Date.now()
+    setNotifications(prev => [...prev, { id, message, type }])
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id))
+    }, 5000)
+    
+    // Play sound for price alerts
+    if (type === 'success') {
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRQ0PVqzn77BdGAg+lt7xwW8gBS6Ay/DglkYLElyx5/CtWhgJOZPY8s' />
+      audio.volume = 0.3
+      audio.play().catch(() => {}) // Ignore if blocked
+    }
+  }
+
+  // Set price alert
+  const setPriceAlert = (symbol, targetPrice, condition) => {
+    setPriceAlerts(prev => [...prev, {
+      id: Date.now(),
+      symbol,
+      targetPrice,
+      condition,
+      triggered: false
+    }])
+    addNotification(`Alert set for ${symbol} ${condition} $${targetPrice}`, 'info')
+    setShowAlertModal(false)
+  }
+
+  // Remove price alert
+  const removePriceAlert = (alertId) => {
+    setPriceAlerts(prev => prev.filter(alert => alert.id !== alertId))
+  }
+
+  // Check price alerts whenever markets update
+  useEffect(() => {
+    if (markets.length === 0 || priceAlerts.length === 0) return
+    
+    priceAlerts.forEach(alert => {
+      if (alert.triggered) return // Already triggered
+      
+      const market = markets.find(m => m.symbol === alert.symbol)
+      if (!market || market.price === 0) return
+      
+      let shouldTrigger = false
+      if (alert.condition === 'above' && market.price >= alert.targetPrice) {
+        shouldTrigger = true
+      } else if (alert.condition === 'below' && market.price <= alert.targetPrice) {
+        shouldTrigger = true
+      }
+      
+      if (shouldTrigger) {
+        // Mark as triggered
+        setPriceAlerts(prev => prev.map(a => 
+          a.id === alert.id ? { ...a, triggered: true } : a
+        ))
+        
+        // Show notification
+        addNotification(
+          `🚨 ${market.name} is now ${alert.condition} $${alert.targetPrice}! Current: $${market.price.toFixed(2)}`,
+          'success'
+        )
+        
+        // Auto-remove after triggering
+        setTimeout(() => removePriceAlert(alert.id), 10000)
+      }
+    })
+  }, [markets, priceAlerts])
 
   // Fetch real prices from CoinGecko API (better CORS support than Binance)
   useEffect(() => {
     const fetchPrices = async () => {
-      // Map Binance symbols to CoinGecko IDs
+      // Map Binance symbols to CoinGecko IDs - Expanded list
       const coinGeckoMap = {
         'BTCUSDT': { id: 'bitcoin', symbol: 'BTC' },
         'ETHUSDT': { id: 'ethereum', symbol: 'ETH' },
         'SOLUSDT': { id: 'solana', symbol: 'SOL' },
         'BNBUSDT': { id: 'binancecoin', symbol: 'BNB' },
+        'XRPUSDT': { id: 'ripple', symbol: 'XRP' },
         'ADAUSDT': { id: 'cardano', symbol: 'ADA' },
-        'XRPUSDT': { id: 'ripple', symbol: 'XRP' }
+        'DOGEUSDT': { id: 'dogecoin', symbol: 'DOGE' },
+        'AVAXUSDT': { id: 'avalanche-2', symbol: 'AVAX' },
+        'DOTUSDT': { id: 'polkadot', symbol: 'DOT' },
+        'MATICUSDT': { id: 'matic-network', symbol: 'MATIC' },
+        'LINKUSDT': { id: 'chainlink', symbol: 'LINK' },
+        'UNIUSDT': { id: 'uniswap', symbol: 'UNI' },
+        'ATOMUSDT': { id: 'cosmos', symbol: 'ATOM' },
+        'LTCUSDT': { id: 'litecoin', symbol: 'LTC' },
+        'NEARUSDT': { id: 'near', symbol: 'NEAR' },
+        'APTUSDT': { id: 'aptos', symbol: 'APT' },
+        'ARBUSDT': { id: 'arbitrum', symbol: 'ARB' },
+        'OPUSDT': { id: 'optimism', symbol: 'OP' }
       }
       
       console.log('🔄 Fetching prices from CoinGecko...')
@@ -78,7 +200,7 @@ function DashboardOverview() {
         setMarkets(prevMarkets =>
           prevMarkets.map(market => {
             const coinInfo = coinGeckoMap[market.symbol]
-            const coinData = data[coinInfo.id]
+            const coinData = coinInfo && data[coinInfo.id]
             
             if (coinData) {
               console.log(`✅ Updating ${market.symbol}: $${coinData.usd}`)
@@ -375,6 +497,35 @@ function DashboardOverview() {
             )}
           </div>
 
+          {/* Filter and Sort Controls */}
+          <div className="market-controls">
+            {/* Favorites Filter Toggle */}
+            <button 
+              className={`filter-toggle ${showFavoritesOnly ? 'active' : ''}`}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              title={showFavoritesOnly ? 'Show all markets' : 'Show favorites only'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={showFavoritesOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span>{showFavoritesOnly ? 'Favorites' : 'All'}</span>
+            </button>
+
+            {/* Sort Dropdown */}
+            <select 
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="default">Default</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="change-high">Gainers</option>
+              <option value="change-low">Losers</option>
+              <option value="name">A-Z</option>
+            </select>
+          </div>
+
           <div className="markets-list">
             {sortedMarkets.length === 0 ? (
               <div className="no-results">
@@ -383,7 +534,12 @@ function DashboardOverview() {
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
                 <p>No markets found</p>
-                <span>Try searching for BTC, ETH, or SOL</span>
+                <span>
+                  {showFavoritesOnly 
+                    ? 'No favorite markets. Star some coins to see them here!'
+                    : 'Try searching for BTC, ETH, or SOL'
+                  }
+                </span>
               </div>
             ) : (
               sortedMarkets.map((market) => (
@@ -395,17 +551,34 @@ function DashboardOverview() {
                   <div className="market-info">
                     <div className="market-symbol-row">
                       <div className="market-symbol">{market.symbol}</div>
-                      <button 
-                        className={`favorite-btn ${market.favorite ? 'active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleFavorite(market.symbol)
-                        }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                      </button>
+                      <div className="market-actions">
+                        <button 
+                          className={`favorite-btn ${market.favorite ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleFavorite(market.symbol)
+                          }}
+                          title="Add to favorites"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="alert-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setAlertModalMarket(market)
+                            setShowAlertModal(true)
+                          }}
+                          title="Set price alert"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div className="market-name">{market.name}</div>
                   </div>
@@ -490,6 +663,108 @@ function DashboardOverview() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Price Alert Modal */}
+      {showAlertModal && alertModalMarket && (
+        <div className="modal-overlay" onClick={() => setShowAlertModal(false)}>
+          <div className="alert-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Set Price Alert</h3>
+              <button className="modal-close" onClick={() => setShowAlertModal(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="alert-market-info">
+                <div className="alert-market-name">{alertModalMarket.name}</div>
+                <div className="alert-current-price">
+                  Current: {formatPrice(alertModalMarket.price, alertModalMarket.price < 1 ? 4 : 2)}
+                </div>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+                const targetPrice = parseFloat(formData.get('targetPrice'))
+                const condition = formData.get('condition')
+                if (targetPrice && condition) {
+                  setPriceAlert(alertModalMarket.symbol, targetPrice, condition)
+                }
+              }}>
+                <div className="form-group">
+                  <label>Notify me when price goes</label>
+                  <select name="condition" className="alert-select" required>
+                    <option value="above">Above</option>
+                    <option value="below">Below</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Target Price ($)</label>
+                  <input 
+                    type="number" 
+                    name="targetPrice"
+                    step="any"
+                    placeholder="Enter price..."
+                    className="alert-input"
+                    required
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn-cancel" onClick={() => setShowAlertModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-set-alert">
+                    Set Alert
+                  </button>
+                </div>
+              </form>
+              
+              {/* Active alerts for this market */}
+              {priceAlerts.filter(a => a.symbol === alertModalMarket.symbol && !a.triggered).length > 0 && (
+                <div className="active-alerts">
+                  <h4>Active Alerts</h4>
+                  {priceAlerts
+                    .filter(a => a.symbol === alertModalMarket.symbol && !a.triggered)
+                    .map(alert => (
+                      <div key={alert.id} className="alert-item">
+                        <span>{alert.condition} ${alert.targetPrice}</span>
+                        <button onClick={() => removePriceAlert(alert.id)} className="btn-remove-alert">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications */}
+      <div className="notifications-container">
+        {notifications.map(notification => (
+          <div key={notification.id} className={`notification ${notification.type}`}>
+            <div className="notification-icon">
+              {notification.type === 'success' ? '🚨' : 'ℹ️'}
+            </div>
+            <div className="notification-message">{notification.message}</div>
+            <button 
+              className="notification-close"
+              onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )
