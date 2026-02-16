@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 function DashboardOverview() {
   const [timeRange, setTimeRange] = useState('1H')
@@ -85,8 +85,8 @@ function DashboardOverview() {
     return 0
   })
 
-  // Add notification
-  const addNotification = (message, type = 'info') => {
+  // Add notification - wrapped in useCallback to prevent dependency issues
+  const addNotification = useCallback((message, type = 'info') => {
     const id = Date.now()
     setNotifications(prev => [...prev, { id, message, type }])
     
@@ -95,16 +95,16 @@ function DashboardOverview() {
       setNotifications(prev => prev.filter(n => n.id !== id))
     }, 5000)
     
-    // Play sound for price alerts
-    if (type === 'success') {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRQ0PVqzn77BdGAg+lt7xwW8gBS6Ay/DglkYLElyx5/CtWhgJOZPY8s' />
-      audio.volume = 0.3
-      audio.play().catch(() => {}) // Ignore if blocked
-    }
-  }
+    // Note: Audio notification removed as it requires user interaction in most browsers
+  }, [])
+
+  // Remove price alert - wrapped in useCallback
+  const removePriceAlert = useCallback((alertId) => {
+    setPriceAlerts(prev => prev.filter(alert => alert.id !== alertId))
+  }, [])
 
   // Set price alert
-  const setPriceAlert = (symbol, targetPrice, condition) => {
+  const setPriceAlert = useCallback((symbol, targetPrice, condition) => {
     setPriceAlerts(prev => [...prev, {
       id: Date.now(),
       symbol,
@@ -114,12 +114,7 @@ function DashboardOverview() {
     }])
     addNotification(`Alert set for ${symbol} ${condition} $${targetPrice}`, 'info')
     setShowAlertModal(false)
-  }
-
-  // Remove price alert
-  const removePriceAlert = (alertId) => {
-    setPriceAlerts(prev => prev.filter(alert => alert.id !== alertId))
-  }
+  }, [addNotification])
 
   // Check price alerts whenever markets update
   useEffect(() => {
@@ -154,7 +149,7 @@ function DashboardOverview() {
         setTimeout(() => removePriceAlert(alert.id), 10000)
       }
     })
-  }, [markets, priceAlerts])
+  }, [markets, priceAlerts, addNotification, removePriceAlert])
 
   // Fetch real prices from CoinGecko API (better CORS support than Binance)
   useEffect(() => {
