@@ -5964,6 +5964,14 @@ body[data-theme="day"] .footer {
 .markets-table th:nth-child(3),
 .markets-table td:nth-child(3) {
   width: 17%; /* Alert column */
+  text-align: center !important; /* Force center alignment */
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.alert-btn-table {
+  margin: 0 auto; /* Center the button itself */
+  display: inline-flex;
 }
 
 /* Alert column cells are centered by text-center class, no extra padding needed */
