@@ -4,6 +4,7 @@ function DashboardOverview() {
   const [timeRange, setTimeRange] = useState('1H')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Stats reset to zero for new users
   const [stats] = useState({
@@ -14,7 +15,7 @@ function DashboardOverview() {
     daysActive: 0
   })
 
-  // Real-time market data from Binance
+  // Real-time market data from CoinGecko
   const [markets, setMarkets] = useState([
     { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0, favorite: true },
     { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0, favorite: true },
@@ -26,6 +27,24 @@ function DashboardOverview() {
 
   // No trades for new users
   const [recentTrades] = useState([])
+
+  // Filter markets based on search query
+  const filteredMarkets = markets.filter(market => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      market.symbol.toLowerCase().includes(query) ||
+      market.name.toLowerCase().includes(query)
+    )
+  })
+
+  // Sort filtered markets (favorites first, then by search relevance)
+  const sortedMarkets = [...filteredMarkets].sort((a, b) => {
+    // Favorites always on top
+    if (a.favorite && !b.favorite) return -1
+    if (!a.favorite && b.favorite) return 1
+    return 0
+  })
 
   // Fetch real prices from CoinGecko API (better CORS support than Binance)
   useEffect(() => {
@@ -329,10 +348,45 @@ function DashboardOverview() {
               Live
             </span>
           </div>
+          
+          {/* Search Input */}
+          <div className="market-search">
+            <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search BTC, ETH, SOL..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            {searchQuery && (
+              <button 
+                className="clear-search"
+                onClick={() => setSearchQuery('')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            )}
+          </div>
+
           <div className="markets-list">
-            {markets
-              .sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0))
-              .map((market) => (
+            {sortedMarkets.length === 0 ? (
+              <div className="no-results">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <p>No markets found</p>
+                <span>Try searching for BTC, ETH, or SOL</span>
+              </div>
+            ) : (
+              sortedMarkets.map((market) => (
                 <div 
                   key={market.symbol} 
                   className={`market-item ${selectedMarket?.symbol === market.symbol ? 'selected' : ''}`}
@@ -374,7 +428,8 @@ function DashboardOverview() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+            )}
           </div>
           <button className="btn-view-all">View All Markets</button>
         </div>
