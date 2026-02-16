@@ -11,32 +11,31 @@ function MarketsPage() {
   const [volume24h, setVolume24h] = useState(0)
   
   // Order Entry
-  const [orderType, setOrderType] = useState('Limit') // Limit, Market, Stop-Limit
+  const [orderType, setOrderType] = useState('Limit')
   const [price, setPrice] = useState('')
-  const [amount, setAmount] = useState('')
-  const [total, setTotal] = useState('')
+  const [size, setSize] = useState('')
   const [leverage] = useState(15)
   
   // Tabs
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   
   // Account
-  const [accountBalance] = useState(0.1857) // USDT
+  const [accountBalance] = useState(0.1857)
   const [marginBalance] = useState(0.1857)
   const [unrealizedPNL] = useState(0)
   
-  // Positions & Orders
+  // Positions
   const [positions] = useState([])
   
   // Loading
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
   
-  // Popular pairs for quick switch
   const popularPairs = [
-    { symbol: 'BTCUSDT', name: 'Bitcoin' },
-    { symbol: 'ETHUSDT', name: 'Ethereum' },
-    { symbol: 'SOLUSDT', name: 'Solana' },
-    { symbol: 'BNBUSDT', name: 'BNB' },
+    { symbol: 'KGENUSDT', name: 'KGeN' },
+    { symbol: 'MOODENGUSDT', name: 'MooDeng' },
+    { symbol: 'TURBOUSDT', name: 'Turbo' },
+    { symbol: 'DOGEUSDT', name: 'Doge' },
+    { symbol: 'NEIROUSDT', name: 'Neiro' },
   ]
 
   // Fetch real-time price
@@ -47,11 +46,12 @@ function MarketsPage() {
         'ETHUSDT': 'ethereum',
         'SOLUSDT': 'solana',
         'BNBUSDT': 'binancecoin',
+        'DOGEUSDT': 'dogecoin',
       }
 
       try {
         setIsLoadingPrice(true)
-        const coinId = coinGeckoMap[selectedPair]
+        const coinId = coinGeckoMap[selectedPair] || 'bitcoin'
         const response = await fetch(
           `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`
         )
@@ -77,19 +77,11 @@ function MarketsPage() {
     return () => clearInterval(interval)
   }, [selectedPair])
 
-  // Auto-calculate total
-  useEffect(() => {
-    if (price && amount) {
-      const calculatedTotal = (parseFloat(price) * parseFloat(amount)).toFixed(4)
-      setTotal(calculatedTotal)
-    }
-  }, [price, amount])
-
   // Format helpers
   const formatPrice = (num) => {
-    if (num === 0) return '0.00'
+    if (num === 0) return '0.0'
     if (num < 1) return num.toFixed(6)
-    if (num < 100) return num.toFixed(2)
+    if (num < 100) return num.toFixed(1)
     return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   }
 
@@ -111,331 +103,363 @@ function MarketsPage() {
             onClick={() => setSelectedPair(pair.symbol)}
           >
             <span className="ticker-symbol">{pair.symbol}</span>
-            <span className={`ticker-change ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-              {pair.symbol === selectedPair ? `${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%` : '...'}
-            </span>
+            <span className="ticker-change positive">+14.36%</span>
           </button>
         ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="binance-main-grid">
-        {/* Left: Chart + Ticker Info */}
+      {/* Main Trading Grid: Chart | Order Book | Order Entry */}
+      <div className="binance-trading-grid">
+        {/* LEFT: Chart Section */}
         <div className="binance-chart-section">
-          {/* Pair Info Header */}
+          {/* Pair Header */}
           <div className="binance-pair-header">
-            <div className="pair-info-left">
-              <div className="pair-name">
+            <div className="pair-info">
+              <div className="pair-name-row">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                </svg>
                 <span className="pair-symbol">{selectedPair}</span>
                 <span className="pair-type">Perp</span>
               </div>
-              <div className="pair-price-info">
-                <div className="current-price">
-                  <span className={`price-value ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                    {isLoadingPrice ? 'Loading...' : formatPrice(marketPrice)}
-                  </span>
-                  <span className={`price-change ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                    {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)} {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
-                  </span>
-                </div>
+              <div className="pair-price-data">
+                <span className={`main-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+                  {isLoadingPrice ? 'Loading...' : formatPrice(marketPrice)}
+                </span>
+                <span className={`price-change-amount ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+                  {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)} {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
+                </span>
               </div>
             </div>
-            <div className="pair-stats">
-              <div className="stat">
+            
+            <div className="pair-24h-stats">
+              <div className="stat-col">
+                <span className="stat-label">Mark</span>
+                <span className="stat-value">{formatPrice(marketPrice)}</span>
+              </div>
+              <div className="stat-col">
+                <span className="stat-label">Index</span>
+                <span className="stat-value">{formatPrice(marketPrice)}</span>
+              </div>
+              <div className="stat-col">
+                <span className="stat-label">Funding (8h) / Countdown</span>
+                <span className="stat-value funding-rate">0.00322% / 02:15:14</span>
+              </div>
+              <div className="stat-col">
                 <span className="stat-label">24h High</span>
                 <span className="stat-value">{formatPrice(high24h)}</span>
               </div>
-              <div className="stat">
-                <span className="stat-label">24h Low</span>
-                <span className="stat-value">{formatPrice(low24h)}</span>
-              </div>
-              <div className="stat">
-                <span className="stat-label">24h Volume(USDT)</span>
-                <span className="stat-value">{formatVolume(volume24h)}</span>
-              </div>
             </div>
           </div>
 
-          {/* Chart Tabs */}
-          <div className="binance-chart-tabs">
-            <button className="chart-tab active">Chart</button>
-            <button className="chart-tab">Info</button>
-            <button className="chart-tab">Trading Data</button>
+          {/* Chart Controls */}
+          <div className="chart-controls">
+            <div className="chart-tabs">
+              <button className="chart-tab active">Chart</button>
+              <button className="chart-tab">Info</button>
+              <button className="chart-tab">Trading Data</button>
+            </div>
+            <div className="chart-timeframes">
+              <button className="timeframe-btn">Time</button>
+              <button className="timeframe-btn">1s</button>
+              <button className="timeframe-btn">15m</button>
+              <button className="timeframe-btn">1H</button>
+              <button className="timeframe-btn">4H</button>
+              <button className="timeframe-btn active">1D</button>
+              <button className="timeframe-btn">1W</button>
+            </div>
           </div>
 
           {/* Chart Placeholder */}
-          <div className="binance-chart-container">
+          <div className="binance-chart-area">
             <div className="chart-placeholder">
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <polyline points="1 6 5 2 9 6 13 2 17 6 21 2"/>
+                <polyline points="1 22 5 18 9 22 13 18 17 22 21 18"/>
               </svg>
-              <h3>TradingView Chart</h3>
-              <p>Real-time chart integration coming soon</p>
+              <h3>TradingView Chart Integration</h3>
+              <p>Advanced charting coming soon</p>
             </div>
           </div>
         </div>
 
-        {/* Right: Order Book + Order Entry */}
-        <div className="binance-right-panel">
-          {/* Order Book Header */}
+        {/* MIDDLE: Order Book */}
+        <div className="binance-orderbook-column">
           <div className="orderbook-header">
-            <h3>Order Book</h3>
-            <div className="orderbook-controls">
-              <button className="orderbook-view-btn active" title="Buy & Sell">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="3" y="3" width="8" height="18"/>
-                  <rect x="13" y="3" width="8" height="18"/>
+            <span>Order Book</span>
+            <div className="orderbook-view-btns">
+              <button className="ob-view-btn active">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="1" width="6" height="14"/>
+                  <rect x="9" y="1" width="6" height="14"/>
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Order Book */}
-          <div className="binance-orderbook">
-            <div className="orderbook-headers">
-              <span>Price (USDT)</span>
-              <span className="text-right">Size (USDT)</span>
-              <span className="text-right">Sum (USDT)</span>
-            </div>
-            
-            {/* Sell Orders (Red) */}
-            <div className="orderbook-sells">
-              {[...Array(8)].map((_, i) => (
-                <div key={`sell-${i}`} className="orderbook-row sell">
-                  <span className="ob-price">{formatPrice(marketPrice + (i + 1) * 10)}</span>
-                  <span className="ob-size text-right">{(Math.random() * 100).toFixed(2)}</span>
-                  <span className="ob-sum text-right">{(Math.random() * 1000).toFixed(2)}</span>
+          <div className="orderbook-table-headers">
+            <span>Price (USDT)</span>
+            <span className="text-right">Size (USDT)</span>
+            <span className="text-right">Sum (USDT)</span>
+          </div>
+
+          <div className="orderbook-content">
+            {/* Sell Orders */}
+            <div className="ob-sells">
+              {[...Array(10)].map((_, i) => (
+                <div key={`sell-${i}`} className="ob-row sell">
+                  <span className="ob-price">{formatPrice(marketPrice + (10 - i) * 10)}</span>
+                  <span className="ob-size">{(Math.random() * 300).toFixed(2)}</span>
+                  <span className="ob-sum">{(Math.random() * 100).toFixed(2)}K</span>
                 </div>
               ))}
             </div>
 
-            {/* Current Price */}
-            <div className="orderbook-current-price">
-              <span className={`current-price-value ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+            {/* Current Price Banner */}
+            <div className="ob-current-price">
+              <span className={`price-big ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
                 {formatPrice(marketPrice)}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '4px' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   {priceChangePercent >= 0 ? (
-                    <path d="M12 4l8 8H4z"/>
+                    <path d="M7 14l5-5 5 5z"/>
                   ) : (
-                    <path d="M12 20l8-8H4z"/>
+                    <path d="M7 10l5 5 5-5z"/>
                   )}
                 </svg>
               </span>
-              <span className="current-price-usd">{formatPrice(marketPrice)}</span>
+              <span className="price-usd">{formatPrice(marketPrice)}</span>
             </div>
 
-            {/* Buy Orders (Green) */}
-            <div className="orderbook-buys">
-              {[...Array(8)].map((_, i) => (
-                <div key={`buy-${i}`} className="orderbook-row buy">
+            {/* Buy Orders */}
+            <div className="ob-buys">
+              {[...Array(10)].map((_, i) => (
+                <div key={`buy-${i}`} className="ob-row buy">
                   <span className="ob-price">{formatPrice(marketPrice - (i + 1) * 10)}</span>
-                  <span className="ob-size text-right">{(Math.random() * 100).toFixed(2)}</span>
-                  <span className="ob-sum text-right">{(Math.random() * 1000).toFixed(2)}</span>
+                  <span className="ob-size">{(Math.random() * 300).toFixed(2)}</span>
+                  <span className="ob-sum">{(Math.random() * 100).toFixed(2)}K</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Order Entry Panel */}
-          <div className="binance-order-panel">
-            {/* Isolated / Leverage */}
-            <div className="order-panel-header">
-              <button className="isolated-btn">Isolated</button>
-              <button className="leverage-btn">{leverage}x</button>
+          {/* Trades Section */}
+          <div className="recent-trades">
+            <div className="trades-tabs">
+              <button className="trades-tab active">Trades</button>
+              <button className="trades-tab">Top Movers</button>
             </div>
-
-            {/* Order Type Tabs */}
-            <div className="order-type-tabs">
-              <button 
-                className={`order-type-tab ${orderType === 'Limit' ? 'active' : ''}`}
-                onClick={() => setOrderType('Limit')}
-              >
-                Limit
-              </button>
-              <button 
-                className={`order-type-tab ${orderType === 'Market' ? 'active' : ''}`}
-                onClick={() => setOrderType('Market')}
-              >
-                Market
-              </button>
-              <button 
-                className={`order-type-tab ${orderType === 'Stop-Limit' ? 'active' : ''}`}
-                onClick={() => setOrderType('Stop-Limit')}
-              >
-                Stop Limit
-              </button>
+            <div className="trades-headers">
+              <span>Price (USDT)</span>
+              <span>Amount (USDT)</span>
+              <span>Time</span>
             </div>
-
-            {/* Buy/Sell Panels */}
-            <div className="buy-sell-panels">
-              {/* Buy Panel */}
-              <div className="order-side-panel buy-panel">
-                <div className="avbl-balance">
-                  <span>Avbl</span>
-                  <span>{accountBalance.toFixed(4)} USDT</span>
+            <div className="trades-list">
+              {[...Array(5)].map((_, i) => (
+                <div key={`trade-${i}`} className="trade-row">
+                  <span className={i % 2 === 0 ? 'positive' : 'negative'}>
+                    {formatPrice(marketPrice + (Math.random() - 0.5) * 20)}
+                  </span>
+                  <span>{(Math.random() * 10).toFixed(2)}K</span>
+                  <span>22:44:{44 - i}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                {orderType === 'Limit' && (
-                  <div className="input-group">
-                    <label>Price</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                      />
-                      <span className="input-suffix">USDT</span>
-                    </div>
-                  </div>
-                )}
+        {/* RIGHT: Order Entry Panel */}
+        <div className="binance-order-entry">
+          <div className="order-entry-header">
+            <button className="isolated-btn">Isolated</button>
+            <button className="leverage-display">{leverage}x</button>
+            <button className="size-mode">S</button>
+          </div>
 
-                <div className="input-group">
-                  <label>Size</label>
-                  <div className="input-wrapper">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                    <span className="input-suffix">USDT</span>
-                  </div>
-                </div>
+          <div className="order-type-selector">
+            <button className={`ot-btn ${orderType === 'Limit' ? 'active' : ''}`} onClick={() => setOrderType('Limit')}>
+              Limit
+            </button>
+            <button className={`ot-btn ${orderType === 'Market' ? 'active' : ''}`} onClick={() => setOrderType('Market')}>
+              Market
+            </button>
+            <button className={`ot-btn ${orderType === 'Stop Limit' ? 'active' : ''}`} onClick={() => setOrderType('Stop Limit')}>
+              Stop Limit
+            </button>
+          </div>
 
-                {/* Percentage Buttons */}
-                <div className="percentage-btns">
-                  <button onClick={() => setAmount((accountBalance * 0.25).toFixed(4))}>25%</button>
-                  <button onClick={() => setAmount((accountBalance * 0.50).toFixed(4))}>50%</button>
-                  <button onClick={() => setAmount((accountBalance * 0.75).toFixed(4))}>75%</button>
-                  <button onClick={() => setAmount(accountBalance.toFixed(4))}>100%</button>
-                </div>
+          <div className="avbl-row">
+            <span>Avbl</span>
+            <span className="avbl-value">
+              {accountBalance.toFixed(4)} USDT
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1l-1.5 1.5L10.293 6H1v2h9.293L6.5 11.5 8 13l6-6z"/>
+              </svg>
+            </span>
+          </div>
 
-                <div className="total-display">
-                  <span>Total</span>
-                  <span>{total || '0'} USDT</span>
-                </div>
-
-                <button className="order-submit-btn buy-btn">
-                  Buy/Long
-                </button>
-              </div>
-
-              {/* Sell Panel */}
-              <div className="order-side-panel sell-panel">
-                <div className="avbl-balance">
-                  <span>Avbl</span>
-                  <span>{accountBalance.toFixed(4)} USDT</span>
-                </div>
-
-                {orderType === 'Limit' && (
-                  <div className="input-group">
-                    <label>Price</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                      />
-                      <span className="input-suffix">USDT</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="input-group">
-                  <label>Size</label>
-                  <div className="input-wrapper">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                    <span className="input-suffix">USDT</span>
-                  </div>
-                </div>
-
-                {/* Percentage Buttons */}
-                <div className="percentage-btns">
-                  <button onClick={() => setAmount((accountBalance * 0.25).toFixed(4))}>25%</button>
-                  <button onClick={() => setAmount((accountBalance * 0.50).toFixed(4))}>50%</button>
-                  <button onClick={() => setAmount((accountBalance * 0.75).toFixed(4))}>75%</button>
-                  <button onClick={() => setAmount(accountBalance.toFixed(4))}>100%</button>
-                </div>
-
-                <div className="total-display">
-                  <span>Total</span>
-                  <span>{total || '0'} USDT</span>
-                </div>
-
-                <button className="order-submit-btn sell-btn">
-                  Sell/Short
-                </button>
+          {orderType === 'Limit' && (
+            <div className="entry-input-group">
+              <label>Price</label>
+              <div className="input-row">
+                <input type="number" placeholder="0" value={price} onChange={(e) => setPrice(e.target.value)} />
+                <span className="input-unit">USDT</span>
+                <button className="input-select">BBO</button>
               </div>
             </div>
+          )}
+
+          <div className="entry-input-group">
+            <label>Size</label>
+            <div className="input-row">
+              <input type="number" placeholder="0" value={size} onChange={(e) => setSize(e.target.value)} />
+              <span className="input-unit">USDT</span>
+            </div>
+            <div className="size-slider">
+              <div className="slider-track"></div>
+            </div>
+          </div>
+
+          <div className="tp-sl-row">
+            <label className="checkbox-row">
+              <input type="checkbox" />
+              <span>TP/SL</span>
+            </label>
+            <label className="checkbox-row">
+              <input type="checkbox" />
+              <span>Reduce-Only</span>
+            </label>
+          </div>
+
+          <button className="buy-long-btn">Buy/Long</button>
+          <button className="sell-short-btn">Sell/Short</button>
+
+          <div className="order-summary">
+            <div className="summary-row">
+              <span>Cost</span>
+              <span>0.00 USDT</span>
+            </div>
+            <div className="summary-row">
+              <span>Max</span>
+              <span>0.00 USDT</span>
+            </div>
+          </div>
+
+          <div className="fee-level">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" fill="none"/>
+              <path d="M8 4v4l3 2"/>
+            </svg>
+            <span>Fee level</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom: Positions & Orders */}
-      <div className="binance-positions-section">
-        {/* Tabs */}
-        <div className="positions-tabs">
-          <button 
-            className={`pos-tab ${activePositionsTab === 'positions' ? 'active' : ''}`}
-            onClick={() => setActivePositionsTab('positions')}
-          >
-            Positions(0)
-          </button>
-          <button 
-            className={`pos-tab ${activePositionsTab === 'openOrders' ? 'active' : ''}`}
-            onClick={() => setActivePositionsTab('openOrders')}
-          >
-            Open Orders(0)
-          </button>
-          <button 
-            className={`pos-tab ${activePositionsTab === 'orderHistory' ? 'active' : ''}`}
-            onClick={() => setActivePositionsTab('orderHistory')}
-          >
-            Order History
-          </button>
-          <button className="pos-tab">Trade History</button>
-          <button className="pos-tab">Transaction History</button>
-          <button className="pos-tab">Assets</button>
-
-          {/* Account Info - Right Side */}
-          <div className="account-info-tabs">
-            <div className="account-stat">
-              <span className="account-label">Margin Ratio</span>
-              <span className="account-value positive">0.00%</span>
-            </div>
-            <div className="account-stat">
-              <span className="account-label">Margin Balance</span>
-              <span className="account-value">{marginBalance.toFixed(4)} USDT</span>
-            </div>
-            <div className="account-stat">
-              <span className="account-label">Unrealized PNL</span>
-              <span className={`account-value ${unrealizedPNL >= 0 ? 'positive' : 'negative'}`}>
-                {unrealizedPNL.toFixed(4)} USDT
-              </span>
-            </div>
+      {/* Bottom: Positions & Account */}
+      <div className="binance-bottom-section">
+        <div className="positions-panel">
+          <div className="positions-tabs">
+            <button className={`pos-tab ${activePositionsTab === 'positions' ? 'active' : ''}`} onClick={() => setActivePositionsTab('positions')}>
+              Positions(0)
+            </button>
+            <button className="pos-tab">Open Orders(0)</button>
+            <button className="pos-tab">Order History</button>
+            <button className="pos-tab">Trade History</button>
+            <button className="pos-tab">Transaction History</button>
+            <button className="pos-tab">Position History</button>
+            <button className="pos-tab">Bots</button>
+            <button className="pos-tab">Assets</button>
+            <label className="hide-symbols">
+              <input type="checkbox" />
+              <span>Hide Other Symbols</span>
+            </label>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="positions-content">
-          {activePositionsTab === 'positions' && positions.length === 0 && (
+          <div className="positions-table-headers">
+            <span>Symbol</span>
+            <span>Size</span>
+            <span>Entry Price</span>
+            <span>Break Even Price</span>
+            <span>Mark Price</span>
+            <span>Liq.Price</span>
+            <span>Margin Ratio</span>
+            <span>Margin</span>
+            <span>PNL(ROI %)</span>
+          </div>
+
+          {positions.length === 0 && (
             <div className="empty-positions">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="7" height="7"/>
-                <rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/>
+              <svg width="60" height="60" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="10" y="10" width="18" height="18" rx="2"/>
+                <rect x="36" y="10" width="18" height="18" rx="2"/>
+                <rect x="36" y="36" width="18" height="18" rx="2"/>
+                <rect x="10" y="36" width="18" height="18" rx="2"/>
               </svg>
               <p>You have no position.</p>
             </div>
           )}
+        </div>
+
+        {/* Account Panel */}
+        <div className="account-panel">
+          <div className="account-header">
+            <span>Account</span>
+            <button className="switch-btn">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1l-1.5 1.5L10.293 6H1v2h9.293L6.5 11.5 8 13l6-6z"/>
+              </svg>
+              Switch
+            </button>
+          </div>
+
+          <div className="account-stats">
+            <div className="account-row">
+              <span>Margin Ratio</span>
+              <span className="positive">0.00%</span>
+            </div>
+            <div className="account-row">
+              <span>Maintenance Margin</span>
+              <span>0.0000 USDT</span>
+            </div>
+            <div className="account-row">
+              <span>Margin Balance</span>
+              <span>{marginBalance.toFixed(4)} USDT</span>
+            </div>
+          </div>
+
+          <button className="single-asset-btn">Single-Asset Mode</button>
+
+          <div className="asset-selector">
+            <span>USDT</span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M4 6l4 4 4-4z"/>
+            </svg>
+          </div>
+
+          <div className="account-balance">
+            <div className="balance-row">
+              <span>Balance</span>
+              <span>{accountBalance.toFixed(4)} USDT</span>
+            </div>
+            <div className="balance-row">
+              <span>Unrealized PNL</span>
+              <span className={unrealizedPNL >= 0 ? 'positive' : 'negative'}>
+                {unrealizedPNL.toFixed(4)} USDT
+              </span>
+            </div>
+          </div>
+
+          <button className="pnl-analysis-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" fill="none"/>
+            </svg>
+            Futures PNL Analysis
+          </button>
+
+          <div className="account-actions">
+            <button>Transfer</button>
+            <button>Buy Crypto</button>
+            <button>Swap</button>
+          </div>
         </div>
       </div>
     </div>

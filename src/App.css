@@ -7268,56 +7268,60 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   }
 }
 /* ==========================================
-   Binance-Style Markets Page
+/* ==========================================
+   BINANCE MARKETS PAGE - EXACT LAYOUT
    ========================================== */
 
 .binance-markets-page {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg-primary);
-  overflow: hidden;
+  background: #0b0e11;
+  color: #eaecef;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Top Ticker Bar */
 .binance-ticker-bar {
   display: flex;
-  gap: 0;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: #1e2329;
+  border-bottom: 1px solid #2b3139;
   overflow-x: auto;
-  padding: 0 1rem;
+  scrollbar-width: none;
+}
+
+.binance-ticker-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .ticker-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.625rem 1.25rem;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
   min-width: 140px;
+  transition: all 0.2s;
 }
 
 .ticker-item.active {
-  border-bottom-color: var(--accent-primary);
+  border-bottom-color: #fcd535;
 }
 
 .ticker-item:hover {
-  background: var(--bg-card-hover);
+  background: #2b3139;
 }
 
 .ticker-symbol {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 0.75rem;
+  color: #eaecef;
+  margin-bottom: 0.125rem;
 }
 
 .ticker-change {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
 }
 
@@ -7329,954 +7333,921 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   color: #f6465d;
 }
 
-/* Main Grid Layout */
-.binance-main-grid {
+/* Main Trading Grid: 3 Columns */
+.binance-trading-grid {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr 320px 280px;
   flex: 1;
   overflow: hidden;
+  gap: 0;
 }
 
-/* Left: Chart Section */
+/* LEFT: Chart Section */
 .binance-chart-section {
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: #0b0e11;
+  border-right: 1px solid #2b3139;
   overflow: hidden;
 }
 
-/* Pair Header */
 .binance-pair-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  gap: 2rem;
+  padding: 0.75rem 1rem;
+  background: #1e2329;
+  border-bottom: 1px solid #2b3139;
+  gap: 1rem;
 }
 
-.pair-info-left {
+.pair-info {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.pair-name {
+.pair-name-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.pair-name-row svg {
+  color: #fcd535;
 }
 
 .pair-symbol {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #eaecef;
 }
 
 .pair-type {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  background: var(--bg-card);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  font-size: 0.6875rem;
+  color: #848e9c;
+  background: #2b3139;
+  padding: 0.125rem 0.375rem;
+  border-radius: 2px;
 }
 
-.current-price {
+.pair-price-data {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
-.price-value {
-  font-size: 1.75rem;
-  font-weight: 700;
+.main-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.price-value.positive {
+.main-price.positive {
   color: #0ecb81;
 }
 
-.price-value.negative {
+.main-price.negative {
   color: #f6465d;
 }
 
-.price-change {
-  font-size: 0.875rem;
+.price-change-amount {
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
-.price-change.positive {
+.price-change-amount.positive {
   color: #0ecb81;
 }
 
-.price-change.negative {
+.price-change-amount.negative {
   color: #f6465d;
 }
 
-.pair-stats {
+.pair-24h-stats {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
-.stat {
+.stat-col {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .stat-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.6875rem;
+  color: #848e9c;
 }
 
 .stat-value {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 0.75rem;
+  color: #eaecef;
 }
 
-/* Chart Tabs */
-.binance-chart-tabs {
+.funding-rate {
+  color: #0ecb81;
+}
+
+/* Chart Controls */
+.chart-controls {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: #1e2329;
+  border-bottom: 1px solid #2b3139;
+}
+
+.chart-tabs {
   display: flex;
   gap: 0;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
-  padding: 0 1.5rem;
 }
 
 .chart-tab {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1rem;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: #848e9c;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .chart-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-primary);
+  color: #eaecef;
+  border-bottom-color: #fcd535;
 }
 
 .chart-tab:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
+  color: #eaecef;
 }
 
-/* Chart Container */
-.binance-chart-container {
+.chart-timeframes {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.timeframe-btn {
+  padding: 0.375rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #848e9c;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.timeframe-btn.active {
+  background: #2b3139;
+  color: #eaecef;
+}
+
+.timeframe-btn:hover:not(.active) {
+  color: #eaecef;
+}
+
+/* Chart Area */
+.binance-chart-area {
   flex: 1;
+  background: #0b0e11;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
   overflow: hidden;
 }
 
 .chart-placeholder {
   text-align: center;
-  color: var(--text-muted);
+  color: #474d57;
 }
 
 .chart-placeholder svg {
   margin-bottom: 1rem;
-  opacity: 0.5;
+  opacity: 0.3;
 }
 
 .chart-placeholder h3 {
-  font-size: 1.25rem;
-  color: var(--text-primary);
+  font-size: 1rem;
+  color: #848e9c;
   margin-bottom: 0.5rem;
 }
 
 .chart-placeholder p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: #474d57;
 }
 
-/* Right Panel: Order Book + Order Entry */
-.binance-right-panel {
+/* MIDDLE: Order Book Column */
+.binance-orderbook-column {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: #1e2329;
+  border-right: 1px solid #2b3139;
   overflow: hidden;
 }
 
-/* Order Book */
 .orderbook-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #eaecef;
+  border-bottom: 1px solid #2b3139;
 }
 
-.orderbook-header h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.orderbook-controls {
+.orderbook-view-btns {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
-.orderbook-view-btn {
-  padding: 0.375rem 0.5rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+.ob-view-btn {
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  color: #848e9c;
   cursor: pointer;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
+  border-radius: 2px;
 }
 
-.orderbook-view-btn.active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: white;
+.ob-view-btn.active {
+  background: #2b3139;
+  color: #fcd535;
 }
 
-.binance-orderbook {
+.orderbook-table-headers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.6875rem;
+  color: #848e9c;
+  border-bottom: 1px solid #2b3139;
+}
+
+.orderbook-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
 }
 
-.orderbook-headers {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  padding: 0.5rem 1rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.orderbook-sells,
-.orderbook-buys {
+.ob-sells,
+.ob-buys {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
-.orderbook-sells {
+.ob-sells {
   flex-direction: column-reverse;
 }
 
-.orderbook-row {
+.ob-sells::-webkit-scrollbar,
+.ob-buys::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ob-sells::-webkit-scrollbar-thumb,
+.ob-buys::-webkit-scrollbar-thumb {
+  background: #2b3139;
+  border-radius: 4px;
+}
+
+.ob-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  padding: 0.25rem 1rem;
-  font-family: 'Courier New', monospace;
-  transition: background 0.1s ease;
+  padding: 0.1875rem 0.875rem;
+  font-size: 0.6875rem;
+  transition: background 0.1s;
 }
 
-.orderbook-row:hover {
-  background: var(--bg-card-hover);
+.ob-row:hover {
+  background: #2b3139;
 }
 
-.orderbook-row.sell .ob-price {
+.ob-row.sell .ob-price {
   color: #f6465d;
 }
 
-.orderbook-row.buy .ob-price {
+.ob-row.buy .ob-price {
   color: #0ecb81;
-}
-
-.ob-price {
-  font-weight: 600;
 }
 
 .ob-size,
 .ob-sum {
-  color: var(--text-secondary);
-}
-
-.text-right {
+  color: #848e9c;
   text-align: right;
 }
 
-.orderbook-current-price {
+.ob-current-price {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  margin: 0.5rem 0;
+  padding: 0.5rem 0.875rem;
+  background: #2b3139;
+  border-top: 1px solid #2b3139;
+  border-bottom: 1px solid #2b3139;
+  margin: 0;
 }
 
-.current-price-value {
-  font-size: 1.125rem;
+.price-big {
+  font-size: 1rem;
   font-weight: 700;
   display: flex;
   align-items: center;
+  gap: 0.25rem;
 }
 
-.current-price-value.positive {
+.price-big.positive {
   color: #0ecb81;
 }
 
-.current-price-value.negative {
+.price-big.negative {
   color: #f6465d;
 }
 
-.current-price-usd {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+.price-usd {
+  font-size: 0.6875rem;
+  color: #848e9c;
 }
 
-/* Order Entry Panel */
-.binance-order-panel {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+/* Recent Trades */
+.recent-trades {
+  border-top: 1px solid #2b3139;
+  padding-top: 0.5rem;
 }
 
-.order-panel-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.isolated-btn,
-.leverage-btn {
-  padding: 0.375rem 0.75rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.isolated-btn:hover,
-.leverage-btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--accent-primary);
-}
-
-/* Order Type Tabs */
-.order-type-tabs {
+.trades-tabs {
   display: flex;
   gap: 0;
-  background: var(--bg-card);
-  padding: 0 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 0.875rem 0.5rem;
 }
 
-.order-type-tab {
-  padding: 0.75rem 1rem;
+.trades-tab {
+  padding: 0.375rem 0.75rem;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  color: #848e9c;
+  font-size: 0.6875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
 }
 
-.order-type-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-primary);
+.trades-tab.active {
+  color: #eaecef;
+  border-bottom-color: #fcd535;
 }
 
-.order-type-tab:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-/* Buy/Sell Panels */
-.buy-sell-panels {
+.trades-headers {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 1.5rem;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.6875rem;
+  color: #848e9c;
 }
 
-.order-side-panel {
+.trades-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.trade-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.25rem 0.875rem;
+  font-size: 0.6875rem;
+  font-family: 'Courier New', monospace;
+}
+
+.trade-row span:first-child.positive {
+  color: #0ecb81;
+}
+
+.trade-row span:first-child.negative {
+  color: #f6465d;
+}
+
+.trade-row span:not(:first-child) {
+  color: #848e9c;
+}
+
+/* RIGHT: Order Entry Panel */
+.binance-order-entry {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  background: #1e2329;
+  padding: 0.875rem;
+  gap: 0.75rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
-.avbl-balance {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+.binance-order-entry::-webkit-scrollbar {
+  width: 4px;
 }
 
-.input-group {
+.binance-order-entry::-webkit-scrollbar-thumb {
+  background: #2b3139;
+  border-radius: 4px;
+}
+
+.order-entry-header {
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
-}
-
-.input-group label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.input-wrapper {
-  position: relative;
-  display: flex;
   align-items: center;
 }
 
-.input-wrapper input {
-  width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+.isolated-btn,
+.leverage-display,
+.size-mode {
+  padding: 0.375rem 0.625rem;
+  background: #2b3139;
+  border: 1px solid #2b3139;
   border-radius: 4px;
-  padding: 0.75rem;
-  padding-right: 3.5rem;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+  color: #eaecef;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.input-wrapper input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  background: var(--bg-primary);
+.isolated-btn:hover,
+.leverage-display:hover {
+  border-color: #fcd535;
 }
 
-.input-wrapper input::placeholder {
-  color: var(--text-muted);
+.leverage-display {
+  font-weight: 600;
 }
 
-.input-suffix {
-  position: absolute;
-  right: 0.75rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  pointer-events: none;
+.size-mode {
+  margin-left: auto;
 }
 
-/* Percentage Buttons */
-.percentage-btns {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.order-type-selector {
+  display: flex;
+  gap: 0;
+  background: #2b3139;
+  border-radius: 4px;
+  padding: 0.125rem;
+}
+
+.ot-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #848e9c;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.ot-btn.active {
+  background: #1e2329;
+  color: #eaecef;
+}
+
+.ot-btn:hover:not(.active) {
+  color: #eaecef;
+}
+
+.avbl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: #848e9c;
+}
+
+.avbl-value {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #eaecef;
+}
+
+.entry-input-group {
+  display: flex;
+  flex-direction: column;
   gap: 0.375rem;
 }
 
-.percentage-btns button {
-  padding: 0.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
+.entry-input-group label {
+  font-size: 0.6875rem;
+  color: #848e9c;
 }
 
-.percentage-btns button:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--accent-primary);
-  color: var(--text-primary);
-}
-
-/* Total Display */
-.total-display {
+.input-row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: var(--bg-card);
+  align-items: center;
+  background: #2b3139;
+  border: 1px solid #2b3139;
   border-radius: 4px;
-  font-size: 0.8125rem;
+  padding: 0.5rem;
+  gap: 0.5rem;
+  transition: all 0.2s;
 }
 
-.total-display span:first-child {
-  color: var(--text-muted);
+.input-row:focus-within {
+  border-color: #fcd535;
 }
 
-.total-display span:last-child {
-  color: var(--text-primary);
-  font-weight: 600;
+.input-row input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #eaecef;
+  font-size: 0.75rem;
+  outline: none;
 }
 
-/* Order Submit Buttons */
-.order-submit-btn {
-  padding: 0.875rem;
+.input-row input::placeholder {
+  color: #474d57;
+}
+
+.input-unit {
+  font-size: 0.6875rem;
+  color: #848e9c;
+}
+
+.input-select {
+  padding: 0.25rem 0.5rem;
+  background: #1e2329;
   border: none;
   border-radius: 4px;
-  font-size: 0.875rem;
+  color: #fcd535;
+  font-size: 0.6875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.buy-btn {
+.size-slider {
+  height: 4px;
+  background: #2b3139;
+  border-radius: 2px;
+  margin-top: 0.25rem;
+}
+
+.slider-track {
+  height: 100%;
+  width: 0%;
+  background: #fcd535;
+  border-radius: 2px;
+}
+
+.tp-sl-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  color: #eaecef;
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #fcd535;
+}
+
+.buy-long-btn,
+.sell-short-btn {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.buy-long-btn {
   background: #0ecb81;
   color: white;
 }
 
-.buy-btn:hover {
+.buy-long-btn:hover {
   background: #0eb876;
 }
 
-.sell-btn {
+.sell-short-btn {
   background: #f6465d;
   color: white;
 }
 
-.sell-btn:hover {
+.sell-short-btn:hover {
   background: #f23c52;
 }
 
-/* Bottom: Positions Section */
-.binance-positions-section {
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color);
+.order-summary {
   display: flex;
   flex-direction: column;
-  max-height: 300px;
-  min-height: 250px;
+  gap: 0.375rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2b3139;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+}
+
+.summary-row span:first-child {
+  color: #848e9c;
+}
+
+.summary-row span:last-child {
+  color: #eaecef;
+}
+
+.fee-level {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  color: #848e9c;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2b3139;
+}
+
+/* BOTTOM: Positions & Account */
+.binance-bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  background: #1e2329;
+  border-top: 1px solid #2b3139;
+  height: 250px;
+  overflow: hidden;
+}
+
+.positions-panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2b3139;
+  overflow: hidden;
 }
 
 .positions-tabs {
   display: flex;
   gap: 0;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
-  padding: 0 1.5rem;
-  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 1px solid #2b3139;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.positions-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .pos-tab {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1rem;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
+  color: #848e9c;
+  font-size: 0.6875rem;
   font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .pos-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-primary);
+  color: #eaecef;
+  border-bottom-color: #fcd535;
 }
 
 .pos-tab:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
+  color: #eaecef;
 }
 
-/* Account Info Tabs - Right Side */
-.account-info-tabs {
+.hide-symbols {
   display: flex;
-  gap: 2rem;
   align-items: center;
-  padding-right: 0.5rem;
-}
-
-.account-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.account-label {
+  gap: 0.375rem;
+  margin-left: auto;
+  padding: 0.75rem 1rem;
   font-size: 0.6875rem;
-  color: var(--text-muted);
+  color: #848e9c;
+  cursor: pointer;
 }
 
-.account-value {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.hide-symbols input {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #fcd535;
 }
 
-.account-value.positive {
-  color: #0ecb81;
-}
-
-.account-value.negative {
-  color: #f6465d;
-}
-
-/* Positions Content */
-.positions-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 2rem;
+.positions-table-headers {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  padding: 0.5rem 1rem;
+  font-size: 0.6875rem;
+  color: #848e9c;
+  border-bottom: 1px solid #2b3139;
 }
 
 .empty-positions {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  text-align: center;
-  color: var(--text-muted);
-  height: 100%;
+  color: #474d57;
+  padding: 2rem;
 }
 
 .empty-positions svg {
   margin-bottom: 1rem;
-  opacity: 0.5;
+  opacity: 0.3;
 }
 
 .empty-positions p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: #848e9c;
 }
 
-/* Responsive Design */
+/* Account Panel */
+.account-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 0.75rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.account-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.account-panel::-webkit-scrollbar-thumb {
+  background: #2b3139;
+  border-radius: 4px;
+}
+
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #eaecef;
+}
+
+.switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #fcd535;
+  font-size: 0.6875rem;
+  cursor: pointer;
+}
+
+.account-stats,
+.account-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.account-row,
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+}
+
+.account-row span:first-child,
+.balance-row span:first-child {
+  color: #848e9c;
+}
+
+.account-row span:last-child,
+.balance-row span:last-child {
+  color: #eaecef;
+}
+
+.account-row span.positive,
+.balance-row span.positive {
+  color: #0ecb81;
+}
+
+.account-row span.negative,
+.balance-row span.negative {
+  color: #f6465d;
+}
+
+.single-asset-btn {
+  padding: 0.625rem;
+  background: #2b3139;
+  border: 1px solid #2b3139;
+  border-radius: 4px;
+  color: #eaecef;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.single-asset-btn:hover {
+  border-color: #fcd535;
+}
+
+.asset-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem;
+  background: #2b3139;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #eaecef;
+  cursor: pointer;
+}
+
+.pnl-analysis-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.625rem;
+  background: transparent;
+  border: 1px solid #2b3139;
+  border-radius: 4px;
+  color: #848e9c;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pnl-analysis-btn:hover {
+  border-color: #fcd535;
+  color: #eaecef;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.account-actions button {
+  padding: 0.625rem;
+  background: #2b3139;
+  border: none;
+  border-radius: 4px;
+  color: #eaecef;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.account-actions button:hover {
+  background: #383e45;
+}
+
+/* Responsive */
 @media (max-width: 1400px) {
-  .binance-main-grid {
-    grid-template-columns: 1fr 350px;
+  .binance-trading-grid {
+    grid-template-columns: 1fr 280px 260px;
   }
 }
 
 @media (max-width: 1200px) {
-  .binance-main-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-  }
-
-  .binance-right-panel {
-    border-right: none;
-    border-top: 1px solid var(--border-color);
-    max-height: 600px;
-  }
-
-  .buy-sell-panels {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .binance-ticker-bar {
-    padding: 0 0.5rem;
-  }
-
-  .ticker-item {
-    min-width: 120px;
-    padding: 0.625rem 1rem;
-  }
-
-  .binance-pair-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-  }
-
-  .pair-stats {
-    width: 100%;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .buy-sell-panels {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .positions-tabs {
-    padding: 0 1rem;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .account-info-tabs {
-    display: none;
-  }
-
-  .binance-positions-section {
-    max-height: none;
-  }
-}
-
-/* Sidebar Collapse Styles */
-.dashboard-sidebar.collapsed {
-  width: 70px;
-}
-
-.dashboard-sidebar.collapsed .sidebar-logo img {
-  width: 40px;
-}
-
-.dashboard-sidebar.collapsed .sidebar-nav-item span {
-  display: none;
-}
-
-.dashboard-sidebar.collapsed .sidebar-footer {
-  padding: 1rem 0.5rem;
-}
-
-.dashboard-sidebar.collapsed .sidebar-footer .sidebar-nav-item span {
-  display: none;
-}
-
-.sidebar-collapse-btn,
-.sidebar-expand-btn {
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: var(--text-muted);
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sidebar-collapse-btn:hover,
-.sidebar-expand-btn:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-}
-
-.dashboard-sidebar.collapsed .sidebar-header {
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 0.5rem;
-}
-
-/* ==========================================
-   Dashboard Sidebar Collapse Fix
-   ========================================== */
-
-/* Dashboard layout adjusts when sidebar collapses */
-.dashboard-layout.sidebar-collapsed .dashboard-main {
-  margin-left: 70px;
-}
-
-.dashboard-sidebar {
-  width: 260px;
-  transition: width 0.3s ease;
-}
-
-.dashboard-sidebar.collapsed {
-  width: 70px;
-}
-
-/* Logo sizing in sidebar */
-.sidebar-logo-full {
-  height: 32px;
-  width: auto;
-  max-width: 100%;
-}
-
-.sidebar-logo-icon {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.dashboard-sidebar.collapsed .sidebar-logo {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* Hide text labels when collapsed */
-.dashboard-sidebar.collapsed .sidebar-nav-item span {
-  display: none;
-}
-
-.dashboard-sidebar.collapsed .sidebar-nav-item {
-  justify-content: center;
-  padding: 0.875rem;
-}
-
-.dashboard-sidebar.collapsed .sidebar-footer .sidebar-nav-item {
-  justify-content: center;
-  padding: 0.875rem;
-}
-
-/* Sidebar header adjustments when collapsed */
-.dashboard-sidebar.collapsed .sidebar-header {
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 0.5rem;
-}
-
-.sidebar-expand-btn {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* ==========================================
-   Binance Markets Page Layout Fixes
-   ========================================== */
-
-/* Fix main grid to be full height */
-.binance-markets-page {
-  height: 100%;
-  width: 100%;
-}
-
-/* Adjust grid proportions */
-.binance-main-grid {
-  grid-template-columns: 1fr 420px;
-  height: calc(100% - 250px); /* Account for ticker bar and positions section */
-}
-
-/* Order book sizing */
-.binance-orderbook {
-  max-height: 500px;
-  min-height: 400px;
-}
-
-.orderbook-sells,
-.orderbook-buys {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 180px;
-}
-
-/* Fix chart container */
-.binance-chart-container {
-  background: var(--bg-primary);
-  min-height: 400px;
-}
-
-/* Order panel spacing */
-.binance-order-panel {
-  max-height: none;
-}
-
-/* Fix positions section height */
-.binance-positions-section {
-  height: 250px;
-  max-height: 250px;
-  min-height: 200px;
-}
-
-/* Better scrolling for order book */
-.binance-orderbook::-webkit-scrollbar {
-  width: 4px;
-}
-
-.binance-orderbook::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.3);
-  border-radius: 10px;
-}
-
-/* Fix ticker bar scroll */
-.binance-ticker-bar::-webkit-scrollbar {
-  height: 4px;
-}
-
-.binance-ticker-bar::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.3);
-  border-radius: 10px;
-}
-
-/* Tighter spacing for order book rows */
-.orderbook-row {
-  padding: 0.2rem 1rem;
-  font-size: 0.75rem;
-}
-
-.orderbook-headers {
-  font-size: 0.7rem;
-  padding: 0.5rem 1rem;
-}
-
-/* Fix pair header spacing */
-.binance-pair-header {
-  padding: 0.75rem 1.5rem;
-  min-height: 80px;
-}
-
-.price-value {
-  font-size: 1.5rem;
-}
-
-.price-change {
-  font-size: 0.8125rem;
-}
-
-/* Better responsive breakpoints */
-@media (max-width: 1600px) {
-  .binance-main-grid {
-    grid-template-columns: 1fr 380px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .binance-main-grid {
-    grid-template-columns: 1fr 350px;
+  .binance-trading-grid {
+    grid-template-columns: 1fr 260px;
   }
   
-  .pair-stats {
-    gap: 1.5rem;
+  .binance-order-entry {
+    display: none;
   }
 }
 
-/* Fix empty positions centering */
-.empty-positions {
-  min-height: 150px;
-  padding: 2rem;
-}
-
-/* Account info spacing */
-.account-info-tabs {
-  gap: 1.5rem;
-  padding-right: 1rem;
-}
-
-.account-stat {
-  min-width: 120px;
-}
-
-/* Fix input group spacing in order panel */
-.buy-sell-panels .input-group {
-  gap: 0.375rem;
-}
-
-.buy-sell-panels .input-wrapper input {
-  padding: 0.625rem 3rem 0.625rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-/* Make percentage buttons smaller */
-.percentage-btns button {
-  padding: 0.4rem;
-  font-size: 0.7rem;
-}
-
-/* Compact total display */
-.total-display {
-  padding: 0.625rem;
-  font-size: 0.75rem;
-}
-
-/* Fix order submit button */
-.order-submit-btn {
-  padding: 0.75rem;
-  font-size: 0.8125rem;
+@media (max-width: 900px) {
+  .binance-trading-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .binance-orderbook-column {
+    display: none;
+  }
 }
