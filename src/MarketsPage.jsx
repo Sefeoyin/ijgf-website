@@ -7,8 +7,6 @@ function MarketsPage() {
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
   const [high24h, setHigh24h] = useState(0)
-  const [low24h] = useState(0)
-  const [volume24h] = useState(0)
   
   // Order Entry
   const [orderType, setOrderType] = useState('Limit')
@@ -63,8 +61,6 @@ function MarketsPage() {
         setPriceChange(change)
         setPriceChangePercent(changePercent)
         setHigh24h(data.market_data.high_24h.usd || 0)
-        setLow24h(data.market_data.low_24h.usd || 0)
-        setVolume24h(data.market_data.total_volume.usd || 0)
       } catch (error) {
         console.error('Error fetching price:', error)
       } finally {
