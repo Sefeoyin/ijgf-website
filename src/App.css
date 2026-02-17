@@ -1585,13 +1585,13 @@ body[data-theme="day"] .logo-icon {
    Hero Section
    ========================================== */
 .hero {
-  padding: 140px 2rem 80px;
-  text-align: center;
+  padding: 140px 6rem 80px;
+  text-align: left;
   position: relative;
   min-height: 90vh;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow: hidden;
 }
 
@@ -1602,6 +1602,23 @@ body[data-theme="day"] .logo-icon {
   right: 0;
   bottom: 0;
   z-index: 0;
+}
+
+/* Fade hero image into the benefits section below */
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+body[data-theme="day"] .hero-bg::after {
+  background: linear-gradient(to bottom, transparent 0%, #ffffff 100%);
 }
 
 .hero-bg-img {
@@ -1628,10 +1645,15 @@ body[data-theme="day"] .hero-bg-img {
 }
 
 .hero-content {
-  max-width: 900px;
+  max-width: 860px;
+  width: 100%;
   margin: 0 auto;
   position: relative;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .hero-title {
@@ -1639,6 +1661,8 @@ body[data-theme="day"] .hero-bg-img {
   font-weight: 700;
   line-height: 1.15;
   margin-bottom: 1.5rem;
+  text-align: left;
+  width: 100%;
 }
 
 .highlight {
@@ -1653,9 +1677,8 @@ body[data-theme="day"] .hero-bg-img {
   color: var(--text-secondary);
   margin-bottom: 2.5rem;
   line-height: 1.6;
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 580px;
+  text-align: left;
 }
 
 .blurred-text {
@@ -1666,7 +1689,7 @@ body[data-theme="day"] .hero-bg-img {
 .hero-buttons {
   display: flex;
   gap: 1rem;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   margin-bottom: 2.5rem;
 }
@@ -1726,7 +1749,7 @@ body[data-theme="day"] .btn-secondary:hover {
 .hero-features {
   display: flex;
   gap: 2rem;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
 }
 
@@ -1746,10 +1769,11 @@ body[data-theme="day"] .btn-secondary:hover {
    Benefits Section
    ========================================== */
 .benefits-section {
-  padding: 100px 2rem;
+  padding: 60px 2rem 100px;
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
+  margin-top: -60px;
 }
 
 .benefits-section::before {
