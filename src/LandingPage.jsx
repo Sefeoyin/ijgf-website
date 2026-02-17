@@ -146,7 +146,8 @@ function LandingPage() {
 
         <div className="hero-content">
           <h1 className="hero-title">
-            Where <span className="highlight">Skill</span>, Not Capital, Determines <span className="highlight">Opportunity</span>
+            Where <span className="highlight">Skill</span>, Not Capital,{' '}
+            <span className="hero-title-line2">Determines <span className="highlight">Opportunity</span></span>
           </h1>
 
           <p className="hero-subtitle blurred-text">

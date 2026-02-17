@@ -1593,6 +1593,7 @@ body[data-theme="day"] .logo-icon {
   align-items: center;
   justify-content: flex-start;
   overflow: visible;
+  z-index: 1;
 }
 
 .hero-content {
@@ -1613,8 +1614,9 @@ body[data-theme="day"] .logo-icon {
   top: 0;
   left: 0;
   right: 0;
-  bottom: -200px; /* extend below hero into benefits */
+  bottom: -280px; /* bleed into benefits section */
   z-index: 0;
+  pointer-events: none;
 }
 
 /* Fade hero image into the benefits section below - layered ON TOP */
@@ -1664,6 +1666,12 @@ body[data-theme="day"] .hero-bg-img {
   margin-bottom: 1.5rem;
   text-align: left;
   width: 100%;
+  max-width: 700px;
+}
+
+.hero-title-line2 {
+  white-space: nowrap;
+  display: inline;
 }
 
 .highlight {
@@ -1774,6 +1782,7 @@ body[data-theme="day"] .btn-secondary:hover {
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
+  z-index: 0;
 }
 
 .benefits-section::before {
@@ -3821,6 +3830,14 @@ body[data-theme="day"] .footer {
   .hero {
     padding: 120px 1.5rem 60px;
     min-height: 70vh;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .hero-content {
+    align-items: flex-start;
+    text-align: left;
+    padding: 0;
   }
   
   .hero-bg-img {
@@ -3831,17 +3848,25 @@ body[data-theme="day"] .footer {
     font-size: 2rem;
     line-height: 1.2;
     margin-bottom: 1.25rem;
+    text-align: left;
+    max-width: 100%;
+  }
+
+  .hero-title-line2 {
+    white-space: normal;
   }
   
   .hero-subtitle {
     font-size: 1rem;
     margin-bottom: 2rem;
+    text-align: left;
   }
   
   .hero-buttons {
     flex-direction: column;
     width: 100%;
     gap: 1rem;
+    align-items: flex-start;
   }
   
   .btn-primary, .btn-secondary {
@@ -3859,6 +3884,7 @@ body[data-theme="day"] .footer {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     text-align: left;
+    justify-items: flex-start;
   }
 
   .feature-item {
