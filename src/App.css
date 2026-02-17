@@ -1617,26 +1617,27 @@ body[data-theme="day"] .logo-icon {
   top: 0;
   left: 0;
   right: 0;
-  bottom: -300px; /* physically extends into benefits section */
+  bottom: -350px; /* extend further into benefits section */
   z-index: 0;
   pointer-events: none;
 }
 
-/* Smooth fade — dissolves the image before it reaches the benefit cards */
+/* Smooth fade — extended to cover the entire hero bg bleed with no gap */
 .hero-bg::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 55%;
+  height: 60%;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    transparent 15%,
-    rgba(0,0,0,0.2) 40%,
-    rgba(0,0,0,0.65) 65%,
-    var(--bg-primary) 85%,
+    transparent 10%,
+    rgba(0,0,0,0.15) 30%,
+    rgba(0,0,0,0.5) 50%,
+    rgba(0,0,0,0.8) 70%,
+    var(--bg-primary) 90%,
     var(--bg-primary) 100%
   );
   z-index: 1;
@@ -1647,10 +1648,11 @@ body[data-theme="day"] .hero-bg::after {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    transparent 15%,
-    rgba(255,255,255,0.2) 40%,
-    rgba(255,255,255,0.65) 65%,
-    #ffffff 85%,
+    transparent 10%,
+    rgba(255,255,255,0.15) 30%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0.8) 70%,
+    #ffffff 90%,
     #ffffff 100%
   );
 }
