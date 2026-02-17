@@ -51,8 +51,12 @@ function Navigation() {
           ))}
         </div>
 
-        {/* Right Side: Theme Toggle + CTA */}
+        {/* Right Side: Theme Toggle + Login + CTA */}
         <div className="nav-right">
+          <button className="nav-login-link desktop-only" onClick={() => navigate('/login')}>
+            Login
+          </button>
+
           <button className="nav-cta-btn desktop-only" onClick={() => navigate('/signup')}>
             Get Started
           </button>
@@ -105,6 +109,12 @@ function Navigation() {
               {link.name}
             </button>
           ))}
+          <button
+            className="mobile-login-link"
+            onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}
+          >
+            Login
+          </button>
           <button
             className="mobile-cta-btn"
             onClick={() => { navigate('/signup'); setMobileMenuOpen(false) }}

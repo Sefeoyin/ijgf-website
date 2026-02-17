@@ -1458,6 +1458,38 @@ body[data-theme="day"] .logo-icon {
   transform: scale(1.15);
 }
 
+.nav-login-link {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.nav-login-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transition: width 0.2s;
+}
+
+.nav-login-link:hover {
+  color: var(--accent-primary);
+}
+
+.nav-login-link:hover::after {
+  width: 60%;
+}
+
 .nav-cta-btn {
   background: var(--accent-primary);
   color: white;
@@ -1537,6 +1569,24 @@ body[data-theme="day"] .logo-icon {
 
 .mobile-nav-link.disabled {
   opacity: 0.4;
+}
+
+.mobile-login-link {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s;
+}
+
+.mobile-login-link:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .mobile-cta-btn {
