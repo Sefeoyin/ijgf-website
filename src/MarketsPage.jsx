@@ -1,455 +1,674 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 
 function MarketsPage() {
-  // Market Selection
+  // ── Pair & price state ──────────────────────────────────────────
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
-  const [marketPrice, setMarketPrice] = useState(0)
-  const [priceChange, setPriceChange] = useState(0)
-  const [priceChangePercent, setPriceChangePercent] = useState(0)
-  const [high24h, setHigh24h] = useState(0)
-  
-  // Order Entry
-  const [orderType, setOrderType] = useState('Limit')
-  const [price, setPrice] = useState('')
-  const [size, setSize] = useState('')
-  const [leverage] = useState(15)
-  
-  // Tabs
-  const [activePositionsTab, setActivePositionsTab] = useState('positions')
-  
-  // Account
-  const [accountBalance] = useState(0.1857)
-  const [marginBalance] = useState(0.1857)
-  const [unrealizedPNL] = useState(0)
-  
-  // Positions
-  const [positions] = useState([])
-  
-  // Loading
-  const [isLoadingPrice, setIsLoadingPrice] = useState(true)
-  
-  const popularPairs = [
-    { symbol: 'BTCUSDT', name: 'Bitcoin' },
-    { symbol: 'ETHUSDT', name: 'Ethereum' },
-    { symbol: 'SOLUSDT', name: 'Solana' },
-    { symbol: 'BNBUSDT', name: 'BNB' },
-    { symbol: 'DOGEUSDT', name: 'Dogecoin' },
+  const [pairsData, setPairsData]       = useState({})
+  const [obTick, setObTick]             = useState(0)
+
+  // ── Order form state ────────────────────────────────────────────
+  const [orderType,      setOrderType]      = useState('Limit')
+  const [tradeDirection, setTradeDirection] = useState('buy')
+  const [price, setPrice]                   = useState('')
+  const [size,  setSize]                    = useState('')
+  const [leverage]                          = useState(10)
+  const [tpChecked, setTpChecked]           = useState(false)
+  const [slChecked, setSlChecked]           = useState(false)
+  const [tpPrice,   setTpPrice]             = useState('')
+  const [slPrice,   setSlPrice]             = useState('')
+
+  // ── UI state ────────────────────────────────────────────────────
+  const [activePositionsTab, setActivePositionsTab] = useState('0')
+  const [activeChartTab,     setActiveChartTab]     = useState('Chart')
+  const [activeTimeframe,    setActiveTimeframe]    = useState('1H')
+
+  // ── Chart refs ──────────────────────────────────────────────────
+  const chartContainerRef = useRef(null)
+  const tvScriptLoaded    = useRef(false)
+
+  // ── Account / challenge constants ───────────────────────────────
+  const accountBalance   = 10000
+  const marginBalance    = 10000
+  const unrealizedPNL    = 0
+  const challengeSize    = 10000
+  const profitTarget     = 10   // 10 %
+  const dailyDDLimit     = 4    //  4 %
+  const maxDDLimit       = 6    //  6 %
+  const currentProfit    = 0
+  const currentDailyLoss = 0
+  const currentMaxDD     = 0
+
+  // ── Pairs config ────────────────────────────────────────────────
+  const pairs = [
+    { symbol: 'BTCUSDT',  coinId: 'bitcoin'     },
+    { symbol: 'ETHUSDT',  coinId: 'ethereum'    },
+    { symbol: 'SOLUSDT',  coinId: 'solana'      },
+    { symbol: 'BNBUSDT',  coinId: 'binancecoin' },
+    { symbol: 'DOGEUSDT', coinId: 'dogecoin'    },
   ]
 
-  // Fetch real-time price
+  // ── Fetch all pairs at once ─────────────────────────────────────
   useEffect(() => {
-    const fetchPrice = async () => {
-      const coinGeckoMap = {
-        'BTCUSDT': 'bitcoin',
-        'ETHUSDT': 'ethereum',
-        'SOLUSDT': 'solana',
-        'BNBUSDT': 'binancecoin',
-        'DOGEUSDT': 'dogecoin',
-      }
-
+    const fetchAll = async () => {
       try {
-        setIsLoadingPrice(true)
-        const coinId = coinGeckoMap[selectedPair] || 'bitcoin'
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`
+        const ids = pairs.map(p => p.coinId).join(',')
+        const res  = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`
         )
-        const data = await response.json()
-
-        setMarketPrice(data.market_data.current_price.usd)
-        const change = data.market_data.price_change_24h || 0
-        const changePercent = data.market_data.price_change_percentage_24h || 0
-        setPriceChange(change)
-        setPriceChangePercent(changePercent)
-        setHigh24h(data.market_data.high_24h.usd || 0)
-      } catch (error) {
-        console.error('Error fetching price:', error)
-      } finally {
-        setIsLoadingPrice(false)
+        const data = await res.json()
+        const mapped = {}
+        data.forEach(coin => {
+          const pair = pairs.find(p => p.coinId === coin.id)
+          if (pair) {
+            mapped[pair.symbol] = {
+              price:         coin.current_price                || 0,
+              change24h:     coin.price_change_24h             || 0,
+              changePercent: coin.price_change_percentage_24h  || 0,
+              high24h:       coin.high_24h                     || 0,
+              low24h:        coin.low_24h                      || 0,
+              volume24h:     coin.total_volume                 || 0,
+            }
+          }
+        })
+        setPairsData(mapped)
+      } catch (e) {
+        console.error('Price fetch error:', e)
       }
     }
+    fetchAll()
+    const iv = setInterval(fetchAll, 15000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    fetchPrice()
-    const interval = setInterval(fetchPrice, 10000)
-    return () => clearInterval(interval)
-  }, [selectedPair])
+  // ── Tick order book every 2 s ───────────────────────────────────
+  useEffect(() => {
+    const iv = setInterval(() => setObTick(t => t + 1), 2000)
+    return () => clearInterval(iv)
+  }, [])
 
-  // Format helpers
-  const formatPrice = (num) => {
-    if (num === 0) return '0.0'
-    if (num < 1) return num.toFixed(6)
-    if (num < 100) return num.toFixed(1)
-    return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  // ── TradingView widget ──────────────────────────────────────────
+  useEffect(() => {
+    if (!chartContainerRef.current) return
+    chartContainerRef.current.innerHTML = ''
+
+    const tf = activeTimeframe === '1D' ? 'D'
+             : activeTimeframe === '1W' ? 'W'
+             : activeTimeframe
+
+    const mountWidget = () => {
+      if (!window.TradingView || !chartContainerRef.current) return
+      new window.TradingView.widget({
+        container_id:        'mkts-tv-chart',
+        symbol:              `BINANCE:${selectedPair}`,
+        interval:            tf,
+        theme:               'dark',
+        style:               '1',
+        locale:              'en',
+        toolbar_bg:          '#0d0f14',
+        enable_publishing:   false,
+        hide_side_toolbar:   false,
+        allow_symbol_change: false,
+        save_image:          false,
+        autosize:            true,
+        overrides: {
+          'paneProperties.background':     '#0d0f14',
+          'paneProperties.backgroundType': 'solid',
+          'scalesProperties.lineColor':    '#1e2530',
+          'scalesProperties.textColor':    '#636b77',
+        },
+      })
+    }
+
+    if (window.TradingView) {
+      mountWidget()
+    } else if (!tvScriptLoaded.current) {
+      tvScriptLoaded.current = true
+      const s = document.createElement('script')
+      s.src   = 'https://s3.tradingview.com/tv.js'
+      s.async = true
+      s.onload = mountWidget
+      document.head.appendChild(s)
+    } else {
+      const poll = setInterval(() => {
+        if (window.TradingView) { clearInterval(poll); mountWidget() }
+      }, 200)
+      return () => clearInterval(poll)
+    }
+  }, [selectedPair, activeTimeframe])
+
+  // ── Pseudo-stable order book ────────────────────────────────────
+  const genBook = useCallback((basePrice, tick) => {
+    if (!basePrice) return { sells: [], buys: [] }
+    const ph = n => Math.abs(
+      Math.sin(n * 127.1 + tick * 311.7) * 0.5 +
+      Math.cos(n * 431.3 + tick * 173.1) * 0.5
+    )
+    const step = basePrice < 1 ? 0.000005 : basePrice < 100 ? 0.005 : 0.5
+
+    const sells = Array.from({ length: 14 }, (_, i) => ({
+      price: basePrice + (i + 1) * step * (1 + ph(i) * 2),
+      size:  (ph(i + 14) * 4800 + 200).toFixed(2),
+      depth: ph(i + 28) * 86 + 4,
+    })).reverse()
+
+    const buys = Array.from({ length: 14 }, (_, i) => ({
+      price: basePrice - (i + 1) * step * (1 + ph(i + 50) * 2),
+      size:  (ph(i + 64) * 4800 + 200).toFixed(2),
+      depth: ph(i + 78) * 86 + 4,
+    }))
+
+    return { sells, buys }
+  }, [])
+
+  const orderBook = useMemo(
+    () => genBook(pairsData[selectedPair]?.price, obTick),
+    [pairsData, selectedPair, obTick, genBook]
+  )
+
+  // ── Recent trades ───────────────────────────────────────────────
+  const recentTrades = useMemo(() => {
+    const base = pairsData[selectedPair]?.price || 0
+    if (!base) return []
+    const ph = n => Math.abs(Math.sin(n * 91.3 + obTick * 201.7))
+    return Array.from({ length: 10 }, (_, i) => {
+      const d = new Date()
+      d.setSeconds(d.getSeconds() - i * 7)
+      return {
+        price: base * (1 + (ph(i) - 0.5) * 0.002),
+        size:  (ph(i + 10) * 9.5 + 0.5).toFixed(3),
+        isBuy: ph(i + 20) > 0.5,
+        time:  `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`,
+      }
+    })
+  }, [pairsData, selectedPair, obTick])
+
+  // ── Derived values ──────────────────────────────────────────────
+  const cur          = pairsData[selectedPair] || {}
+  const marketPrice  = cur.price         || 0
+  const changePct    = cur.changePercent || 0
+  const changeDollar = cur.change24h     || 0
+  const high24h      = cur.high24h       || 0
+  const low24h       = cur.low24h        || 0
+  const vol24h       = cur.volume24h     || 0
+
+  const fmtPrice = n => {
+    if (!n) return '—'
+    if (n < 0.01)  return n.toFixed(6)
+    if (n < 1)     return n.toFixed(4)
+    if (n < 100)   return n.toFixed(2)
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+  const fmtVol = n => {
+    if (!n) return '—'
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
+    return (n / 1e3).toFixed(2) + 'K'
   }
 
+  // ── Risk helpers ────────────────────────────────────────────────
+  const riskPct   = (val, limit) => Math.min((val / limit) * 100, 100)
+  const riskColor = pct => pct > 80 ? '#f6465d' : pct > 50 ? '#f0a500' : '#0ecb81'
+  const profitPct    = riskPct(currentProfit,    challengeSize * profitTarget / 100)
+  const dailyLossPct = riskPct(currentDailyLoss, challengeSize * dailyDDLimit  / 100)
+  const maxDDPct     = riskPct(currentMaxDD,     challengeSize * maxDDLimit    / 100)
+
+  const tfList   = ['1m','5m','15m','1H','4H','1D','1W']
+  const possTabs = ['Positions (0)','Open Orders (0)','Order History','Trade History','Position History']
+
   return (
-    <div className="binance-markets-page">
-      {/* Top Ticker Bar */}
-      <div className="binance-ticker-bar">
-        {popularPairs.map(pair => (
-          <button
-            key={pair.symbol}
-            className={`ticker-item ${selectedPair === pair.symbol ? 'active' : ''}`}
-            onClick={() => setSelectedPair(pair.symbol)}
-          >
-            <span className="ticker-symbol">{pair.symbol}</span>
-            <span className={`ticker-change ${selectedPair === pair.symbol && priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-              {selectedPair === pair.symbol ? `${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%` : '...'}
-            </span>
-          </button>
-        ))}
+    <div className="mkts-page">
+
+      {/* ════════════════ TICKER BAR ════════════════ */}
+      <div className="mkts-ticker-bar">
+        {pairs.map(pair => {
+          const d   = pairsData[pair.symbol]
+          const pct = d?.changePercent || 0
+          return (
+            <button
+              key={pair.symbol}
+              className={`mkts-ticker-item ${selectedPair === pair.symbol ? 'active' : ''}`}
+              onClick={() => setSelectedPair(pair.symbol)}
+            >
+              <span className="mkts-ticker-sym">{pair.symbol}</span>
+              <span className={`mkts-ticker-px ${pct >= 0 ? 'pos' : 'neg'}`}>
+                {d ? fmtPrice(d.price) : '—'}
+              </span>
+              <span className={`mkts-ticker-pct ${pct >= 0 ? 'pos' : 'neg'}`}>
+                {d ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Main Trading Grid: Chart | Order Book | Order Entry */}
-      <div className="binance-trading-grid">
-        {/* LEFT: Chart Section */}
-        <div className="binance-chart-section">
-          {/* Pair Header */}
-          <div className="binance-pair-header">
-            <div className="pair-info">
-              <div className="pair-name-row">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                </svg>
-                <span className="pair-symbol">{selectedPair}</span>
-                <span className="pair-type">Perp</span>
+      {/* ════════════════ MAIN GRID ════════════════ */}
+      <div className="mkts-trading-grid">
+
+        {/* ─── LEFT: Chart column ─────────────────── */}
+        <div className="mkts-chart-col">
+
+          {/* Pair header */}
+          <div className="mkts-pair-header">
+            <div className="mkts-pair-left">
+              <div className="mkts-pair-icon">
+                {selectedPair.replace('USDT','').slice(0,1)}
               </div>
-              <div className="pair-price-data">
-                <span className={`main-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                  {isLoadingPrice ? 'Loading...' : formatPrice(marketPrice)}
-                </span>
-                <span className={`price-change-amount ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                  {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)} {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
-                </span>
+              <div>
+                <div className="mkts-pair-name-row">
+                  <span className="mkts-pair-sym">{selectedPair}</span>
+                  <span className="mkts-perp-badge">Perp</span>
+                </div>
+                <div className="mkts-pair-price-row">
+                  <span className={`mkts-main-px ${changePct >= 0 ? 'pos' : 'neg'}`}>
+                    {marketPrice ? fmtPrice(marketPrice) : '—'}
+                  </span>
+                  <span className={`mkts-px-delta ${changePct >= 0 ? 'pos' : 'neg'}`}>
+                    {changeDollar >= 0 ? '+' : ''}{fmtPrice(changeDollar)}
+                    &nbsp;({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)
+                  </span>
+                </div>
               </div>
             </div>
-            
-            <div className="pair-24h-stats">
-              <div className="stat-col">
-                <span className="stat-label">Mark</span>
-                <span className="stat-value">{formatPrice(marketPrice)}</span>
+
+            <div className="mkts-pair-stats">
+              {[
+                { label: 'Mark',       val: fmtPrice(marketPrice),       cls: '' },
+                { label: '24h High',   val: fmtPrice(high24h),           cls: 'pos' },
+                { label: '24h Low',    val: fmtPrice(low24h),            cls: 'neg' },
+                { label: '24h Volume', val: fmtVol(vol24h),              cls: '' },
+                { label: 'Funding/8h', val: '0.00322%',                  cls: 'pos', extra: '02:15:14' },
+              ].map(s => (
+                <div key={s.label} className="mkts-stat-item">
+                  <span className="mkts-stat-label">{s.label}</span>
+                  <span className={`mkts-stat-val ${s.cls}`}>
+                    {s.val}{s.extra && <em className="mkts-funding-timer"> {s.extra}</em>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart controls */}
+          <div className="mkts-chart-controls">
+            <div className="mkts-chart-tabs">
+              {['Chart','Info','Trading Data'].map(t => (
+                <button
+                  key={t}
+                  className={`mkts-chart-tab ${activeChartTab === t ? 'active' : ''}`}
+                  onClick={() => setActiveChartTab(t)}
+                >{t}</button>
+              ))}
+            </div>
+            <div className="mkts-tf-row">
+              {tfList.map(tf => (
+                <button
+                  key={tf}
+                  className={`mkts-tf-btn ${activeTimeframe === tf ? 'active' : ''}`}
+                  onClick={() => setActiveTimeframe(tf)}
+                >{tf}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── IJGF Risk Bar (signature feature) ── */}
+          <div className="mkts-risk-bar">
+            {/* Profit Target */}
+            <div className="mkts-risk-item">
+              <div className="mkts-risk-meta">
+                <span className="mkts-risk-label">
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><circle cx="4.5" cy="4.5" r="3.5"/></svg>
+                  Profit Target
+                </span>
+                <span className="mkts-risk-val pos">
+                  ${currentProfit} / ${(challengeSize * profitTarget / 100).toLocaleString()}
+                </span>
               </div>
-              <div className="stat-col">
-                <span className="stat-label">Index</span>
-                <span className="stat-value">{formatPrice(marketPrice)}</span>
+              <div className="mkts-risk-track">
+                <div className="mkts-risk-fill" style={{ width: `${profitPct}%`, background: '#0ecb81' }} />
               </div>
-              <div className="stat-col">
-                <span className="stat-label">Funding (8h) / Countdown</span>
-                <span className="stat-value funding-rate">0.00322% / 02:15:14</span>
+            </div>
+            <div className="mkts-risk-sep" />
+            {/* Daily Loss */}
+            <div className="mkts-risk-item">
+              <div className="mkts-risk-meta">
+                <span className="mkts-risk-label">
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><path d="M4.5 1L1 8h7L4.5 1z"/></svg>
+                  Daily Loss Limit
+                </span>
+                <span className={`mkts-risk-val ${dailyLossPct > 80 ? 'neg' : dailyLossPct > 50 ? 'warn' : ''}`}>
+                  ${currentDailyLoss} / ${(challengeSize * dailyDDLimit / 100).toLocaleString()}
+                </span>
               </div>
-              <div className="stat-col">
-                <span className="stat-label">24h High</span>
-                <span className="stat-value">{formatPrice(high24h)}</span>
+              <div className="mkts-risk-track">
+                <div className="mkts-risk-fill" style={{ width: `${dailyLossPct}%`, background: riskColor(dailyLossPct) }} />
+              </div>
+            </div>
+            <div className="mkts-risk-sep" />
+            {/* Max Drawdown */}
+            <div className="mkts-risk-item">
+              <div className="mkts-risk-meta">
+                <span className="mkts-risk-label">
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><rect x="1" y="1" width="7" height="7" rx="1"/></svg>
+                  Max Drawdown
+                </span>
+                <span className={`mkts-risk-val ${maxDDPct > 80 ? 'neg' : maxDDPct > 50 ? 'warn' : ''}`}>
+                  ${currentMaxDD} / ${(challengeSize * maxDDLimit / 100).toLocaleString()}
+                </span>
+              </div>
+              <div className="mkts-risk-track">
+                <div className="mkts-risk-fill" style={{ width: `${maxDDPct}%`, background: riskColor(maxDDPct) }} />
               </div>
             </div>
           </div>
 
-          {/* Chart Controls */}
-          <div className="chart-controls">
-            <div className="chart-tabs">
-              <button className="chart-tab active">Chart</button>
-              <button className="chart-tab">Info</button>
-              <button className="chart-tab">Trading Data</button>
-            </div>
-            <div className="chart-timeframes">
-              <button className="timeframe-btn">Time</button>
-              <button className="timeframe-btn">1s</button>
-              <button className="timeframe-btn">15m</button>
-              <button className="timeframe-btn">1H</button>
-              <button className="timeframe-btn">4H</button>
-              <button className="timeframe-btn active">1D</button>
-              <button className="timeframe-btn">1W</button>
-            </div>
-          </div>
-
-          {/* Chart Placeholder */}
-          <div className="binance-chart-area">
-            <div className="chart-placeholder">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                <polyline points="1 6 5 2 9 6 13 2 17 6 21 2"/>
-                <polyline points="1 22 5 18 9 22 13 18 17 22 21 18"/>
-              </svg>
-              <h3>TradingView Chart Integration</h3>
-              <p>Advanced charting coming soon</p>
-            </div>
-          </div>
+          {/* TradingView chart */}
+          <div className="mkts-chart-area" id="mkts-tv-chart" ref={chartContainerRef} />
         </div>
 
-        {/* MIDDLE: Order Book */}
-        <div className="binance-orderbook-column">
-          <div className="orderbook-header">
-            <span>Order Book</span>
-            <div className="orderbook-view-btns">
-              <button className="ob-view-btn active">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                  <rect x="1" y="1" width="6" height="14"/>
-                  <rect x="9" y="1" width="6" height="14"/>
-                </svg>
-              </button>
-            </div>
+        {/* ─── MIDDLE: Order Book ──────────────────── */}
+        <div className="mkts-ob-col">
+          <div className="mkts-ob-header">
+            <span className="mkts-ob-title">Order Book</span>
+            <button className="mkts-ob-view active">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <rect x="0" y="0" width="5" height="1.5" rx="0.5" opacity="0.4"/>
+                <rect x="7" y="0" width="7" height="1.5" rx="0.5"/>
+                <rect x="0" y="3" width="5" height="1.5" rx="0.5" opacity="0.4"/>
+                <rect x="7" y="3" width="7" height="1.5" rx="0.5"/>
+                <rect x="0" y="6" width="7" height="1.5" rx="0.5"/>
+                <rect x="7" y="6" width="5" height="1.5" rx="0.5" opacity="0.4"/>
+                <rect x="0" y="9" width="7" height="1.5" rx="0.5"/>
+                <rect x="7" y="9" width="5" height="1.5" rx="0.5" opacity="0.4"/>
+                <rect x="0" y="12" width="7" height="1.5" rx="0.5"/>
+                <rect x="7" y="12" width="5" height="1.5" rx="0.5" opacity="0.4"/>
+              </svg>
+            </button>
           </div>
 
-          <div className="orderbook-table-headers">
+          <div className="mkts-ob-col-heads">
             <span>Price (USDT)</span>
-            <span className="text-right">Size (USDT)</span>
-            <span className="text-right">Sum (USDT)</span>
+            <span>Size</span>
+            <span>Total</span>
           </div>
 
-          <div className="orderbook-content">
-            {/* Sell Orders */}
-            <div className="ob-sells">
-              {[...Array(10)].map((_, i) => (
-                <div key={`sell-${i}`} className="ob-row sell">
-                  <span className="ob-price">{formatPrice(marketPrice + (10 - i) * 10)}</span>
-                  <span className="ob-size">{(Math.random() * 300).toFixed(2)}</span>
-                  <span className="ob-sum">{(Math.random() * 100).toFixed(2)}K</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Current Price Banner */}
-            <div className="ob-current-price">
-              <span className={`price-big ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                {formatPrice(marketPrice)}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  {priceChangePercent >= 0 ? (
-                    <path d="M7 14l5-5 5 5z"/>
-                  ) : (
-                    <path d="M7 10l5 5 5-5z"/>
-                  )}
-                </svg>
-              </span>
-              <span className="price-usd">{formatPrice(marketPrice)}</span>
-            </div>
-
-            {/* Buy Orders */}
-            <div className="ob-buys">
-              {[...Array(10)].map((_, i) => (
-                <div key={`buy-${i}`} className="ob-row buy">
-                  <span className="ob-price">{formatPrice(marketPrice - (i + 1) * 10)}</span>
-                  <span className="ob-size">{(Math.random() * 300).toFixed(2)}</span>
-                  <span className="ob-sum">{(Math.random() * 100).toFixed(2)}K</span>
-                </div>
-              ))}
-            </div>
+          {/* Asks (sell orders) */}
+          <div className="mkts-ob-asks">
+            {orderBook.sells?.map((row, i) => (
+              <div key={i} className="mkts-ob-row ask">
+                <div className="mkts-ob-depth ask" style={{ width: `${row.depth}%` }} />
+                <span className="mkts-ob-px ask">{fmtPrice(row.price)}</span>
+                <span className="mkts-ob-sz">{parseFloat(row.size).toLocaleString()}</span>
+                <span className="mkts-ob-tot">{(parseFloat(row.size) * row.price / 1000).toFixed(1)}K</span>
+              </div>
+            ))}
           </div>
 
-          {/* Trades Section */}
-          <div className="recent-trades">
-            <div className="trades-tabs">
-              <button className="trades-tab active">Trades</button>
-              <button className="trades-tab">Top Movers</button>
+          {/* Mid price */}
+          <div className="mkts-ob-mid">
+            <span className={`mkts-ob-mid-px ${changePct >= 0 ? 'pos' : 'neg'}`}>
+              {fmtPrice(marketPrice)}
+              {changePct >= 0
+                ? <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><path d="M4.5 1.5l3.5 6H1z"/></svg>
+                : <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><path d="M4.5 7.5L1 1.5h7z"/></svg>
+              }
+            </span>
+            <span className="mkts-ob-mid-usd">≈ ${fmtPrice(marketPrice)}</span>
+          </div>
+
+          {/* Bids (buy orders) */}
+          <div className="mkts-ob-bids">
+            {orderBook.buys?.map((row, i) => (
+              <div key={i} className="mkts-ob-row bid">
+                <div className="mkts-ob-depth bid" style={{ width: `${row.depth}%` }} />
+                <span className="mkts-ob-px bid">{fmtPrice(row.price)}</span>
+                <span className="mkts-ob-sz">{parseFloat(row.size).toLocaleString()}</span>
+                <span className="mkts-ob-tot">{(parseFloat(row.size) * row.price / 1000).toFixed(1)}K</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Recent trades */}
+          <div className="mkts-trades-section">
+            <div className="mkts-trades-hd">
+              <button className="mkts-trades-tab active">Recent Trades</button>
             </div>
-            <div className="trades-headers">
+            <div className="mkts-trades-heads">
               <span>Price (USDT)</span>
-              <span>Amount (USDT)</span>
+              <span>Size</span>
               <span>Time</span>
             </div>
-            <div className="trades-list">
-              {[...Array(5)].map((_, i) => (
-                <div key={`trade-${i}`} className="trade-row">
-                  <span className={i % 2 === 0 ? 'positive' : 'negative'}>
-                    {formatPrice(marketPrice + (Math.random() - 0.5) * 20)}
-                  </span>
-                  <span>{(Math.random() * 10).toFixed(2)}K</span>
-                  <span>22:44:{44 - i}</span>
+            <div className="mkts-trades-list">
+              {recentTrades.map((t, i) => (
+                <div key={i} className="mkts-trade-row">
+                  <span className={t.isBuy ? 'pos' : 'neg'}>{fmtPrice(t.price)}</span>
+                  <span>{t.size}</span>
+                  <span className="mkts-trade-time">{t.time}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* RIGHT: Order Entry Panel */}
-        <div className="binance-order-entry">
-          <div className="order-entry-header">
-            <button className="isolated-btn">Isolated</button>
-            <button className="leverage-display">{leverage}x</button>
-            <button className="size-mode">S</button>
+        {/* ─── RIGHT: Order Entry ──────────────────── */}
+        <div className="mkts-entry-col">
+
+          {/* Top controls */}
+          <div className="mkts-entry-top">
+            <button className="mkts-chip">Isolated</button>
+            <button className="mkts-chip accent">{leverage}×</button>
+            <div style={{ flex: 1 }} />
+            <button className="mkts-chip">USDT</button>
           </div>
 
-          <div className="order-type-selector">
-            <button className={`ot-btn ${orderType === 'Limit' ? 'active' : ''}`} onClick={() => setOrderType('Limit')}>
-              Limit
-            </button>
-            <button className={`ot-btn ${orderType === 'Market' ? 'active' : ''}`} onClick={() => setOrderType('Market')}>
-              Market
-            </button>
-            <button className={`ot-btn ${orderType === 'Stop Limit' ? 'active' : ''}`} onClick={() => setOrderType('Stop Limit')}>
-              Stop Limit
-            </button>
+          {/* Buy / Sell tabs */}
+          <div className="mkts-dir-tabs">
+            <button
+              className={`mkts-dir-btn ${tradeDirection === 'buy' ? 'active buy' : ''}`}
+              onClick={() => setTradeDirection('buy')}
+            >Buy / Long</button>
+            <button
+              className={`mkts-dir-btn ${tradeDirection === 'sell' ? 'active sell' : ''}`}
+              onClick={() => setTradeDirection('sell')}
+            >Sell / Short</button>
           </div>
 
-          <div className="avbl-row">
-            <span>Avbl</span>
-            <span className="avbl-value">
-              {accountBalance.toFixed(4)} USDT
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 1l-1.5 1.5L10.293 6H1v2h9.293L6.5 11.5 8 13l6-6z"/>
-              </svg>
-            </span>
+          {/* Order type */}
+          <div className="mkts-ot-tabs">
+            {['Limit','Market','Stop Limit'].map(t => (
+              <button
+                key={t}
+                className={`mkts-ot-btn ${orderType === t ? 'active' : ''}`}
+                onClick={() => setOrderType(t)}
+              >{t}</button>
+            ))}
           </div>
 
-          {orderType === 'Limit' && (
-            <div className="entry-input-group">
+          {/* Available balance */}
+          <div className="mkts-avbl">
+            <span className="mkts-avbl-label">Available</span>
+            <span className="mkts-avbl-val">{accountBalance.toLocaleString()} <em>USDT</em></span>
+          </div>
+
+          {/* Price */}
+          {orderType !== 'Market' && (
+            <div className="mkts-field">
               <label>Price</label>
-              <div className="input-row">
-                <input type="number" placeholder="0" value={price} onChange={(e) => setPrice(e.target.value)} />
-                <span className="input-unit">USDT</span>
-                <button className="input-select">BBO</button>
+              <div className="mkts-input-box">
+                <button className="mkts-stepper" onClick={() => setPrice(p => String(Math.max(0,(parseFloat(p)||0)-1)))}>−</button>
+                <input type="number" placeholder="0.00" value={price} onChange={e => setPrice(e.target.value)} />
+                <span className="mkts-unit">USDT</span>
+                <button className="mkts-stepper" onClick={() => setPrice(p => String((parseFloat(p)||0)+1))}>+</button>
               </div>
             </div>
           )}
 
-          <div className="entry-input-group">
+          {/* Size */}
+          <div className="mkts-field">
             <label>Size</label>
-            <div className="input-row">
-              <input type="number" placeholder="0" value={size} onChange={(e) => setSize(e.target.value)} />
-              <span className="input-unit">USDT</span>
-            </div>
-            <div className="size-slider">
-              <div className="slider-track"></div>
+            <div className="mkts-input-box">
+              <button className="mkts-stepper" onClick={() => setSize(s => String(Math.max(0,(parseFloat(s)||0)-10)))}>−</button>
+              <input type="number" placeholder="0.00" value={size} onChange={e => setSize(e.target.value)} />
+              <span className="mkts-unit">USDT</span>
+              <button className="mkts-stepper" onClick={() => setSize(s => String((parseFloat(s)||0)+10))}>+</button>
             </div>
           </div>
 
-          <div className="tp-sl-row">
-            <label className="checkbox-row">
-              <input type="checkbox" />
-              <span>TP/SL</span>
+          {/* Quick % */}
+          <div className="mkts-pct-row">
+            {[25,50,75,100].map(p => (
+              <button
+                key={p}
+                className="mkts-pct-btn"
+                onClick={() => setSize(String(Math.floor(accountBalance * p / 100)))}
+              >{p}%</button>
+            ))}
+          </div>
+
+          {/* TP / SL */}
+          <div className="mkts-tpsl-row">
+            <label className="mkts-check">
+              <input type="checkbox" checked={tpChecked} onChange={e => setTpChecked(e.target.checked)} />
+              <span>Take Profit</span>
             </label>
-            <label className="checkbox-row">
-              <input type="checkbox" />
-              <span>Reduce-Only</span>
+            <label className="mkts-check">
+              <input type="checkbox" checked={slChecked} onChange={e => setSlChecked(e.target.checked)} />
+              <span>Stop Loss</span>
             </label>
           </div>
 
-          <button className="buy-long-btn">Buy/Long</button>
-          <button className="sell-short-btn">Sell/Short</button>
-
-          <div className="order-summary">
-            <div className="summary-row">
-              <span>Cost</span>
-              <span>0.00 USDT</span>
+          {tpChecked && (
+            <div className="mkts-field">
+              <label>Take Profit Price</label>
+              <div className="mkts-input-box">
+                <input type="number" placeholder="0.00" value={tpPrice} onChange={e => setTpPrice(e.target.value)} />
+                <span className="mkts-unit">USDT</span>
+              </div>
             </div>
-            <div className="summary-row">
-              <span>Max</span>
-              <span>0.00 USDT</span>
+          )}
+
+          {slChecked && (
+            <div className="mkts-field">
+              <label>Stop Loss Price</label>
+              <div className="mkts-input-box">
+                <input type="number" placeholder="0.00" value={slPrice} onChange={e => setSlPrice(e.target.value)} />
+                <span className="mkts-unit">USDT</span>
+              </div>
+            </div>
+          )}
+
+          {/* Submit button */}
+          <button className={`mkts-submit ${tradeDirection === 'buy' ? 'buy' : 'sell'}`}>
+            {tradeDirection === 'buy' ? '▲  Buy / Long' : '▼  Sell / Short'}
+          </button>
+
+          {/* Summary */}
+          <div className="mkts-summary">
+            <div className="mkts-sum-row">
+              <span>Margin Required</span>
+              <span>{size ? `${(parseFloat(size)/leverage).toFixed(2)} USDT` : '—'}</span>
+            </div>
+            <div className="mkts-sum-row">
+              <span>Taker Fee</span>
+              <span>{size ? `${(parseFloat(size)*0.0004).toFixed(4)} USDT` : '—'}</span>
+            </div>
+            <div className="mkts-sum-row">
+              <span>Est. Liquidation</span>
+              <span className="neg">—</span>
             </div>
           </div>
 
-          <div className="fee-level">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <circle cx="8" cy="8" r="7" stroke="currentColor" fill="none"/>
-              <path d="M8 4v4l3 2"/>
+          {/* Rule notice */}
+          <div className="mkts-rule-notice">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3v5m0 2v1"/>
             </svg>
-            <span>Fee level</span>
+            TP &amp; SL required by IJGF challenge rules
           </div>
         </div>
       </div>
 
-      {/* Bottom: Positions & Account */}
-      <div className="binance-bottom-section">
-        <div className="positions-panel">
-          <div className="positions-tabs">
-            <button className={`pos-tab ${activePositionsTab === 'positions' ? 'active' : ''}`} onClick={() => setActivePositionsTab('positions')}>
-              Positions(0)
-            </button>
-            <button className="pos-tab">Open Orders(0)</button>
-            <button className="pos-tab">Order History</button>
-            <button className="pos-tab">Trade History</button>
-            <button className="pos-tab">Transaction History</button>
-            <button className="pos-tab">Position History</button>
-            <button className="pos-tab">Bots</button>
-            <button className="pos-tab">Assets</button>
-            <label className="hide-symbols">
+      {/* ════════════════ BOTTOM PANEL ════════════════ */}
+      <div className="mkts-bottom">
+
+        {/* Positions */}
+        <div className="mkts-pos-panel">
+          <div className="mkts-pos-tab-bar">
+            {possTabs.map((tab, i) => (
+              <button
+                key={tab}
+                className={`mkts-pos-tab ${activePositionsTab === String(i) ? 'active' : ''}`}
+                onClick={() => setActivePositionsTab(String(i))}
+              >{tab}</button>
+            ))}
+            <label className="mkts-pos-filter">
               <input type="checkbox" />
-              <span>Hide Other Symbols</span>
+              <span>Current pair only</span>
             </label>
           </div>
 
-          <div className="positions-table-headers">
+          <div className="mkts-pos-table-head">
             <span>Symbol</span>
             <span>Size</span>
             <span>Entry Price</span>
-            <span>Break Even Price</span>
             <span>Mark Price</span>
-            <span>Liq.Price</span>
-            <span>Margin Ratio</span>
+            <span>Liq. Price</span>
             <span>Margin</span>
-            <span>PNL(ROI %)</span>
+            <span>PNL (ROI%)</span>
+            <span>TP / SL</span>
+            <span>Action</span>
           </div>
 
-          {positions.length === 0 && (
-            <div className="empty-positions">
-              <svg width="60" height="60" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="10" y="10" width="18" height="18" rx="2"/>
-                <rect x="36" y="10" width="18" height="18" rx="2"/>
-                <rect x="36" y="36" width="18" height="18" rx="2"/>
-                <rect x="10" y="36" width="18" height="18" rx="2"/>
-              </svg>
-              <p>You have no position.</p>
-            </div>
-          )}
+          <div className="mkts-pos-empty">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="8" width="26" height="18" rx="3"/>
+              <path d="M11 8V6a5 5 0 0110 0v2"/>
+              <circle cx="16" cy="17" r="2.5"/>
+            </svg>
+            <span>No open positions</span>
+          </div>
         </div>
 
-        {/* Account Panel */}
-        <div className="account-panel">
-          <div className="account-header">
-            <span>Account</span>
-            <button className="switch-btn">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 1l-1.5 1.5L10.293 6H1v2h9.293L6.5 11.5 8 13l6-6z"/>
-              </svg>
-              Switch
-            </button>
+        {/* Account */}
+        <div className="mkts-acct-panel">
+          <div className="mkts-acct-head">
+            <span>Challenge Account</span>
+            <span className="mkts-acct-tier">$10K</span>
           </div>
 
-          <div className="account-stats">
-            <div className="account-row">
-              <span>Margin Ratio</span>
-              <span className="positive">0.00%</span>
-            </div>
-            <div className="account-row">
-              <span>Maintenance Margin</span>
-              <span>0.0000 USDT</span>
-            </div>
-            <div className="account-row">
-              <span>Margin Balance</span>
-              <span>{marginBalance.toFixed(4)} USDT</span>
-            </div>
+          <div className="mkts-acct-rows">
+            {[
+              { label: 'Balance',         val: `${accountBalance.toLocaleString()} USDT`,  cls: '' },
+              { label: 'Unrealized PNL',  val: `+${unrealizedPNL.toFixed(2)} USDT`,        cls: 'pos' },
+              { label: 'Margin Balance',  val: `${marginBalance.toLocaleString()} USDT`,   cls: '' },
+              { label: 'Margin Ratio',    val: '0.00%',                                     cls: 'pos' },
+            ].map(r => (
+              <div key={r.label} className="mkts-acct-row">
+                <span>{r.label}</span>
+                <span className={r.cls}>{r.val}</span>
+              </div>
+            ))}
           </div>
 
-          <button className="single-asset-btn">Single-Asset Mode</button>
+          <div className="mkts-acct-divider" />
 
-          <div className="asset-selector">
-            <span>USDT</span>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4 6l4 4 4-4z"/>
-            </svg>
+          <p className="mkts-acct-sub-label">Challenge Objectives</p>
+          <div className="mkts-acct-rows">
+            {[
+              { label: 'Profit Target', val: '$0 / $1,000', cls: 'pos' },
+              { label: 'Daily Loss',    val: '$0 / $400',   cls: '' },
+              { label: 'Max Drawdown',  val: '$0 / $600',   cls: '' },
+            ].map(r => (
+              <div key={r.label} className="mkts-acct-row">
+                <span>{r.label}</span>
+                <span className={r.cls}>{r.val}</span>
+              </div>
+            ))}
           </div>
 
-          <div className="account-balance">
-            <div className="balance-row">
-              <span>Balance</span>
-              <span>{accountBalance.toFixed(4)} USDT</span>
-            </div>
-            <div className="balance-row">
-              <span>Unrealized PNL</span>
-              <span className={unrealizedPNL >= 0 ? 'positive' : 'negative'}>
-                {unrealizedPNL.toFixed(4)} USDT
-              </span>
-            </div>
-          </div>
-
-          <button className="pnl-analysis-btn">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" fill="none"/>
-            </svg>
-            Futures PNL Analysis
-          </button>
-
-          <div className="account-actions">
+          <div className="mkts-acct-btns">
             <button>Transfer</button>
-            <button>Buy Crypto</button>
-            <button>Swap</button>
+            <button>History</button>
           </div>
         </div>
       </div>
