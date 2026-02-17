@@ -1566,19 +1566,22 @@ body[data-theme="day"] .logo-icon {
   text-align: center;
   margin-bottom: 1rem;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  color: #ffffff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
 }
 
 .section-subtitle {
   text-align: center;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.05rem;
   margin-bottom: 4rem;
   max-width: 700px;
   margin-left: auto;
   margin-right: auto;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
 }
 
 /* ==========================================
@@ -1614,26 +1617,42 @@ body[data-theme="day"] .logo-icon {
   top: 0;
   left: 0;
   right: 0;
-  bottom: -280px; /* bleed into benefits section */
+  bottom: 0;
   z-index: 0;
   pointer-events: none;
 }
 
-/* Fade hero image into the benefits section below - layered ON TOP */
+/* Ultra-smooth fade - dissolves cleanly, no hard line, stops before benefit cards */
 .hero-bg::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40%;
-  background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 100%);
+  height: 60%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 10%,
+    rgba(0,0,0,0.1) 30%,
+    rgba(0,0,0,0.5) 60%,
+    rgba(0,0,0,0.85) 80%,
+    var(--bg-primary) 100%
+  );
   z-index: 1;
   pointer-events: none;
 }
 
 body[data-theme="day"] .hero-bg::after {
-  background: linear-gradient(to bottom, transparent 0%, #ffffff 100%);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 10%,
+    rgba(255,255,255,0.1) 30%,
+    rgba(255,255,255,0.5) 60%,
+    rgba(255,255,255,0.85) 80%,
+    #ffffff 100%
+  );
 }
 
 .hero-bg-img {
@@ -1782,7 +1801,7 @@ body[data-theme="day"] .btn-secondary:hover {
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
-  z-index: 0;
+  z-index: 2;
 }
 
 .benefits-section::before {
@@ -1803,7 +1822,7 @@ body[data-theme="day"] .btn-secondary:hover {
   grid-template-rows: auto auto;
   gap: 1.5rem;
   position: relative;
-  z-index: 1;
+  z-index: 3;
 }
 
 .benefit-card {
