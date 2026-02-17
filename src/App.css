@@ -2818,16 +2818,19 @@ body[data-theme="day"] .faq-item {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 1.5rem;
+  margin-bottom: 3rem;
+  position: relative;
+  z-index: 1;
 }
 
 .challenge-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 1.75rem;
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  min-height: 650px;
+  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -2835,6 +2838,7 @@ body[data-theme="day"] .faq-item {
 .challenge-card:hover:not(.disabled) {
   transform: translateY(-4px);
   border-color: var(--border-accent);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
 }
 
 .challenge-card.disabled {
@@ -2850,7 +2854,7 @@ body[data-theme="day"] .faq-item {
 
 .challenge-card.popular {
   border-color: var(--accent-primary);
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, transparent 30%);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, transparent 40%);
 }
 
 .popular-badge {
@@ -2867,9 +2871,9 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-name {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
   white-space: nowrap;
 }
 
@@ -2878,14 +2882,16 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-price .price {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   display: block;
+  line-height: 1;
+  margin-bottom: 0.25rem;
   text-align: center;
 }
 
 .challenge-price .price-period {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   text-align: center;
   display: block;
@@ -2917,15 +2923,17 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-btn {
-  width: 100%;
-  padding: 0.85rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  position: absolute;
+  bottom: 265px;
+  left: 1.5rem;
+  right: 1.5rem;
+  width: calc(100% - 3rem);
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: auto;
-  margin-bottom: 1rem;
 }
 
 .btn-coming-soon {
@@ -2936,6 +2944,10 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-features {
+  position: absolute;
+  top: calc(650px - 265px + 1rem);
+  left: 1.5rem;
+  right: 1.5rem;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -2949,7 +2961,11 @@ body[data-theme="day"] .faq-item {
   gap: 0.5rem;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.65rem;
+}
+
+.challenge-features li:last-child {
+  margin-bottom: 0;
 }
 
 .challenge-features li svg {
