@@ -2830,7 +2830,6 @@ body[data-theme="day"] .faq-item {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -2898,7 +2897,8 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-specs {
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
 }
 
 .spec-row {
@@ -2923,17 +2923,14 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-btn {
-  position: absolute;
-  bottom: 265px;
-  left: 1.5rem;
-  right: 1.5rem;
-  width: calc(100% - 3rem);
+  width: 100%;
   padding: 1rem;
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  margin-bottom: 1rem;
 }
 
 .btn-coming-soon {
@@ -2944,14 +2941,10 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-features {
-  position: absolute;
-  top: calc(650px - 265px + 1rem);
-  left: 1.5rem;
-  right: 1.5rem;
   list-style: none;
   padding: 0;
   margin: 0;
-  padding-top: 0.75rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -2959,9 +2952,10 @@ body[data-theme="day"] .faq-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .challenge-features li:last-child {

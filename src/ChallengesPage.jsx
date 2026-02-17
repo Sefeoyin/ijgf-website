@@ -41,7 +41,7 @@ function ChallengesPage() {
     },
     {
       name: "The $50k Challenge",
-      price: "$499.99",
+      price: "$499",
       profitTarget: "$5,000",
       maxDrawdown: "$3,000",
       dailyLimit: "$2,000",
