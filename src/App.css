@@ -1595,7 +1595,7 @@ body[data-theme="day"] .logo-icon {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  overflow: hidden;
+  overflow: visible;
   z-index: 1;
 }
 
@@ -1617,26 +1617,26 @@ body[data-theme="day"] .logo-icon {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: -300px; /* physically extends into benefits section */
   z-index: 0;
   pointer-events: none;
 }
 
-/* Ultra-smooth fade - dissolves cleanly, no hard line, stops before benefit cards */
+/* Smooth fade — dissolves the image before it reaches the benefit cards */
 .hero-bg::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60%;
+  height: 55%;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    transparent 10%,
-    rgba(0,0,0,0.1) 30%,
-    rgba(0,0,0,0.5) 60%,
-    rgba(0,0,0,0.85) 80%,
+    transparent 15%,
+    rgba(0,0,0,0.2) 40%,
+    rgba(0,0,0,0.65) 65%,
+    var(--bg-primary) 85%,
     var(--bg-primary) 100%
   );
   z-index: 1;
@@ -1647,10 +1647,10 @@ body[data-theme="day"] .hero-bg::after {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    transparent 10%,
-    rgba(255,255,255,0.1) 30%,
-    rgba(255,255,255,0.5) 60%,
-    rgba(255,255,255,0.85) 80%,
+    transparent 15%,
+    rgba(255,255,255,0.2) 40%,
+    rgba(255,255,255,0.65) 65%,
+    #ffffff 85%,
     #ffffff 100%
   );
 }
@@ -1798,29 +1798,10 @@ body[data-theme="day"] .btn-secondary:hover {
    ========================================== */
 .benefits-section {
   padding: 100px 2rem;
-  background: var(--bg-primary);
+  background: transparent;
   position: relative;
   overflow: hidden;
   z-index: 2;
-}
-
-/* Hero image bleeds into benefits as a background — sits BEHIND everything */
-.benefits-section::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('/images/Rectangle_6281.png');
-  background-size: cover;
-  background-position: center bottom;
-  opacity: 0.08;
-  z-index: 0;
-  pointer-events: none;
-  /* Fade it out from top to bottom so it vanishes before cards */
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
 }
 
 .benefits-section::before {
