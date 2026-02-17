@@ -2830,7 +2830,6 @@ body[data-theme="day"] .faq-item {
   padding: 2rem 1.5rem;
   position: relative;
   transition: all 0.2s;
-  height: 650px;
   display: flex;
   flex-direction: column;
 }
@@ -2875,6 +2874,9 @@ body[data-theme="day"] .faq-item {
   font-weight: 600;
   margin-bottom: 1.5rem;
   white-space: nowrap;
+  min-height: 1.7rem;
+  display: flex;
+  align-items: center;
 }
 
 .challenge-price {
@@ -2923,11 +2925,7 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-btn {
-  position: absolute;
-  bottom: 265px;
-  left: 1.5rem;
-  right: 1.5rem;
-  width: calc(100% - 3rem);
+  width: 100%;
   padding: 1rem;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -2944,14 +2942,11 @@ body[data-theme="day"] .faq-item {
 }
 
 .challenge-features {
-  position: absolute;
-  top: calc(650px - 265px + 1rem);
-  left: 1.5rem;
-  right: 1.5rem;
   list-style: none;
   padding: 0;
   margin: 0;
-  padding-top: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
   border-top: 1px solid var(--border-color);
 }
 
