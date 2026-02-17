@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useScrollAnimation } from './useScrollAnimation'
 
 function ChallengesPage() {
   const navigate = useNavigate()
   const [challengeType, setChallengeType] = useState('1-step')
+  const [expandedChallenge, setExpandedChallenge] = useState(null)
+  useScrollAnimation()
+
+  const toggleChallengeDetails = (index) => {
+    setExpandedChallenge(expandedChallenge === index ? null : index)
+  }
 
   const challenges = [
     {
@@ -76,13 +83,13 @@ function ChallengesPage() {
 
         {/* Challenge Type Toggle */}
         <div className="challenges-toggle">
-          <button 
+          <button
             className={`toggle-btn ${challengeType === '1-step' ? 'active' : ''}`}
             onClick={() => setChallengeType('1-step')}
           >
             1-step challenge
           </button>
-          <button 
+          <button
             className={`toggle-btn ${challengeType === '2-step' ? 'active' : ''}`}
             onClick={() => setChallengeType('2-step')}
           >
@@ -90,28 +97,29 @@ function ChallengesPage() {
           </button>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="challenges-grid">
+        {/* Pricing Cards — same structure as homepage challenge section */}
+        <div className="challenges-preview-grid">
           {challenges.map((challenge, index) => (
-            <div 
-              key={index} 
-              className={`challenge-card ${!challenge.available ? 'disabled' : ''} ${challenge.popular ? 'popular' : ''}`}
+            <div
+              key={index}
+              className={`challenge-preview-card ${!challenge.available ? 'disabled' : ''} ${challenge.popular ? 'popular' : ''}`}
             >
               {challenge.popular && <span className="popular-badge">Popular</span>}
-              
-              <h3 className="challenge-name">{challenge.name}</h3>
-              <div className="challenge-price">
+
+              <h3 className="challenge-preview-name">{challenge.name}</h3>
+
+              <div className="challenge-preview-price">
                 <span className="price">{challenge.price}</span>
                 <span className="price-period">One time</span>
               </div>
 
-              <div className="challenge-specs">
+              <div className="challenge-preview-specs">
                 <div className="spec-row">
                   <span className="spec-label">Profit Target</span>
                   <span className="spec-value">{challenge.profitTarget}</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Max Dropdown</span>
+                  <span className="spec-label">Max Drawdown</span>
                   <span className="spec-value">{challenge.maxDrawdown}</span>
                 </div>
                 <div className="spec-row">
@@ -124,22 +132,28 @@ function ChallengesPage() {
                 </div>
               </div>
 
-              <button 
-                className={`challenge-btn ${challenge.available ? 'btn-primary' : 'btn-coming-soon'}`}
+              <button
+                className={`challenge-preview-btn ${challenge.available ? 'btn-primary' : 'btn-coming-soon'}`}
                 onClick={() => challenge.available && navigate('/waitlist')}
                 disabled={!challenge.available}
               >
                 {challenge.available ? 'Start Challenge' : 'Coming Soon'}
               </button>
 
-              <ul className="challenge-features">
+              <button
+                className={`challenge-details-toggle ${expandedChallenge === index ? 'expanded' : ''}`}
+                onClick={() => challenge.available && toggleChallengeDetails(index)}
+                disabled={!challenge.available}
+              >
+                More Details
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+
+              <ul className={`challenge-preview-features ${expandedChallenge === index ? 'expanded' : ''}`}>
                 {challenge.features.map((feature, fIndex) => (
-                  <li key={fIndex} className={!challenge.available ? 'disabled' : ''}>
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                      <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    {feature}
-                  </li>
+                  <li key={fIndex}>&#10003; {feature}</li>
                 ))}
               </ul>
             </div>
