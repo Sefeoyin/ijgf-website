@@ -2898,7 +2898,6 @@ body[data-theme="day"] .faq-item {
 
 .challenge-specs {
   margin-bottom: 1.5rem;
-  flex-grow: 1;
 }
 
 .spec-row {
@@ -2930,7 +2929,6 @@ body[data-theme="day"] .faq-item {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: 1rem;
 }
 
 .btn-coming-soon {
@@ -2945,6 +2943,7 @@ body[data-theme="day"] .faq-item {
   padding: 0;
   margin: 0;
   padding-top: 1rem;
+  margin-top: 1rem;
   border-top: 1px solid var(--border-color);
 }
 
