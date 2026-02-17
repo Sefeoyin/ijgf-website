@@ -2881,6 +2881,10 @@ body[data-theme="day"] .faq-item {
 
 .challenge-price {
   margin-bottom: 1.5rem;
+  min-height: 5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .challenge-price .price {
