@@ -1585,14 +1585,27 @@ body[data-theme="day"] .logo-icon {
    Hero Section
    ========================================== */
 .hero {
-  padding: 140px 6rem 80px;
+  padding: 140px 2rem 80px;
   text-align: left;
   position: relative;
   min-height: 90vh;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.hero-content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 0 2rem;
 }
 
 .hero-bg {
@@ -1600,18 +1613,18 @@ body[data-theme="day"] .logo-icon {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: -200px; /* extend below hero into benefits */
   z-index: 0;
 }
 
-/* Fade hero image into the benefits section below */
+/* Fade hero image into the benefits section below - layered ON TOP */
 .hero-bg::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 50%;
+  height: 40%;
   background: linear-gradient(to bottom, transparent 0%, var(--bg-primary) 100%);
   z-index: 1;
   pointer-events: none;
@@ -1642,18 +1655,6 @@ body[data-theme="day"] .hero-bg-img {
   bottom: 0;
   background: var(--gradient-glow);
   z-index: 1;
-}
-
-.hero-content {
-  max-width: 860px;
-  width: 100%;
-  margin: 0 auto;
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
 }
 
 .hero-title {
@@ -1769,11 +1770,10 @@ body[data-theme="day"] .btn-secondary:hover {
    Benefits Section
    ========================================== */
 .benefits-section {
-  padding: 60px 2rem 100px;
+  padding: 100px 2rem;
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
-  margin-top: -60px;
 }
 
 .benefits-section::before {
