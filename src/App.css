@@ -2874,10 +2874,15 @@ body[data-theme="day"] .faq-item {
   font-weight: 600;
   margin-bottom: 1.5rem;
   white-space: nowrap;
+  min-height: 1.65rem;
 }
 
 .challenge-price {
   margin-bottom: 1.5rem;
+  min-height: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .challenge-price .price {
