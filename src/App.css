@@ -53,6 +53,10 @@ body {
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
   position: relative;
+  /* Override index.css centering — needed for dashboard scroll to work */
+  display: block !important;
+  place-items: unset !important;
+  min-height: unset !important;
 }
 
 /* Mouse tracking glow effect */
@@ -834,7 +838,8 @@ body[data-theme="day"] .profile-container {
    ========================================== */
 .dashboard-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;       /* BOUNDED — enables child scroll */
+  overflow: hidden;    /* Clip sidebar overflow */
   background: var(--bg-primary);
 }
 
@@ -926,6 +931,7 @@ body[data-theme="day"] .dashboard-sidebar {
   margin-left: 260px; transition: margin-left 0.3s ease; width: calc(100% - 260px);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .dashboard-header {
@@ -1226,9 +1232,13 @@ body[data-theme="day"] .dashboard-header {
 }
 
 .dashboard-content {
+  display: flex;
+  flex-direction: column;
+  /* Children like MarketsPage fill full width with no padding */
+}
+/* Markets page gets full space, no clipping */
+.dashboard-content .mkts-page {
   flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
 }
 
 .dashboard-placeholder {
@@ -7411,13 +7421,12 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .mkts-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
   background: #0d1117;
   color: #eaecef;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
-  overflow: hidden;
+  /* No height constraints — scrolls like Binance/Bybit */
+  flex: 1;
 }
 
 /* ── Header bar ── */
@@ -8118,8 +8127,10 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   transition: margin-left 0.25s ease, width 0.25s ease;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+  /* Height comes from parent 100vh layout — this is the scroll container */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;       /* Required for flex child to scroll */
 }
 .dashboard-layout.sidebar-collapsed .dashboard-main {
   margin-left: 64px;
@@ -8240,10 +8251,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 /* dashboard content area */
 .dashboard-content {
   flex: 1;
-  min-height: 0;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
+  padding: 0;
+  /* No overflow — let window scroll naturally */
 }
 
 /* =============================================
@@ -8450,29 +8459,22 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .mkts-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
   background: #0d1117;
   color: #eaecef;
   font-size: 12px;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 /* === Main trading grid === */
 .mkts-trading-grid {
   display: grid;
-  grid-template-columns: 1fr 200px 240px;
-  flex: 1;
-  min-height: 0;
+  grid-template-columns: 1fr 200px 260px;
 }
 /* Order entry column — scrollable, always full height */
 .mkts-entry-col {
   display: flex;
   flex-direction: column;
   border-left: 1px solid #1e2530;
-  overflow-y: auto;
-  min-height: 0;
 }
 .mkts-entry-col::-webkit-scrollbar { width: 4px; }
 .mkts-entry-col::-webkit-scrollbar-track { background: transparent; }
@@ -8486,8 +8488,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #1e2530;
-  min-height: 0;
-  overflow: hidden;
 }
 .mkts-chart-fs {
   grid-column: 1 / -1;
@@ -8691,10 +8691,11 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 
 /* Chart area */
 .mkts-chart-area {
-  flex: 1;
-  min-height: 480px;
+  height: 620px;
+  min-height: 620px;
   position: relative;
   background: #0d1117;
+  flex-shrink: 0;
 }
 .mkts-chart-area > div {
   width: 100% !important;
@@ -8709,8 +8710,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   flex-direction: column;
   background: #0d1117;
   border-right: 1px solid #1e2530;
-  min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .mkts-ob-heads {
@@ -8726,9 +8726,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .mkts-ob-content {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .mkts-ob-row {
@@ -8783,8 +8780,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   background: #0d1117;
   padding: 10px;
   gap: 8px;
-  overflow-y: auto;
-  min-height: 0;
 }
 .mkts-order-entry::-webkit-scrollbar { width: 3px; }
 .mkts-order-entry::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
@@ -8982,11 +8977,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   flex-direction: column;
   border-top: 1px solid #1e2530;
-  height: 155px;
-  min-height: 155px;
-  max-height: 155px;
-  flex-shrink: 0;
+  min-height: 160px;
   background: #0d1117;
+  flex-shrink: 0;
 }
 
 .mkts-pos-tabs-row {
@@ -9038,14 +9031,10 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .mkts-desktop-layout {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 .mkts-mobile-layout {
   display: none;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
 @media (max-width: 1100px) {
@@ -9057,11 +9046,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   /* Switch to mobile layout */
   .mkts-desktop-layout { display: none; }
   .mkts-mobile-layout { display: flex; }
-
-  .mkts-page {
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
 
   /* Mobile pair header */
   .mkts-mobile-layout .mkts-pair-header {
@@ -9109,12 +9093,10 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   .mkts-mob-chart-panel {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-height: 0;
   }
   .mkts-mob-chart-area {
-    height: 340px;
-    min-height: 340px;
+    height: 420px;
+    min-height: 420px;
     flex-shrink: 0;
     position: relative;
     background: #0d1117;
@@ -9140,14 +9122,11 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 
   /* Mobile order book panel */
   .mkts-mob-book-panel {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
   .mkts-mob-book-panel .mkts-orderbook {
     flex: 1;
-    min-height: 0;
   }
 
   /* Mobile trade panel */
