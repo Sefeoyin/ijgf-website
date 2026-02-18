@@ -408,13 +408,14 @@ body[data-theme="day"] .back-to-top:hover {
   border-radius: 50px;
   padding: 4px;
   margin-bottom: 3rem;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .auth-toggle-btn-new {
-  padding: 0.75rem 2rem;
+  flex: 1;
+  padding: 0.75rem 1.5rem;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -424,6 +425,10 @@ body[data-theme="day"] .back-to-top:hover {
   border-radius: 50px;
   transition: all 0.2s;
   white-space: nowrap;
+  display: block;
+  text-align: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .auth-toggle-btn-new.active {
@@ -926,13 +931,14 @@ body[data-theme="day"] .dashboard-sidebar {
 .dashboard-header {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
-  padding: 1.25rem 2rem;
+  padding: 0.65rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
   position: sticky;
   top: 0;
   z-index: 90;
+  min-height: 52px;
 }
 
 body[data-theme="day"] .dashboard-header {
@@ -1317,11 +1323,8 @@ body[data-theme="day"] .dashboard-header {
   }
 
   .dashboard-header {
-    padding: 1rem;
-  }
-
-  .dashboard-content {
-    padding: 1rem;
+    padding: 0.5rem 1rem;
+    min-height: 48px;
   }
 
   .dashboard-search {
@@ -9008,13 +9011,158 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   font-size: 12px;
 }
 
-/* === Responsive === */
+/* === Responsive — Desktop hides mobile layout, mobile hides desktop === */
+.mkts-desktop-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.mkts-mobile-layout {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 @media (max-width: 1100px) {
   .mkts-trading-grid { grid-template-columns: 1fr 240px; }
   .mkts-orderbook { display: none; }
 }
-@media (max-width: 800px) {
-  .mkts-trading-grid { grid-template-columns: 1fr; }
-  .mkts-order-entry { display: none; }
-  .mkts-pair-stats { display: none; }
+
+@media (max-width: 900px) {
+  /* Switch to mobile layout */
+  .mkts-desktop-layout { display: none; }
+  .mkts-mobile-layout { display: flex; }
+
+  .mkts-page {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Mobile pair header */
+  .mkts-mobile-layout .mkts-pair-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 52px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .mkts-mobile-layout .mkts-pair-stats {
+    display: none;
+  }
+
+  /* Mobile tab bar */
+  .mkts-mobile-tabs {
+    display: flex;
+    border-bottom: 1px solid #1e2530;
+    background: #0d1117;
+    flex-shrink: 0;
+  }
+  .mkts-mob-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #848e9c;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .mkts-mob-tab.active {
+    color: #7C3AED;
+    border-bottom-color: #7C3AED;
+  }
+  .mkts-mob-tab:hover:not(.active) { color: #eaecef; }
+
+  /* Mobile chart panel */
+  .mkts-mob-chart-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .mkts-mob-chart-area {
+    height: 340px;
+    min-height: 340px;
+    flex-shrink: 0;
+    position: relative;
+    background: #0d1117;
+  }
+  .mkts-mob-chart-area > div {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Compact risk bar for mobile */
+  .mkts-risk-bar-compact {
+    padding: 4px 10px;
+    height: 32px;
+  }
+  .mkts-risk-bar-compact .mkts-risk-lbl {
+    font-size: 14px;
+  }
+  .mkts-risk-bar-compact .mkts-risk-amt {
+    font-size: 10px;
+  }
+
+  /* Mobile order book panel */
+  .mkts-mob-book-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .mkts-mob-book-panel .mkts-orderbook {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Mobile trade panel */
+  .mkts-mob-trade-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .mkts-mob-trade-panel .mkts-order-entry {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* === Terms modal checkbox === */
+.terms-modal-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.terms-modal-checkbox input[type="checkbox"] {
+  accent-color: #7C3AED;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.terms-modal-checkbox span {
+  color: var(--text-primary);
 }

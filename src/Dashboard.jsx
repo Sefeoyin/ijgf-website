@@ -16,7 +16,6 @@ function Dashboard() {
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [profileImage, setProfileImage] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
@@ -190,20 +189,6 @@ function Dashboard() {
               <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-
-          {/* Search — icon on RIGHT to match Figma */}
-          <div className="dashboard-search search-icon-right">
-            <input 
-              type="text" 
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
-          </div>
 
           <div className="dashboard-user">
             <button 

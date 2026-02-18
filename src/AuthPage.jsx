@@ -13,6 +13,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showTermsModal, setShowTermsModal] = useState(false)
+  const [termsChecked, setTermsChecked] = useState(false)
   const [pendingAction, setPendingAction] = useState(null) // 'email' | 'google'
 
   // The actual signup actions, called after terms accepted
@@ -92,6 +93,7 @@ function AuthPage() {
       // Signup: show terms first
       setLoading(false)
       setPendingAction('email')
+      setTermsChecked(false)
       setShowTermsModal(true)
     } catch (err) {
       setError(err.message || 'An error occurred. Please try again.')
@@ -103,6 +105,7 @@ function AuthPage() {
     if (!isLogin) {
       // Signup: show terms first
       setPendingAction('google')
+      setTermsChecked(false)
       setShowTermsModal(true)
       return
     }
@@ -163,10 +166,23 @@ function AuthPage() {
                 {' '}and{' '}
                 <button className="terms-text-link" onClick={() => { navigate('/privacy'); setShowTermsModal(false) }}>Privacy Policy</button>.
               </p>
+              <label className="terms-modal-checkbox">
+                <input
+                  type="checkbox"
+                  checked={termsChecked}
+                  onChange={e => setTermsChecked(e.target.checked)}
+                />
+                <span>I have read and agree to the Terms of Service and Privacy Policy</span>
+              </label>
             </div>
             <div className="terms-modal-actions">
               <button className="terms-decline-btn" onClick={handleDeclineTerms}>Decline</button>
-              <button className="terms-accept-btn" onClick={handleAcceptTerms}>Accept &amp; Continue</button>
+              <button
+                className="terms-accept-btn"
+                onClick={handleAcceptTerms}
+                disabled={!termsChecked}
+                style={{ opacity: termsChecked ? 1 : 0.45, cursor: termsChecked ? 'pointer' : 'not-allowed' }}
+              >Accept &amp; Continue</button>
             </div>
           </div>
         </div>
