@@ -25,7 +25,6 @@ function MarketsPage() {
   const tvContainerDesktopRef = useRef(null)
   const tvContainerMobileRef = useRef(null)
   const tvScriptRef = useRef(null)
-  const pairBtnRef = useRef(null)
 
   const coinGeckoMap = {
     BTCUSDT: 'bitcoin', ETHUSDT: 'ethereum', SOLUSDT: 'solana',
@@ -81,7 +80,6 @@ function MarketsPage() {
     widgetDiv.id = containerId
     widgetDiv.style.cssText = 'width:100%;height:100%;'
     containerRef.current.appendChild(widgetDiv)
-
     const config = {
       autosize: true,
       symbol: `BINANCE:${selectedPair}`,
@@ -102,15 +100,12 @@ function MarketsPage() {
         'scalesProperties.backgroundColor': '#0e1116',
       },
     }
-
     const init = () => { if (window.TradingView && containerRef.current) new window.TradingView.widget(config) }
-
     if (window.TradingView) { init(); return }
     if (!tvScriptRef.current) {
       const script = document.createElement('script')
       script.src = 'https://s3.tradingview.com/tv.js'
-      script.async = true
-      script.onload = init
+      script.async = true; script.onload = init
       tvScriptRef.current = script
       document.head.appendChild(script)
     } else {
@@ -119,13 +114,8 @@ function MarketsPage() {
     }
   }
 
-  // Load TV for desktop
   useEffect(() => { loadTVWidget(tvContainerDesktopRef) }, [selectedPair, activeTimeframe])
-
-  // Load TV for mobile (only when chart tab active)
-  useEffect(() => {
-    if (mobilePanel === 'chart') loadTVWidget(tvContainerMobileRef)
-  }, [selectedPair, activeTimeframe, mobilePanel])
+  useEffect(() => { if (mobilePanel === 'chart') loadTVWidget(tvContainerMobileRef) }, [selectedPair, activeTimeframe, mobilePanel])
 
   const orderBook = useMemo(() => {
     const midPrice = allPrices[selectedPair]?.current_price || 95000
@@ -170,31 +160,27 @@ function MarketsPage() {
 
   const timeframes = ['1m', '5m', '15m', '1H', '4H', '1D', '1W']
 
-  const handlePairSelectorClick = () => {
-    if (pairBtnRef.current) {
-      const rect = pairBtnRef.current.getBoundingClientRect()
-      setDropdownPos({ top: rect.bottom + 6, left: rect.left })
-    }
+  // FIX: use e.currentTarget so position is always from the actually-clicked visible button
+  const handlePairSelectorClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDropdownPos({ top: rect.bottom + 4, left: rect.left })
     setShowPairSearch(v => !v)
     setPairSearchQuery('')
   }
   const closePairSearch = () => { setShowPairSearch(false); setPairSearchQuery('') }
 
-  // ─── Shared JSX blocks ────────────────────────────────────────
-
-  const pairHeaderInner = (
+  // Components (not shared JSX consts — each renders independently to avoid ref collisions)
+  const PairHeader = () => (
     <div className="mkts-pair-header">
       <div className="mkts-pair-left">
         <div className="mkts-pair-selector-wrap">
-          <button ref={pairBtnRef} className="mkts-pair-selector" onClick={handlePairSelectorClick}>
+          <button className="mkts-pair-selector" onClick={handlePairSelectorClick}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
             <span className="mkts-pair-symbol">{selectedPair}</span>
             <span className="mkts-pair-badge">Perp</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m6 9 6 6 6-6"/>
-            </svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
           </button>
         </div>
         <div className="mkts-price-block">
@@ -202,8 +188,7 @@ function MarketsPage() {
             {isLoadingPrice ? '—' : formatPrice(marketPrice)}
           </span>
           <span className={`mkts-price-chg ${priceChangePercent >= 0 ? 'pos' : 'neg'}`}>
-            {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)}&nbsp;
-            ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+            {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)}&nbsp;({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
           </span>
         </div>
       </div>
@@ -216,12 +201,10 @@ function MarketsPage() {
     </div>
   )
 
-  const orderBookInner = (
+  const OrderBook = () => (
     <div className="mkts-orderbook">
       <div className="mkts-ob-header"><span>Order Book</span></div>
-      <div className="mkts-ob-heads">
-        <span>Price(USDT)</span><span>Size</span><span>Total</span>
-      </div>
+      <div className="mkts-ob-heads"><span>Price(USDT)</span><span>Size</span><span>Total</span></div>
       <div className="mkts-ob-content">
         <div className="mkts-ob-asks">
           {orderBook.asks.map((row, i) => (
@@ -253,7 +236,7 @@ function MarketsPage() {
     </div>
   )
 
-  const orderEntryInner = (
+  const OrderEntry = () => (
     <div className="mkts-order-entry">
       <div className="mkts-oe-top-row">
         <button className="mkts-margin-btn">Isolated</button>
@@ -268,10 +251,7 @@ function MarketsPage() {
           <button key={t} className={`mkts-ot-btn ${orderType === t ? 'active' : ''}`} onClick={() => setOrderType(t)}>{t}</button>
         ))}
       </div>
-      <div className="mkts-avbl">
-        <span>Avbl</span>
-        <span className="mkts-avbl-val">10,000.00 USDT</span>
-      </div>
+      <div className="mkts-avbl"><span>Avbl</span><span className="mkts-avbl-val">10,000.00 USDT</span></div>
       {orderType !== 'Market' && (
         <div className="mkts-field">
           <label className="mkts-field-lbl">Price</label>
@@ -299,14 +279,8 @@ function MarketsPage() {
       </div>
       <div className="mkts-tpsl">
         <div className="mkts-tpsl-checks">
-          <label className="mkts-chk">
-            <input type="checkbox" checked={tpEnabled} onChange={e => setTpEnabled(e.target.checked)} />
-            <span>Take Profit</span>
-          </label>
-          <label className="mkts-chk">
-            <input type="checkbox" checked={slEnabled} onChange={e => setSlEnabled(e.target.checked)} />
-            <span>Stop Loss</span>
-          </label>
+          <label className="mkts-chk"><input type="checkbox" checked={tpEnabled} onChange={e => setTpEnabled(e.target.checked)} /><span>Take Profit</span></label>
+          <label className="mkts-chk"><input type="checkbox" checked={slEnabled} onChange={e => setSlEnabled(e.target.checked)} /><span>Stop Loss</span></label>
         </div>
         {tpEnabled && <input type="number" className="mkts-input mkts-tpsl-inp" placeholder="TP Price (USDT)" value={tpPrice} onChange={e => setTpPrice(e.target.value)} />}
         {slEnabled && <input type="number" className="mkts-input mkts-tpsl-inp" placeholder="SL Price (USDT)" value={slPrice} onChange={e => setSlPrice(e.target.value)} />}
@@ -329,16 +303,13 @@ function MarketsPage() {
     </div>
   )
 
-  const positionsPanelInner = (
+  const PositionsPanel = () => (
     <div className="mkts-bottom">
       <div className="mkts-pos-tabs-row">
         {['Positions(0)', 'Open Orders(0)', 'Order History', 'Trade History'].map(tab => (
           <button key={tab} className={`mkts-pos-tab ${activePositionsTab === tab ? 'active' : ''}`} onClick={() => setActivePositionsTab(tab)}>{tab}</button>
         ))}
-        <label className="mkts-hide-others">
-          <input type="checkbox" />
-          <span>Current pair only</span>
-        </label>
+        <label className="mkts-hide-others"><input type="checkbox" /><span>Current pair only</span></label>
       </div>
       <div className="mkts-pos-cols">
         <span>Symbol</span><span>Size</span><span>Entry Price</span>
@@ -354,74 +325,80 @@ function MarketsPage() {
     </div>
   )
 
-  const riskBar = (
-    <div className="mkts-risk-bar">
+  const RiskBar = ({ compact = false }) => (
+    <div className={`mkts-risk-bar${compact ? ' mkts-risk-bar-compact' : ''}`}>
       <div className="mkts-risk-item">
-        <span className="mkts-risk-lbl">🎯 Profit Target</span>
+        <span className="mkts-risk-lbl">{compact ? '🎯' : '🎯 Profit Target'}</span>
         <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
-        <span className="mkts-risk-amt">$0 / $1,000</span>
+        <span className="mkts-risk-amt">{compact ? '$0/$1K' : '$0 / $1,000'}</span>
       </div>
       <div className="mkts-risk-item">
-        <span className="mkts-risk-lbl">⚠️ Daily Loss</span>
+        <span className="mkts-risk-lbl">{compact ? '⚠️' : '⚠️ Daily Loss'}</span>
         <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
-        <span className="mkts-risk-amt">$0 / $400</span>
+        <span className="mkts-risk-amt">{compact ? '$0/$400' : '$0 / $400'}</span>
       </div>
-      <div className="mkts-risk-item">
-        <span className="mkts-risk-lbl">📉 Max Drawdown</span>
-        <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
-        <span className="mkts-risk-amt">$0 / $600</span>
-      </div>
+      {!compact && (
+        <div className="mkts-risk-item">
+          <span className="mkts-risk-lbl">📉 Max Drawdown</span>
+          <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
+          <span className="mkts-risk-amt">$0 / $600</span>
+        </div>
+      )}
     </div>
   )
 
-  const chartControls = (
+  const ChartControls = ({ showFullscreenBtn = true }) => (
     <div className="mkts-chart-controls">
       <div className="mkts-tfs">
         {timeframes.map(tf => (
           <button key={tf} className={`mkts-tf-btn ${activeTimeframe === tf ? 'active' : ''}`} onClick={() => setActiveTimeframe(tf)}>{tf}</button>
         ))}
       </div>
-      <button className="mkts-fs-btn" onClick={() => setChartFullscreen(v => !v)} title={chartFullscreen ? 'Exit fullscreen' : 'Expand chart'}>
-        {chartFullscreen
-          ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/></svg>Exit</>
-          : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>Expand</>
-        }
-      </button>
+      {showFullscreenBtn && (
+        <button className="mkts-fs-btn" onClick={() => setChartFullscreen(v => !v)}>
+          {chartFullscreen
+            ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/></svg>Exit</>
+            : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>Expand</>
+          }
+        </button>
+      )}
     </div>
   )
 
   return (
     <div className="mkts-page">
 
-      {/* ═══════════════════════════════════ DESKTOP ═════════════════════════════════ */}
+      {/* ═══════════ DESKTOP ═══════════ */}
       <div className="mkts-desktop-layout">
         <div className={`mkts-trading-grid ${chartFullscreen ? 'mkts-fs-grid' : ''}`}>
 
           {/* Chart column */}
           <div className={`mkts-chart-section ${chartFullscreen ? 'mkts-chart-fs' : ''}`}>
-            {pairHeaderInner}
-            {chartControls}
-            {riskBar}
+            <PairHeader />
+            <ChartControls />
+            <RiskBar />
             <div className="mkts-chart-area" ref={tvContainerDesktopRef} />
           </div>
 
           {/* Order book */}
-          {!chartFullscreen && orderBookInner}
+          {!chartFullscreen && <OrderBook />}
 
-          {/* Order entry */}
-          {!chartFullscreen && orderEntryInner}
+          {/* Order entry — own scrollable column */}
+          {!chartFullscreen && (
+            <div className="mkts-entry-col">
+              <OrderEntry />
+            </div>
+          )}
         </div>
 
-        {/* Positions — separate row, always below grid */}
-        {!chartFullscreen && positionsPanelInner}
+        {/* Positions — always below the grid, never overlapping order entry */}
+        {!chartFullscreen && <PositionsPanel />}
       </div>
 
-      {/* ═══════════════════════════════════ MOBILE ══════════════════════════════════ */}
+      {/* ═══════════ MOBILE ═══════════ */}
       <div className="mkts-mobile-layout">
-        {/* Mobile pair header */}
-        {pairHeaderInner}
+        <PairHeader />
 
-        {/* Mobile tab bar */}
         <div className="mkts-mobile-tabs">
           <button className={`mkts-mob-tab ${mobilePanel === 'chart' ? 'active' : ''}`} onClick={() => setMobilePanel('chart')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -429,7 +406,7 @@ function MarketsPage() {
           </button>
           <button className={`mkts-mob-tab ${mobilePanel === 'book' ? 'active' : ''}`} onClick={() => setMobilePanel('book')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            Order Book
+            Book
           </button>
           <button className={`mkts-mob-tab ${mobilePanel === 'trade' ? 'active' : ''}`} onClick={() => setMobilePanel('trade')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -437,51 +414,26 @@ function MarketsPage() {
           </button>
         </div>
 
-        {/* Chart panel */}
         {mobilePanel === 'chart' && (
           <div className="mkts-mob-chart-panel">
-            <div className="mkts-chart-controls">
-              <div className="mkts-tfs">
-                {timeframes.map(tf => (
-                  <button key={tf} className={`mkts-tf-btn ${activeTimeframe === tf ? 'active' : ''}`} onClick={() => setActiveTimeframe(tf)}>{tf}</button>
-                ))}
-              </div>
-            </div>
-            <div className="mkts-risk-bar mkts-risk-bar-compact">
-              <div className="mkts-risk-item">
-                <span className="mkts-risk-lbl">🎯</span>
-                <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
-                <span className="mkts-risk-amt">$0/$1K</span>
-              </div>
-              <div className="mkts-risk-item">
-                <span className="mkts-risk-lbl">⚠️</span>
-                <div className="mkts-risk-track"><div className="mkts-risk-fill" style={{ width: '0%', background: '#0ecb81' }} /></div>
-                <span className="mkts-risk-amt">$0/$400</span>
-              </div>
-            </div>
+            <ChartControls showFullscreenBtn={false} />
+            <RiskBar compact />
             <div className="mkts-mob-chart-area" ref={tvContainerMobileRef} />
+            <PositionsPanel />
           </div>
         )}
-
-        {/* Order book panel */}
         {mobilePanel === 'book' && (
-          <div className="mkts-mob-book-panel">
-            {orderBookInner}
-          </div>
+          <div className="mkts-mob-book-panel"><OrderBook /></div>
         )}
-
-        {/* Trade panel */}
         {mobilePanel === 'trade' && (
-          <div className="mkts-mob-trade-panel">
-            {orderEntryInner}
-          </div>
+          <div className="mkts-mob-trade-panel"><OrderEntry /></div>
         )}
       </div>
 
-      {/* ═══ Pair dropdown — FIXED position above TradingView iframe ═══ */}
+      {/* ═══ Pair dropdown (fixed, above TradingView iframe) ═══ */}
       {showPairSearch && (
         <>
-          <div className="mkts-pair-backdrop" style={{ zIndex: 99998 }} onClick={closePairSearch} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99998 }} onClick={closePairSearch} />
           <div className="mkts-pair-dropdown" style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 99999 }}>
             <div className="mkts-pair-search-row">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#848e9c" strokeWidth="2">

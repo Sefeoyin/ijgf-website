@@ -7425,9 +7425,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 0 12px;
-  height: 52px;
-  min-height: 52px;
+  padding: 0 10px;
+  height: 44px;
+  min-height: 44px;
   background: #0d1117;
   border-bottom: 1px solid #1e2530;
   flex-shrink: 0;
@@ -7527,9 +7527,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
-  height: 36px;
-  min-height: 36px;
+  padding: 0 6px;
+  height: 30px;
+  min-height: 30px;
   border-bottom: 1px solid #1e2530;
   flex-shrink: 0;
   background: #0d1117;
@@ -8126,6 +8126,18 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   width: calc(100% - 64px);
 }
 
+/* MOBILE: sidebar slides off-screen, main takes full width */
+@media (max-width: 1024px) {
+  .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .dashboard-layout.sidebar-collapsed .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
 .dashboard-sidebar {
   width: 240px;
   transition: width 0.25s ease;
@@ -8443,17 +8455,28 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   background: #0d1117;
   color: #eaecef;
   font-size: 12px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* === Main trading grid === */
 .mkts-trading-grid {
   display: grid;
-  grid-template-columns: 1fr 220px 240px;
+  grid-template-columns: 1fr 200px 240px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
+/* Order entry column — scrollable, always full height */
+.mkts-entry-col {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #1e2530;
+  overflow-y: auto;
+  min-height: 0;
+}
+.mkts-entry-col::-webkit-scrollbar { width: 4px; }
+.mkts-entry-col::-webkit-scrollbar-track { background: transparent; }
+.mkts-entry-col::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 2px; }
 .mkts-fs-grid {
   grid-template-columns: 1fr;
 }
@@ -8475,9 +8498,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  height: 52px;
-  min-height: 52px;
+  padding: 0 10px;
+  height: 44px;
+  min-height: 44px;
   border-bottom: 1px solid #1e2530;
   flex-shrink: 0;
   gap: 1rem;
@@ -8637,9 +8660,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
-  height: 36px;
-  min-height: 36px;
+  padding: 0 6px;
+  height: 30px;
+  min-height: 30px;
   border-bottom: 1px solid #1e2530;
   flex-shrink: 0;
   background: #0d1117;
@@ -8669,7 +8692,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 /* Chart area */
 .mkts-chart-area {
   flex: 1;
-  min-height: 0;
+  min-height: 480px;
   position: relative;
   background: #0d1117;
 }
@@ -8959,9 +8982,9 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: flex;
   flex-direction: column;
   border-top: 1px solid #1e2530;
-  height: 180px;
-  min-height: 180px;
-  max-height: 180px;
+  height: 155px;
+  min-height: 155px;
+  max-height: 155px;
   flex-shrink: 0;
   background: #0d1117;
 }
@@ -9017,7 +9040,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 .mkts-mobile-layout {
   display: none;
