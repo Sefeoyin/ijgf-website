@@ -125,29 +125,20 @@ function Dashboard() {
               <img src="/images/logo.png" alt="IJGF" className="sidebar-logo-full" />
             )}
           </div>
-          {!sidebarCollapsed && (
-            <button 
-              className="sidebar-collapse-btn"
-              onClick={() => setSidebarCollapsed(true)}
-              title="Collapse sidebar"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
-            </button>
-          )}
-          {sidebarCollapsed && (
-            <button 
-              className="sidebar-expand-btn"
-              onClick={() => setSidebarCollapsed(false)}
-              title="Expand sidebar"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </button>
-          )}
         </div>
+        {/* Collapse toggle — fixed tab on the right edge of sidebar */}
+        <button
+          className="sidebar-collapse-toggle"
+          onClick={() => setSidebarCollapsed(v => !v)}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            {sidebarCollapsed
+              ? <path d="M9 18l6-6-6-6"/>
+              : <path d="M15 18l-6-6 6-6"/>
+            }
+          </svg>
+        </button>
 
         <nav className="sidebar-nav">
           {menuItems.map(item => (
