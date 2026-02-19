@@ -13,7 +13,6 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userName, setUserName] = useState('')
-  const [userEmail, setUserEmail] = useState('')
   const [profileImage, setProfileImage] = useState('')
   const [loading, setLoading] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
@@ -25,7 +24,6 @@ function Dashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
-      setUserEmail(user.email || '')
       const { data: profile, error } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
       if (error) console.error('Error loading profile:', error)
