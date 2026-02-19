@@ -7,7 +7,7 @@
 .binance-markets-page {
   display: flex;
   flex-direction: column;
-  /* Allow page to be taller than viewport — scroll to see positions */
+  /* Page can exceed viewport height — scroll to see positions below */
   min-height: 100%;
   background: #0b0e11;
   color: #eaecef;
@@ -19,9 +19,11 @@
 .binance-trading-grid {
   display: grid;
   grid-template-columns: 1fr 220px 260px;
-  /* Fixed height so chart + orderbook + order entry have guaranteed space */
-  height: calc(100vh - 56px - 30px);
-  min-height: 520px;
+  /* Fixed height = viewport minus dash-header (56px).
+     This guarantees the chart + order book + order entry
+     get full screen space. Positions sit below — scroll to see them. */
+  height: calc(100vh - 56px);
+  min-height: 500px;
   overflow: hidden;
   border-bottom: 1px solid #1e2329;
 }
@@ -572,7 +574,7 @@
   display: grid;
   grid-template-columns: 1fr 260px;
   border-top: 1px solid #1e2329;
-  min-height: 160px;
+  min-height: 180px;
   background: #0b0e11;
 }
 
@@ -711,7 +713,120 @@
   }
   .binance-bottom-section {
     grid-template-columns: 1fr;
-    max-height: none;
   }
   .account-panel { display: none; }
+}
+
+/* ============================================================
+   OVERRIDES — Beat conflicting rules in App.css
+   These MUST stay at the bottom of this file.
+   ============================================================ */
+
+/* App.css sets .chart-expand-btn to position:absolute with no text.
+   We need it in flow inside .chart-expand-bar with label text visible. */
+.binance-markets-page .chart-expand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  border-bottom: 1px solid #1e2329;
+  background: #0f1115;
+  flex-shrink: 0;
+  min-height: 28px;
+  position: relative;
+  z-index: 2;
+}
+
+.binance-markets-page .chart-expand-btn {
+  position: static;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid #2b3139;
+  border-radius: 4px;
+  color: #848e9c;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.binance-markets-page .chart-expand-btn:hover {
+  border-color: #7C3AED;
+  color: #a78bfa;
+  background: transparent;
+}
+
+/* App.css has unscoped .pos-tab with padding:1rem 1.5rem (dashboard context).
+   Force markets-page tabs to be compact. */
+.binance-bottom-section .positions-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #1e2329;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: transparent;
+  gap: 0;
+}
+
+.binance-bottom-section .pos-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #848e9c;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.binance-bottom-section .pos-tab.active {
+  border-bottom-color: #7C3AED;
+  color: #eaecef;
+}
+.binance-bottom-section .pos-tab:hover {
+  color: #eaecef;
+  background: transparent;
+}
+
+/* App.css has .order-type-selector without !important overrides */
+.binance-order-entry .order-type-selector {
+  display: flex !important;
+  border: 1px solid #2b3139 !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  margin-bottom: 10px !important;
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* App.css has .input-row with background/border that breaks our +/- layout */
+.binance-order-entry .input-row {
+  display: flex !important;
+  align-items: stretch !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  border: none !important;
+  height: 34px;
+}
+
+/* App.css .order-summary has bg/padding from dashboard context */
+.binance-order-entry .order-summary {
+  background: transparent;
+  border-radius: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid #1e2329;
+}
+
+/* App.css .positions-table-headers has 9 columns — we use 8 */
+.binance-bottom-section .positions-table-headers {
+  grid-template-columns: repeat(8, 1fr);
 }

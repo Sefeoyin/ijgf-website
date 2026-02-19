@@ -8740,7 +8740,7 @@ body[data-theme="day"] .dash-header {
   min-height: 0;
 }
 
-/* Markets page needs full space — scrolls vertically to show positions below chart */
+/* Markets page: no padding, vertical scroll to reach positions below chart */
 /* Applied via .dash-content-markets class added by Dashboard.jsx */
 .dash-content-markets {
   padding: 0 !important;
