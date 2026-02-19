@@ -8339,15 +8339,25 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
    Matches the Binance/Bybit mobile UX pattern
    ============================================================ */
 @media (max-width: 768px) {
-  /* Stack: chart hidden, order book + entry side by side */
+  /* On mobile: 2 columns, no fixed height, chart hidden */
   .binance-trading-grid {
     grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: auto;
+    grid-template-rows: auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
   }
 
-  /* Hide chart on mobile — too small to be useful */
+  /* Hide chart on mobile */
   .binance-chart-section {
     display: none !important;
+  }
+
+  /* Pair header shows above the grid on mobile */
+  .binance-pair-header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
   }
 
   /* Order book takes left column */
@@ -8415,24 +8425,29 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .binance-trading-grid.chart-is-expanded .binance-order-entry {
   display: none;
 }
-/* Hide bottom positions section when chart is expanded */
+/* Hide positions section when chart is expanded */
 .binance-trading-grid.chart-is-expanded ~ .binance-bottom-section {
   display: none;
 }
 .binance-chart-section.chart-expanded {
   grid-column: 1 / -1;
 }
-/* Hide pair header in expanded mode — chart gets maximum space */
+/* Hide pair header to give chart maximum space */
 .binance-chart-section.chart-expanded .binance-pair-header {
   display: none;
 }
+/* Retract button: float INSIDE the chart-expand-bar, left-aligned so it 
+   doesn't overlap with the dash-header profile avatar on the right */
 .binance-chart-section.chart-expanded .chart-expand-bar {
   position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
+  top: 4px;
+  right: 60px;
+  left: auto;
+  z-index: 20;
   border: none;
-  background: transparent;
+  background: rgba(11,14,17,0.8);
+  border-radius: 4px;
+  padding: 2px 4px;
 }
 .binance-chart-section.chart-expanded .binance-chart-area {
   flex: 1;
