@@ -9167,3 +9167,245 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .terms-modal-checkbox span {
   color: var(--text-primary);
 }
+
+/* =============================================
+   NEW HAMBURGER DASHBOARD LAYOUT
+   ============================================= */
+
+/* Outer wrapper — just a block, no flex tricks */
+.dash-layout {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+/* ── Sidebar drawer ── */
+.dash-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+.dash-sidebar-open {
+  transform: translateX(0);
+}
+body[data-theme="day"] .dash-sidebar {
+  background: rgba(230, 224, 245, 0.98);
+  backdrop-filter: blur(12px);
+}
+
+.dash-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.dash-sidebar-logo {
+  height: 28px;
+  width: auto;
+}
+.dash-sidebar-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.dash-sidebar-close:hover { color: var(--text-primary); }
+
+.dash-sidebar-nav {
+  flex: 1;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.dash-sidebar-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.dash-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  position: relative;
+}
+.dash-nav-item:hover:not(.disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.dash-nav-item.active {
+  background: var(--accent-primary);
+  color: white;
+}
+.dash-nav-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dash-nav-item svg { flex-shrink: 0; }
+.dash-nav-soon {
+  margin-left: auto;
+  font-size: 0.65rem;
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+
+/* Backdrop */
+.dash-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 499;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Main area — always full width ── */
+.dash-main {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.dash-header {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.25rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+body[data-theme="day"] .dash-header {
+  background: rgba(230, 224, 245, 0.95);
+  backdrop-filter: blur(10px);
+}
+.dash-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.dash-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+.dash-hamburger {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.dash-hamburger:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+.dash-page-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dash-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+}
+.dash-icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+.dash-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.dash-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Content area ── */
+.dash-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Markets page inside dash-content: zero padding, full scroll ── */
+.dash-content .mkts-page {
+  flex: 1;
+}
