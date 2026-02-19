@@ -9977,3 +9977,194 @@ body[data-theme="day"] .dash-header {
   .binance-trading-grid { grid-template-columns: 1fr; }
   .binance-order-entry { display: none; }
 }
+
+/* ============================================================
+   MARKETS PAGE — CSS PATCHES
+   Append these to the bottom of App.css
+   (they override and extend the existing binance-* styles)
+   ============================================================ */
+
+/* Buy / Sell tab toggle */
+.buy-sell-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bs-tab {
+  flex: 1;
+  padding: 9px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg-secondary, #1e2329);
+  color: var(--text-muted, #848e9c);
+}
+.bs-tab.buy.active  { background: #0ecb81; color: #000; }
+.bs-tab.sell.active { background: #f6465d; color: #fff; }
+.bs-tab:not(.active):hover { background: rgba(255,255,255,0.06); color: var(--text-primary, #eaecef); }
+
+/* Order submit — inherits buy-long-btn / sell-short-btn but unified class */
+.order-submit-btn {
+  width: 100%;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-bottom: 10px;
+}
+.order-submit-btn.buy-long-btn  { background: #0ecb81; color: #000; }
+.order-submit-btn.sell-short-btn { background: #f6465d; color: #fff; }
+.order-submit-btn:hover { opacity: 0.9; }
+
+/* Size percentage buttons */
+.size-pct-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.pct-btn {
+  flex: 1;
+  background: var(--bg-secondary, #1e2329);
+  border: 1px solid var(--border-color, #2b3139);
+  border-radius: 3px;
+  color: var(--text-muted, #848e9c);
+  font-size: 11px;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pct-btn:hover { border-color: #7C3AED; color: #a78bfa; background: rgba(124,58,237,0.08); }
+
+/* Input +/- buttons */
+.input-minus, .input-plus {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #848e9c);
+  font-size: 16px;
+  padding: 0 6px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.input-minus:hover, .input-plus:hover { color: var(--text-primary, #eaecef); }
+
+/* TP/SL notice */
+.tp-sl-notice {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #f59e0b;
+  margin: 0 0 10px;
+}
+
+/* Expand button in header */
+.chart-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-color, #2b3139);
+  border-radius: 4px;
+  color: var(--text-muted, #848e9c);
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.chart-expand-btn:hover { border-color: #7C3AED; color: #a78bfa; }
+
+/* Risk metric row label with icon */
+.rm-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted, #848e9c);
+  font-size: 11px;
+}
+.rm-value {
+  font-size: 11px;
+  color: var(--text-primary, #eaecef);
+  font-family: monospace;
+}
+
+/* ============================================================
+   MOBILE — 768px and below
+   Order book + order entry side by side, chart hidden
+   Matches the Binance/Bybit mobile UX pattern
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Stack: chart hidden, order book + entry side by side */
+  .binance-trading-grid {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto;
+  }
+
+  /* Hide chart on mobile — too small to be useful */
+  .binance-chart-section {
+    display: none !important;
+  }
+
+  /* Order book takes left column */
+  .binance-orderbook-column {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 1;
+    height: 70vh;
+    min-height: 400px;
+    border-right: 1px solid var(--border-color, #2b3139);
+  }
+
+  /* Order entry takes right column */
+  .binance-order-entry {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 2;
+    height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* Bottom panel full width */
+  .binance-bottom-section {
+    grid-template-columns: 1fr;
+  }
+  .account-panel { display: none; }
+
+  /* Ticker bar scrollable */
+  .binance-ticker-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Tighten up order entry on small screens */
+  .binance-order-entry {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .buy-sell-tabs .bs-tab { font-size: 11px; padding: 8px 4px; }
+  .order-type-selector { gap: 2px; }
+  .ot-btn { font-size: 11px; padding: 5px 4px; }
+
+  /* Order book font size */
+  .ob-row { font-size: 11px; }
+  .orderbook-table-headers span { font-size: 10px; }
+}
+
+/* Very small phones */
+@media (max-width: 480px) {
+  .binance-trading-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .binance-orderbook-column { height: 65vh; }
+  .binance-order-entry { height: 65vh; }
+}
