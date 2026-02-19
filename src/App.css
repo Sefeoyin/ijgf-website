@@ -7703,7 +7703,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: grid;
   grid-template-columns: 1fr 220px 260px;
   height: calc(100vh - 56px);
-  min-height: 500px;
+  min-height: 540px;
   overflow: hidden;
   border-bottom: 1px solid var(--border-color, #1e2329);
 }
@@ -8408,21 +8408,35 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 
 /* ── Chart Expand / Retract ── */
 .binance-trading-grid.chart-is-expanded {
-  grid-template-columns: 1fr 0px 0px;
+  grid-template-columns: 1fr;
   height: calc(100vh - 56px);
 }
 .binance-trading-grid.chart-is-expanded .binance-orderbook-column,
 .binance-trading-grid.chart-is-expanded .binance-order-entry {
   display: none;
 }
-.binance-trading-grid.chart-is-expanded + .binance-bottom-section {
+/* Hide bottom positions section when chart is expanded */
+.binance-trading-grid.chart-is-expanded ~ .binance-bottom-section {
   display: none;
 }
 .binance-chart-section.chart-expanded {
   grid-column: 1 / -1;
 }
+/* Hide pair header in expanded mode — chart gets maximum space */
+.binance-chart-section.chart-expanded .binance-pair-header {
+  display: none;
+}
+.binance-chart-section.chart-expanded .chart-expand-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  border: none;
+  background: transparent;
+}
 .binance-chart-section.chart-expanded .binance-chart-area {
-  height: calc(100vh - 56px);
+  flex: 1;
+  height: auto;
 }
 
 
