@@ -198,7 +198,7 @@ function Dashboard() {
           </div>
         </header>
 
-        <div className="dash-content">
+        <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard' && <DashboardOverview />}
           {activeTab === 'market'    && <MarketsPage />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}

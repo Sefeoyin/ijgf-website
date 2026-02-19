@@ -6731,8 +6731,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   color: var(--text-primary);
 }
 
-/* Order Type Selector */
-.order-type-selector {
+/* Order Type Selector - scoped to old dashboard (not Markets page) */
+.dashboard-order-type-selector {
   display: flex;
   gap: 0.5rem;
   background: var(--bg-secondary);
@@ -8741,14 +8741,15 @@ body[data-theme="day"] .dash-header {
 }
 
 /* Markets page needs full height, no padding, no outer scroll */
-.dash-content:has(.binance-markets-page) {
-  padding: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+/* Applied via .dash-content-markets class added by Dashboard.jsx */
+.dash-content-markets {
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.dash-content .binance-markets-page {
+.dash-content-markets .binance-markets-page {
   flex: 1;
   min-height: 0;
   height: 100%;
@@ -9722,4 +9723,119 @@ body[data-theme="day"] .dash-header {
   background: var(--bg-secondary, #0f1115);
   flex-shrink: 0;
   min-height: 28px;
+}
+
+/* ==========================================
+   MARKETS PAGE — Missing Order Entry Classes
+   ========================================== */
+
+/* +/- adjuster buttons flanking price/size inputs */
+.input-adj-btn {
+  background: var(--bg-secondary, #1e2329);
+  border: none;
+  border-top: 1px solid var(--border-color, #2b3139);
+  border-bottom: 1px solid var(--border-color, #2b3139);
+  color: var(--text-muted, #848e9c);
+  font-size: 16px;
+  font-weight: 400;
+  width: 30px;
+  min-width: 30px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.input-adj-btn:first-child {
+  border-left: 1px solid var(--border-color, #2b3139);
+  border-radius: 4px 0 0 4px;
+}
+.input-adj-btn:last-child {
+  border-right: 1px solid var(--border-color, #2b3139);
+  border-radius: 0 4px 4px 0;
+}
+.input-adj-btn:hover {
+  background: rgba(124,58,237,0.15);
+  color: #a78bfa;
+}
+
+/* Wrapper that holds the text input + unit label, sits between the two adj buttons */
+.input-with-unit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary, #1e2329);
+  border-top: 1px solid var(--border-color, #2b3139);
+  border-bottom: 1px solid var(--border-color, #2b3139);
+  height: 34px;
+  overflow: hidden;
+}
+
+.input-with-unit input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #eaecef);
+  font-size: 12px;
+  padding: 0 8px;
+  outline: none;
+  min-width: 0;
+  height: 100%;
+}
+
+.input-with-unit input::placeholder {
+  color: var(--text-muted, #848e9c);
+}
+
+/* The unit label sitting inside the right of the input (BTC / USDT) */
+.input-unit-inside {
+  color: var(--text-muted, #848e9c);
+  font-size: 11px;
+  padding: 0 8px 0 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-color, #2b3139);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Override .input-row to work with the new adj-btn layout */
+.entry-input-group .input-row {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+}
+
+/* 25% / 50% / 75% / 100% quick-fill buttons */
+.size-pct-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.pct-btn {
+  background: var(--bg-secondary, #1e2329);
+  border: 1px solid var(--border-color, #2b3139);
+  border-radius: 3px;
+  color: var(--text-muted, #848e9c);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.pct-btn:hover {
+  border-color: #7C3AED;
+  color: #a78bfa;
+  background: rgba(124,58,237,0.1);
 }
