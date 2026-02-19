@@ -192,10 +192,11 @@ function MarketsPage() {
             <button className="chart-expand-btn" onClick={() => setChartExpanded(e => !e)}>
               {chartExpanded ? (
                 <>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M8 3v5H3M21 3l-7 7M16 21v-5h5M3 21l7-7"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
-                  Retract Chart
+                  Close
                 </>
               ) : (
                 <>

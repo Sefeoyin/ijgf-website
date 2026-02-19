@@ -8227,17 +8227,22 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   margin-bottom: 10px;
   border-radius: 4px;
   overflow: hidden;
+  border: 1px solid #2b3139;
+  min-height: 36px;
 }
 .bs-tab {
   flex: 1;
   padding: 9px 6px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   border: none;
   cursor: pointer;
   transition: all 0.15s;
   background: var(--bg-secondary, #1e2329);
   color: var(--text-muted, #848e9c);
+  text-align: center;
+  line-height: 1.2;
+  min-height: 36px;
 }
 .bs-tab.buy.active  { background: #0ecb81; color: #000; }
 .bs-tab.sell.active { background: #f6465d; color: #fff; }
@@ -8339,7 +8344,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
    Matches the Binance/Bybit mobile UX pattern
    ============================================================ */
 @media (max-width: 768px) {
-  /* On mobile: 2 columns, no fixed height, chart hidden */
+  /* On mobile: 2 columns, chart hidden, no fixed height */
   .binance-trading-grid {
     grid-template-columns: 1fr 1fr !important;
     grid-template-rows: auto !important;
@@ -8351,13 +8356,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   /* Hide chart on mobile */
   .binance-chart-section {
     display: none !important;
-  }
-
-  /* Pair header shows above the grid on mobile */
-  .binance-pair-header {
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
   }
 
   /* Order book takes left column */
@@ -8425,29 +8423,22 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .binance-trading-grid.chart-is-expanded .binance-order-entry {
   display: none;
 }
-/* Hide positions section when chart is expanded */
 .binance-trading-grid.chart-is-expanded ~ .binance-bottom-section {
   display: none;
 }
 .binance-chart-section.chart-expanded {
   grid-column: 1 / -1;
 }
-/* Hide pair header to give chart maximum space */
 .binance-chart-section.chart-expanded .binance-pair-header {
   display: none;
 }
-/* Retract button: float INSIDE the chart-expand-bar, left-aligned so it 
-   doesn't overlap with the dash-header profile avatar on the right */
 .binance-chart-section.chart-expanded .chart-expand-bar {
-  position: absolute;
-  top: 4px;
-  right: 60px;
-  left: auto;
-  z-index: 20;
-  border: none;
-  background: rgba(11,14,17,0.8);
-  border-radius: 4px;
-  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #1e2329;
+  background: #0b0e11;
 }
 .binance-chart-section.chart-expanded .binance-chart-area {
   flex: 1;
