@@ -8747,6 +8747,8 @@ body[data-theme="day"] .dash-header {
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  position: relative;
+  z-index: 0;
 }
 
 .dash-content-markets .binance-markets-page {
@@ -9723,6 +9725,8 @@ body[data-theme="day"] .dash-header {
   background: var(--bg-secondary, #0f1115);
   flex-shrink: 0;
   min-height: 28px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ==========================================

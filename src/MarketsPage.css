@@ -695,25 +695,172 @@
 .text-right { text-align: right; }
 
 /* ============================================================
-   MOBILE — 768px
+   MOBILE TAB BAR — hidden on desktop, shown on mobile
+   ============================================================ */
+.mobile-trading-tabs {
+  display: none;          /* hidden on desktop */
+  flex-shrink: 0;
+  background: #0b0e11;
+  border-bottom: 1px solid #1e2329;
+}
+
+.mobile-trade-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #848e9c;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.mobile-trade-tab.active {
+  color: #eaecef;
+  border-bottom-color: #7C3AED;
+}
+.mobile-trade-tab:hover:not(.active) { color: #b7bdc6; }
+
+/* ============================================================
+   MOBILE — ≤ 768px  (Bybit / Binance-style tabbed layout)
    ============================================================ */
 @media (max-width: 768px) {
+
+  /* Show the tab bar */
+  .mobile-trading-tabs {
+    display: flex;
+  }
+
+  /* Stack everything vertically */
   .binance-trading-grid {
-    grid-template-columns: 1fr 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    flex: 1;
+    min-height: 0;
   }
-  .binance-chart-section { display: none !important; }
-  .binance-orderbook-column {
-    grid-column: 1;
-    height: 70vh;
+
+  /* By default hide all panels */
+  .mobile-panel {
+    display: none !important;
   }
-  .binance-order-entry {
-    grid-column: 2;
-    height: 70vh;
-    padding: 8px;
+
+  /* Show panel matching active tab */
+  [data-mobile-tab="chart"] .mobile-panel-chart {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+  }
+  [data-mobile-tab="chart"] .mobile-panel-chart .binance-chart-area {
+    min-height: 55vh;
+  }
+
+  [data-mobile-tab="book"] .mobile-panel-book {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+    overflow-y: auto;
+  }
+
+  [data-mobile-tab="trade"] .mobile-panel-trade {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+  }
+
+  [data-mobile-tab="positions"] .mobile-panel-positions {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    border-top: none;
+  }
+  [data-mobile-tab="positions"] .mobile-panel-positions .positions-panel {
+    border-right: none;
+    flex: 1;
+    overflow-y: auto;
+  }
+  [data-mobile-tab="positions"] .mobile-panel-positions .account-panel {
+    display: flex;
+    border-top: 1px solid #1e2329;
+  }
+  [data-mobile-tab="positions"] .mobile-panel-positions {
+    grid-template-columns: 1fr;
+  }
+
+  /* Pair header compact on mobile */
+  .binance-pair-header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .pair-24h-stats {
+    gap: 12px;
+  }
+  .main-price { font-size: 18px; }
+
+  /* Position tabs scroll */
+  .positions-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .pos-tab {
+    flex-shrink: 0;
+    padding: 8px 8px;
+    font-size: 10px;
+  }
+  .hide-symbols {
+    display: none;
+  }
+  .positions-table-headers {
+    grid-template-columns: repeat(4, 1fr);
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+  .positions-table-headers span:nth-child(n+5) {
+    display: none;
+  }
+
+  /* Account panel layout fix */
+  .account-panel {
+    display: flex;
   }
   .binance-bottom-section {
     grid-template-columns: 1fr;
     max-height: none;
+    min-height: auto;
   }
-  .account-panel { display: none; }
+
+  /* Chart expand button not needed on mobile */
+  .chart-expand-bar {
+    display: none;
+  }
+}
+
+/* Extra-small screens */
+@media (max-width: 480px) {
+  .mobile-trade-tab {
+    font-size: 12px;
+    padding: 9px 4px;
+  }
+  .pair-symbol { font-size: 14px; }
+  .main-price { font-size: 16px; }
+  .pair-24h-stats { gap: 8px; }
+  .stat-col { gap: 1px; }
+  .stat-label { font-size: 10px; }
+  .stat-value { font-size: 11px; }
+  .order-submit-btn { font-size: 14px; padding: 12px; }
+  .pos-tab { font-size: 10px; padding: 7px 6px; }
 }

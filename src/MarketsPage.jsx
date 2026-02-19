@@ -21,6 +21,7 @@ function MarketsPage() {
   const [positions] = useState([])
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
   const [chartExpanded, setChartExpanded] = useState(false)
+  const [mobileTab, setMobileTab] = useState('chart')
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
 
@@ -142,11 +143,25 @@ function MarketsPage() {
   }
 
   return (
-    <div className="binance-markets-page">
+    <div className="binance-markets-page" data-mobile-tab={mobileTab}>
+
+      {/* ── Mobile tab bar ── */}
+      <div className="mobile-trading-tabs">
+        {['chart','book','trade','positions'].map(t => (
+          <button
+            key={t}
+            className={`mobile-trade-tab ${mobileTab === t ? 'active' : ''}`}
+            onClick={() => setMobileTab(t)}
+          >
+            {t === 'chart' ? 'Chart' : t === 'book' ? 'Book' : t === 'trade' ? 'Trade' : 'Positions'}
+          </button>
+        ))}
+      </div>
+
       <div className={`binance-trading-grid ${chartExpanded ? 'chart-is-expanded' : ''}`}>
 
         {/* LEFT: Chart */}
-        <div className={`binance-chart-section ${chartExpanded ? 'chart-expanded' : ''}`}>
+        <div className={`binance-chart-section ${chartExpanded ? 'chart-expanded' : ''} mobile-panel mobile-panel-chart`}>
 
           {/* Pair Header */}
           <div className="binance-pair-header">
@@ -219,7 +234,7 @@ function MarketsPage() {
         </div>
 
         {/* MIDDLE: Order Book */}
-        <div className="binance-orderbook-column">
+        <div className="binance-orderbook-column mobile-panel mobile-panel-book">
           <div className="orderbook-header">
             <span>Order Book</span>
             <div className="orderbook-view-btns">
@@ -286,7 +301,7 @@ function MarketsPage() {
         </div>
 
         {/* RIGHT: Order Entry */}
-        <div className="binance-order-entry">
+        <div className="binance-order-entry mobile-panel mobile-panel-trade">
           <div className="order-entry-header">
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display">{leverage}x</button>
@@ -436,7 +451,7 @@ function MarketsPage() {
       </div>
 
       {/* Bottom: Positions & Account */}
-      <div className="binance-bottom-section">
+      <div className="binance-bottom-section mobile-panel mobile-panel-positions">
         <div className="positions-panel">
           <div className="positions-tabs">
             {['Positions(0)', 'Open Orders(0)', 'Order History', 'Trade History', 'Transactions'].map(tab => (
