@@ -8571,6 +8571,7 @@ body[data-theme="day"] .dash-sidebar {
   overflow: hidden;
   /* Always full width — sidebar overlays on top */
   width: 100%;
+  min-height: 0;
 }
 
 /* ---- Header ---- */
@@ -8736,6 +8737,21 @@ body[data-theme="day"] .dash-header {
   overflow-x: hidden;
   padding: 1.5rem;
   background: var(--bg-primary);
+  min-height: 0;
+}
+
+/* Markets page needs full height, no padding, no outer scroll */
+.dash-content:has(.binance-markets-page) {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-content .binance-markets-page {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 /* ==========================================
@@ -9694,4 +9710,16 @@ body[data-theme="day"] .dash-header {
     max-width: none;
     bottom: 1rem;
   }
+}
+
+/* ---- Chart expand bar (sits between pair header and TradingView chart) ---- */
+.chart-expand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color, #1e2329);
+  background: var(--bg-secondary, #0f1115);
+  flex-shrink: 0;
+  min-height: 28px;
 }
