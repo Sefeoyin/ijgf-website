@@ -8553,3 +8553,68 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   width: 100%;
   height: 100%;
 }
+
+/* ── Markets Page additions — append to bottom of App.css ── */
+
+/* Position relative so expand button can anchor inside */
+.binance-chart-area {
+  position: relative;
+}
+
+/* Chart expand button — top-right inside chart area */
+.chart-expand-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 6px;
+  color: #848e9c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.chart-expand-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #eaecef;
+}
+
+/* Risk metrics panel — immediately under Buy/Long button */
+.risk-metrics-panel {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.risk-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.risk-metric-row.warning .rm-label {
+  margin-left: 3px;
+}
+
+.rm-label {
+  color: #848e9c;
+  flex: 1;
+}
+
+.rm-value {
+  color: #eaecef;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
