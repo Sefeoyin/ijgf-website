@@ -145,15 +145,20 @@ function MarketsPage() {
   return (
     <div className="binance-markets-page" data-mobile-tab={mobileTab}>
 
-      {/* ── Mobile tab bar ── */}
+      {/* ── Mobile tab bar (hidden on desktop) ── */}
       <div className="mobile-trading-tabs">
-        {['chart','book','trade','positions'].map(t => (
+        {[
+          { id: 'chart', label: 'Chart' },
+          { id: 'book', label: 'Book' },
+          { id: 'trade', label: 'Trade' },
+          { id: 'positions', label: 'Positions' },
+        ].map(t => (
           <button
-            key={t}
-            className={`mobile-trade-tab ${mobileTab === t ? 'active' : ''}`}
-            onClick={() => setMobileTab(t)}
+            key={t.id}
+            className={`mobile-trade-tab ${mobileTab === t.id ? 'active' : ''}`}
+            onClick={() => setMobileTab(t.id)}
           >
-            {t === 'chart' ? 'Chart' : t === 'book' ? 'Book' : t === 'trade' ? 'Trade' : 'Positions'}
+            {t.label}
           </button>
         ))}
       </div>
