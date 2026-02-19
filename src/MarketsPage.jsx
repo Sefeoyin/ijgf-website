@@ -31,6 +31,9 @@ function MarketsPage() {
   // Loading
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
 
+  // Chart expand/retract
+  const [chartExpanded, setChartExpanded] = useState(false)
+
   // TradingView chart ref
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
@@ -176,29 +179,11 @@ function MarketsPage() {
   return (
     <div className="binance-markets-page">
 
-      {/* ── Top Ticker Bar ── */}
-      <div className="binance-ticker-bar">
-        {popularPairs.map(pair => (
-          <button
-            key={pair.symbol}
-            className={`ticker-item ${selectedPair === pair.symbol ? 'active' : ''}`}
-            onClick={() => setSelectedPair(pair.symbol)}
-          >
-            <span className="ticker-symbol">{pair.name}</span>
-            {selectedPair === pair.symbol && (
-              <span className={`ticker-change ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
       {/* ── Main Trading Grid: Chart | Order Book | Order Entry ── */}
-      <div className="binance-trading-grid">
+      <div className={`binance-trading-grid ${chartExpanded ? 'chart-is-expanded' : ''}`}>
 
         {/* LEFT: Chart Section */}
-        <div className="binance-chart-section">
+        <div className={`binance-chart-section ${chartExpanded ? 'chart-expanded' : ''}`}>
 
           {/* Pair Header */}
           <div className="binance-pair-header">
@@ -236,19 +221,27 @@ function MarketsPage() {
                 <span className="stat-value positive">{formatPrice(high24h)}</span>
               </div>
 
-              {/* Expand button lives here — functional spot */}
+              {/* Expand / Retract chart toggle */}
               <button
                 className="chart-expand-btn"
-                title="Expand chart"
-                onClick={() => {
-                  const el = document.querySelector('.binance-chart-section')
-                  if (el) el.requestFullscreen?.()
-                }}
+                title={chartExpanded ? 'Retract chart' : 'Expand chart'}
+                onClick={() => setChartExpanded(e => !e)}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                </svg>
-                Expand
+                {chartExpanded ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M8 3v5H3M21 3l-7 7M16 21v-5h5M3 21l7-7"/>
+                    </svg>
+                    Retract
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                    Expand
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -376,7 +369,7 @@ function MarketsPage() {
             </span>
           </div>
 
-          {/* Price input — unit: BTC (base asset) */}
+          {/* Price input — unit: BTC/ETH/SOL (the price you're buying/selling at) */}
           {orderType !== 'Market' && (
             <div className="entry-input-group">
               <label>Price</label>
@@ -388,25 +381,25 @@ function MarketsPage() {
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />
-                <span className="input-unit">USDT</span>
+                <span className="input-unit">{getBaseAsset()}</span>
                 <button className="input-plus" onClick={() => setPrice(p => String(Number(p) + 1))}>+</button>
               </div>
             </div>
           )}
 
-          {/* Size input — unit: BTC (base asset) */}
+          {/* Size input — unit: USDT (how much you're putting in) */}
           <div className="entry-input-group">
             <label>Size</label>
             <div className="input-row">
-              <button className="input-minus" onClick={() => setSize(s => String(Math.max(0, Number(s) - 0.001)))}>−</button>
+              <button className="input-minus" onClick={() => setSize(s => String(Math.max(0, Number(s) - 10)))}>−</button>
               <input
                 type="number"
-                placeholder="0.000"
+                placeholder="0.00"
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
               />
-              <span className="input-unit">{getBaseAsset()}</span>
-              <button className="input-plus" onClick={() => setSize(s => String((Number(s) + 0.001).toFixed(3)))}>+</button>
+              <span className="input-unit">USDT</span>
+              <button className="input-plus" onClick={() => setSize(s => String(Number(s) + 10))}>+</button>
             </div>
             <div className="size-pct-btns">
               {['25%', '50%', '75%', '100%'].map(pct => (
