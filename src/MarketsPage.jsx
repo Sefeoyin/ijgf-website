@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 
 function MarketsPage() {
   // Market Selection
-  const [selectedPair, setSelectedPair] = useState('BTCUSDT')
+  const [selectedPair] = useState('BTCUSDT')
   const [marketPrice, setMarketPrice] = useState(0)
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
@@ -37,14 +37,6 @@ function MarketsPage() {
   // TradingView chart ref
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
-
-  const popularPairs = [
-    { symbol: 'BTCUSDT', name: 'BTC/USDT' },
-    { symbol: 'ETHUSDT', name: 'ETH/USDT' },
-    { symbol: 'SOLUSDT', name: 'SOL/USDT' },
-    { symbol: 'BNBUSDT', name: 'BNB/USDT' },
-    { symbol: 'DOGEUSDT', name: 'DOGE/USDT' },
-  ]
 
   // Get the base coin symbol for TradingView (e.g. BTCUSDT -> BTCUSDT)
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
