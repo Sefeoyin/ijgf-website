@@ -7659,12 +7659,10 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .binance-markets-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
   background: var(--bg-primary, #0b0e11);
   color: var(--text-primary, #eaecef);
   font-size: 12px;
-  overflow: hidden;
 }
 
 /* ---- Ticker Bar ---- */
@@ -7704,8 +7702,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .binance-trading-grid {
   display: grid;
   grid-template-columns: 1fr 220px 260px;
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 56px);
+  min-height: 500px;
   overflow: hidden;
   border-bottom: 1px solid var(--border-color, #1e2329);
 }
@@ -7760,20 +7758,17 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   overflow: hidden;
 }
 .chart-expand-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 4px;
   color: var(--text-muted, #848e9c);
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 11px;
+  padding: 4px 10px;
   cursor: pointer;
-  z-index: 10;
+  white-space: nowrap;
   transition: all 0.15s;
 }
 .chart-expand-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary, #eaecef); }
@@ -8059,8 +8054,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   grid-template-columns: 1fr 260px;
   border-top: 1px solid var(--border-color, #1e2329);
   min-height: 180px;
-  max-height: 260px;
-  flex-shrink: 0;
 }
 .positions-panel {
   border-right: 1px solid var(--border-color, #1e2329);
@@ -8416,16 +8409,20 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 /* ── Chart Expand / Retract ── */
 .binance-trading-grid.chart-is-expanded {
   grid-template-columns: 1fr 0px 0px;
+  height: calc(100vh - 56px);
 }
 .binance-trading-grid.chart-is-expanded .binance-orderbook-column,
 .binance-trading-grid.chart-is-expanded .binance-order-entry {
+  display: none;
+}
+.binance-trading-grid.chart-is-expanded + .binance-bottom-section {
   display: none;
 }
 .binance-chart-section.chart-expanded {
   grid-column: 1 / -1;
 }
 .binance-chart-section.chart-expanded .binance-chart-area {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 56px);
 }
 
 
@@ -8740,7 +8737,7 @@ body[data-theme="day"] .dash-header {
   min-height: 0;
 }
 
-/* Markets page: no padding, scroll vertically to reach positions below */
+/* Markets page needs full height, no padding, no outer scroll */
 /* Applied via .dash-content-markets class added by Dashboard.jsx */
 .dash-content-markets {
   padding: 0 !important;
