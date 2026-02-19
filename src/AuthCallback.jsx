@@ -4,82 +4,57 @@ import { supabase } from './supabase'
 
 function AuthCallback() {
   const navigate = useNavigate()
-  const [status, setStatus] = useState('Processing...')
+  const [status, setStatus] = useState('Signing you in...')
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Get the code from the URL query params
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-        const error = params.get('error')
-        const errorDescription = params.get('error_description')
+    // Supabase PKCE flow handles the code exchange automatically.
+    // We just need to wait for the SIGNED_IN event.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', session.user.id)
+          .single()
 
-        if (error) {
-          console.error('OAuth error:', error, errorDescription)
-          setStatus('Authentication failed. Redirecting...')
-          setTimeout(() => navigate('/login'), 2000)
-          return
+        if (!profile?.first_name || !profile?.last_name) {
+          navigate('/profile-setup', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
         }
+      }
+    })
 
-        if (code) {
-          // Exchange the code for a session
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    // Fallback: session may already exist (e.g. page reload)
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', session.user.id)
+          .single()
 
-          if (exchangeError) {
-            console.error('Exchange error:', exchangeError)
-            setStatus('Session error. Redirecting...')
-            setTimeout(() => navigate('/login'), 2000)
-            return
-          }
-
-          if (data?.user) {
-            // Check if the user has a profile set up
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', data.user.id)
-              .single()
-
-            if (!profile?.first_name || !profile?.last_name) {
-              navigate('/profile-setup')
-            } else {
-              navigate('/dashboard')
-            }
-            return
-          }
+        if (!profile?.first_name || !profile?.last_name) {
+          navigate('/profile-setup', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
         }
-
-        // If no code, try to get existing session (hash-based flow fallback)
-        const { data: sessionData } = await supabase.auth.getSession()
-
-        if (sessionData?.session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', sessionData.session.user.id)
-            .single()
-
-          if (!profile?.first_name || !profile?.last_name) {
-            navigate('/profile-setup')
-          } else {
-            navigate('/dashboard')
-          }
-          return
-        }
-
-        // Nothing worked, send back to login
-        setStatus('Could not verify session. Redirecting...')
-        setTimeout(() => navigate('/login'), 2000)
-
-      } catch (err) {
-        console.error('Callback error:', err)
-        setStatus('Unexpected error. Redirecting...')
-        setTimeout(() => navigate('/login'), 2000)
       }
     }
 
-    handleCallback()
+    checkExistingSession()
+
+    // Safety timeout — redirect to login if stuck for 10s
+    const timeout = setTimeout(() => {
+      setStatus('Taking too long. Redirecting...')
+      setTimeout(() => navigate('/login', { replace: true }), 1500)
+    }, 10000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [navigate])
 
   return (

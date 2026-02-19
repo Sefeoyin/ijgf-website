@@ -9,8 +9,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    redirectTo: import.meta.env.VITE_SITE_URL 
-      ? `${import.meta.env.VITE_SITE_URL}/auth/callback`
-      : 'https://ijgf-website-one.vercel.app/auth/callback'
   }
 })
