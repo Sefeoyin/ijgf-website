@@ -38,7 +38,7 @@ function AuthPage() {
 
   const doGoogleSignup = async () => {
     try {
-      const siteUrl = import.meta.env.VITE_SITE_URL || 'https://ijgf-website.vercel.app'
+      const siteUrl = window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -111,7 +111,7 @@ function AuthPage() {
     }
     // Login: go straight to OAuth
     try {
-      const siteUrl = import.meta.env.VITE_SITE_URL || 'https://ijgf-website.vercel.app'
+      const siteUrl = window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
