@@ -487,7 +487,7 @@ function MarketsPage() {
       <div className="binance-bottom-section">
         <div className="positions-panel">
           <div className="positions-tabs">
-            {['Positions(0)', 'Open Orders(0)', 'Order History', 'Trade History', 'Transaction History', 'Position History'].map((tab, i) => (
+            {['Positions(0)', 'Open Orders(0)', 'Order History', 'Trade History', 'Transaction History', 'Position History'].map((tab) => (
               <button
                 key={tab}
                 className={`pos-tab ${activePositionsTab === tab ? 'active' : ''}`}
