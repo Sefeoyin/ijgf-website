@@ -7,7 +7,6 @@
 .binance-markets-page {
   display: flex;
   flex-direction: column;
-  /* Page can exceed viewport height — scroll to see positions below */
   min-height: 100%;
   background: #0b0e11;
   color: #eaecef;
@@ -19,9 +18,6 @@
 .binance-trading-grid {
   display: grid;
   grid-template-columns: 1fr 220px 260px;
-  /* Fixed height = viewport minus dash-header (56px).
-     This guarantees the chart + order book + order entry
-     get full screen space. Positions sit below — scroll to see them. */
   height: calc(100vh - 56px);
   min-height: 500px;
   overflow: hidden;
@@ -39,7 +35,6 @@
   min-width: 0;
 }
 
-/* Pair header bar */
 .binance-pair-header {
   display: flex;
   align-items: flex-start;
@@ -51,24 +46,9 @@
   background: #0b0e11;
 }
 
-.pair-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pair-name-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pair-symbol {
-  font-size: 16px;
-  font-weight: 700;
-  color: #eaecef;
-}
-
+.pair-info { display: flex; flex-direction: column; gap: 4px; }
+.pair-name-row { display: flex; align-items: center; gap: 6px; }
+.pair-symbol { font-size: 16px; font-weight: 700; color: #eaecef; }
 .pair-type {
   font-size: 10px;
   background: rgba(124,58,237,0.18);
@@ -77,43 +57,22 @@
   border-radius: 3px;
   font-weight: 500;
 }
-
-.pair-price-data {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.main-price {
-  font-size: 22px;
-  font-weight: 700;
-}
-.main-price.positive { color: #0ecb81; }
-.main-price.negative { color: #f6465d; }
-
+.pair-price-data { display: flex; align-items: baseline; gap: 10px; }
+.binance-markets-page .main-price { font-size: 22px; font-weight: 700; }
+.binance-markets-page .main-price.positive { color: #0ecb81; }
+.binance-markets-page .main-price.negative { color: #f6465d; }
 .price-change-amount { font-size: 12px; }
 .price-change-amount.positive { color: #0ecb81; }
 .price-change-amount.negative { color: #f6465d; }
-
-.pair-24h-stats {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.stat-col {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-label { color: #848e9c; font-size: 11px; }
-.stat-value { color: #eaecef; font-size: 12px; }
-.stat-value.positive { color: #0ecb81; }
+.pair-24h-stats { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+.binance-markets-page .stat-col { display: flex; flex-direction: column; gap: 2px; }
+.binance-markets-page .stat-label { color: #848e9c; font-size: 11px; text-transform: none; letter-spacing: 0; }
+.binance-markets-page .stat-value { color: #eaecef; font-size: 12px; font-weight: 400; }
+.binance-markets-page .stat-value.positive { color: #0ecb81; }
 .stat-value.funding-rate { color: #f0b90b; }
 
-/* Expand bar */
-.chart-expand-bar {
+/* ── Expand bar ── */
+.binance-markets-page .chart-expand-bar {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -122,25 +81,36 @@
   background: #0f1115;
   flex-shrink: 0;
   min-height: 28px;
+  position: relative;
+  z-index: 2;
 }
 
-.chart-expand-btn {
-  display: flex;
+.binance-markets-page .chart-expand-btn {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  display: flex !important;
   align-items: center;
   gap: 5px;
-  background: transparent;
-  border: 1px solid #2b3139;
+  background: transparent !important;
+  border: 1px solid #2b3139 !important;
   border-radius: 4px;
   color: #848e9c;
   font-size: 11px;
-  padding: 4px 8px;
+  padding: 4px 10px !important;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  top: auto !important;
+  right: auto !important;
 }
-.chart-expand-btn:hover { border-color: #7C3AED; color: #a78bfa; }
+.binance-markets-page .chart-expand-btn:hover {
+  border-color: #7C3AED !important;
+  color: #a78bfa;
+  background: transparent !important;
+}
 
-/* TradingView chart container */
+/* TradingView chart */
 .binance-chart-area {
   flex: 1;
   min-height: 0;
@@ -151,20 +121,12 @@
   overflow: hidden;
 }
 
-/* ── Chart expand / retract ── */
-.binance-trading-grid.chart-is-expanded {
-  grid-template-columns: 1fr 0px 0px;
-}
+/* Chart expand/retract */
+.binance-trading-grid.chart-is-expanded { grid-template-columns: 1fr 0px 0px; }
 .binance-trading-grid.chart-is-expanded .binance-orderbook-column,
-.binance-trading-grid.chart-is-expanded .binance-order-entry {
-  display: none;
-}
-.binance-chart-section.chart-expanded {
-  grid-column: 1 / -1;
-}
-.binance-chart-section.chart-expanded .binance-chart-area {
-  height: calc(100vh - 140px);
-}
+.binance-trading-grid.chart-is-expanded .binance-order-entry { display: none; }
+.binance-chart-section.chart-expanded { grid-column: 1 / -1; }
+.binance-chart-section.chart-expanded .binance-chart-area { height: calc(100vh - 140px); }
 
 /* ============================================================
    MIDDLE — Order Book
@@ -188,21 +150,15 @@
   color: #eaecef;
   flex-shrink: 0;
 }
-
 .orderbook-view-btns { display: flex; gap: 4px; }
-
 .ob-view-btn {
   background: transparent;
   border: 1px solid #2b3139;
   border-radius: 3px;
   color: #848e9c;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; padding: 0;
 }
 .ob-view-btn.active { border-color: #7C3AED; color: #a78bfa; }
 .ob-view-btn:hover  { border-color: #7C3AED; color: #a78bfa; }
@@ -217,13 +173,7 @@
 .orderbook-table-headers span { color: #848e9c; font-size: 10px; }
 .orderbook-table-headers .text-right { text-align: right; }
 
-/* Sell and buy rows */
-.ob-sells, .ob-buys {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
+.ob-sells, .ob-buys { display: flex; flex-direction: column; flex-shrink: 0; }
 .ob-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -234,32 +184,21 @@
   font-variant-numeric: tabular-nums;
 }
 .ob-row:hover { background: rgba(255,255,255,0.04); }
-
 .ob-price { font-weight: 500; }
 .ob-price.positive { color: #0ecb81; }
 .ob-price.negative { color: #f6465d; }
 .ob-size  { color: #eaecef; text-align: right; }
 .ob-sum   { color: #848e9c; text-align: right; }
 
-/* Mid price between books */
 .ob-current-price {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 6px 10px;
   border-top: 1px solid #1e2329;
   border-bottom: 1px solid #1e2329;
   background: #0f1115;
   flex-shrink: 0;
 }
-.price-big {
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
+.price-big { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
 .price-big.positive { color: #0ecb81; }
 .price-big.negative { color: #f6465d; }
 .price-usd { font-size: 11px; color: #848e9c; }
@@ -279,296 +218,116 @@
   background: #0b0e11;
 }
 
-/* Isolated / 10x buttons row */
-.order-entry-header {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.isolated-btn,
-.leverage-display {
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  border-radius: 4px;
-  color: #848e9c;
-  font-size: 11px;
-  padding: 3px 8px;
-  cursor: pointer;
-  transition: all 0.15s;
+.order-entry-header { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+.isolated-btn, .leverage-display {
+  background: #1e2329; border: 1px solid #2b3139; border-radius: 4px;
+  color: #848e9c; font-size: 11px; padding: 3px 8px; cursor: pointer; transition: all 0.15s;
 }
 .isolated-btn:hover { border-color: #7C3AED; color: #eaecef; }
 .leverage-display { color: #f0b90b; border-color: rgba(240,185,11,0.3); }
 .leverage-display:hover { border-color: #f0b90b; }
 
-/* ── Buy / Sell tabs ── */
 .buy-sell-tabs {
-  display: flex;
-  margin-bottom: 10px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #2b3139;
+  display: flex; margin-bottom: 10px; border-radius: 4px; overflow: hidden; border: 1px solid #2b3139;
 }
-
 .bs-tab {
-  flex: 1;
-  padding: 9px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: #1e2329;
-  color: #848e9c;
+  flex: 1; padding: 9px 6px; font-size: 12px; font-weight: 600;
+  border: none; cursor: pointer; transition: all 0.15s; background: #1e2329; color: #848e9c;
 }
 .bs-tab + .bs-tab { border-left: 1px solid #2b3139; }
 .bs-tab.buy.active  { background: #0ecb81; color: #000; border-color: #0ecb81; }
 .bs-tab.sell.active { background: #f6465d; color: #fff; border-color: #f6465d; }
 .bs-tab:not(.active):hover { background: rgba(255,255,255,0.06); color: #eaecef; }
 
-/* ── Limit / Market / Stop Limit ── */
-.order-type-selector {
-  display: flex !important;
-  border: 1px solid #2b3139 !important;
-  border-radius: 6px !important;
-  overflow: hidden !important;
-  margin-bottom: 10px !important;
-  background: transparent !important;
-  padding: 0 !important;
-  gap: 0 !important;
+.binance-order-entry .order-type-selector {
+  display: flex !important; border: 1px solid #2b3139 !important; border-radius: 6px !important;
+  overflow: hidden !important; margin-bottom: 10px !important;
+  background: transparent !important; padding: 0 !important; gap: 0 !important;
 }
-
 .ot-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-right: 1px solid #2b3139;
-  color: #848e9c;
-  font-size: 11px;
-  padding: 6px 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  text-align: center;
+  flex: 1; background: transparent; border: none; border-right: 1px solid #2b3139;
+  color: #848e9c; font-size: 11px; padding: 6px 4px; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; text-align: center;
 }
 .ot-btn:last-child { border-right: none; }
 .ot-btn.active { background: rgba(124,58,237,0.15); color: #a78bfa; }
 .ot-btn:hover:not(.active) { color: #eaecef; background: rgba(255,255,255,0.04); }
 
-/* Available balance row */
-.avbl-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: #848e9c;
-  margin-bottom: 8px;
-}
+.avbl-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #848e9c; margin-bottom: 8px; }
 .avbl-value { color: #eaecef; font-weight: 500; }
 
-/* ── Price / Size input groups ── */
-.entry-input-group {
-  margin-bottom: 8px;
-}
-.entry-input-group > label {
-  display: block;
-  color: #848e9c;
-  font-size: 11px;
-  margin-bottom: 4px;
-}
+.entry-input-group { margin-bottom: 8px; }
+.entry-input-group > label { display: block; color: #848e9c; font-size: 11px; margin-bottom: 4px; }
 
-/* Row = [−] [input+unit] [+] */
-.entry-input-group .input-row {
-  display: flex !important;
-  align-items: stretch !important;
-  border-radius: 4px !important;
-  overflow: hidden !important;
-  background: transparent !important;
-  border: none !important;
-  height: 34px;
+.binance-order-entry .input-row {
+  display: flex !important; align-items: stretch !important; border-radius: 4px !important;
+  overflow: hidden !important; background: transparent !important; border: none !important; height: 34px;
 }
 
 .input-adj-btn {
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  color: #848e9c;
-  font-size: 18px;
-  font-weight: 300;
-  width: 32px;
-  min-width: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.12s;
-  flex-shrink: 0;
-  padding: 0;
-  line-height: 1;
+  background: #1e2329; border: 1px solid #2b3139; color: #848e9c;
+  font-size: 18px; font-weight: 300; width: 32px; min-width: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.12s; flex-shrink: 0; padding: 0; line-height: 1;
 }
-.input-adj-btn:first-child {
-  border-radius: 4px 0 0 4px;
-  border-right: none;
-}
-.input-adj-btn:last-child {
-  border-radius: 0 4px 4px 0;
-  border-left: none;
-}
-.input-adj-btn:hover {
-  background: rgba(124,58,237,0.15);
-  color: #a78bfa;
-  border-color: #7C3AED;
-}
+.input-adj-btn:first-child { border-radius: 4px 0 0 4px; border-right: none; }
+.input-adj-btn:last-child  { border-radius: 0 4px 4px 0; border-left: none; }
+.input-adj-btn:hover { background: rgba(124,58,237,0.15); color: #a78bfa; border-color: #7C3AED; }
 
-/* Input + unit label wrapper */
 .input-with-unit {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  min-width: 0;
+  flex: 1; display: flex; align-items: center; background: #1e2329; border: 1px solid #2b3139; min-width: 0;
 }
 .input-with-unit input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #eaecef;
-  font-size: 12px;
-  padding: 0 8px;
-  outline: none;
-  min-width: 0;
-  height: 100%;
-  font-variant-numeric: tabular-nums;
+  flex: 1; background: transparent; border: none; color: #eaecef;
+  font-size: 12px; padding: 0 8px; outline: none; min-width: 0; height: 100%; font-variant-numeric: tabular-nums;
 }
 .input-with-unit input::placeholder { color: #5a6270; }
-
 .input-unit-inside {
-  color: #848e9c;
-  font-size: 11px;
-  padding: 0 8px 0 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  border-left: 1px solid #2b3139;
-  display: flex;
-  align-items: center;
-  height: 100%;
+  color: #848e9c; font-size: 11px; padding: 0 8px 0 6px;
+  white-space: nowrap; flex-shrink: 0; border-left: 1px solid #2b3139;
+  display: flex; align-items: center; height: 100%;
 }
 
-/* 25% 50% 75% 100% */
-.size-pct-btns {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-top: 5px;
-}
+.size-pct-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 5px; }
 .pct-btn {
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  border-radius: 3px;
-  color: #848e9c;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 4px 0;
-  cursor: pointer;
-  transition: all 0.12s;
-  text-align: center;
+  background: #1e2329; border: 1px solid #2b3139; border-radius: 3px;
+  color: #848e9c; font-size: 10px; font-weight: 500; padding: 4px 0;
+  cursor: pointer; transition: all 0.12s; text-align: center;
 }
 .pct-btn:hover { border-color: #7C3AED; color: #a78bfa; background: rgba(124,58,237,0.1); }
 
-/* TP / SL checkboxes */
-.tp-sl-row {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 10px;
-  margin-top: 4px;
-}
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #848e9c;
-  font-size: 11px;
-  cursor: pointer;
-  user-select: none;
-}
+.tp-sl-row { display: flex; gap: 16px; margin-bottom: 10px; margin-top: 4px; }
+.checkbox-row { display: flex; align-items: center; gap: 5px; color: #848e9c; font-size: 11px; cursor: pointer; user-select: none; }
 .checkbox-row input[type="checkbox"] { accent-color: #7C3AED; cursor: pointer; }
 
-/* TP & SL notice */
-.tp-sl-notice {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: #f59e0b;
-  margin: 0 0 10px;
-}
+.tp-sl-notice { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #f59e0b; margin: 0 0 10px; }
 
-/* Order submit button */
 .order-submit-btn {
-  width: 100%;
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 11px;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  margin-bottom: 10px;
+  width: 100%; border: none; border-radius: 4px; font-size: 13px; font-weight: 700;
+  padding: 11px; cursor: pointer; transition: opacity 0.15s; margin-bottom: 10px;
 }
 .order-submit-btn.buy-long-btn  { background: #0ecb81; color: #000; }
 .order-submit-btn.sell-short-btn { background: #f6465d; color: #fff; }
 .order-submit-btn:hover { opacity: 0.88; }
 
-/* Risk metrics */
 .risk-metrics-panel {
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  border-radius: 6px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 8px;
+  background: #1e2329; border: 1px solid #2b3139; border-radius: 6px;
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px;
 }
-.risk-metric-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  font-size: 11px;
-}
-.rm-label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #848e9c;
-}
-.rm-value {
-  color: #eaecef;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
+.risk-metric-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 11px; }
+.rm-label { display: flex; align-items: center; gap: 4px; color: #848e9c; }
+.rm-value { color: #eaecef; font-size: 11px; font-variant-numeric: tabular-nums; }
 
-/* Order summary */
-.order-summary {
-  border-top: 1px solid #1e2329;
-  padding-top: 8px;
-  margin-top: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.binance-order-entry .order-summary {
+  border-top: 1px solid #1e2329; padding-top: 8px; margin-top: 4px;
+  display: flex; flex-direction: column; gap: 4px;
+  background: transparent; border-radius: 0; padding: 8px 0 0;
 }
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #848e9c;
-}
-.summary-row span:last-child { color: #eaecef; }
+.binance-order-entry .summary-row { display: flex; justify-content: space-between; font-size: 11px; color: #848e9c; }
+.binance-order-entry .summary-row span:last-child { color: #eaecef; font-weight: 400; }
 
 /* ============================================================
-   BOTTOM — Positions + Account
+   BOTTOM — Positions + Account (below fold — scroll to see)
    ============================================================ */
 .binance-bottom-section {
   display: grid;
@@ -580,253 +339,79 @@
 
 .positions-panel {
   border-right: 1px solid #1e2329;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 
-.positions-tabs {
-  display: flex;
-  align-items: center;
+.binance-bottom-section .positions-tabs {
+  display: flex; align-items: center;
   border-bottom: 1px solid #1e2329;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-shrink: 0;
-  padding: 0 8px;
+  overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0; padding: 0 8px;
+  background: transparent; gap: 0;
 }
-.positions-tabs::-webkit-scrollbar { display: none; }
+.binance-bottom-section .positions-tabs::-webkit-scrollbar { display: none; }
 
-.pos-tab {
-  background: transparent;
-  border: none;
+.binance-bottom-section .pos-tab {
+  background: transparent; border: none;
   border-bottom: 2px solid transparent;
-  color: #848e9c;
-  font-size: 11px;
-  padding: 8px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
+  color: #848e9c; font-size: 11px; font-weight: 500;
+  padding: 8px 10px; cursor: pointer;
+  white-space: nowrap; transition: all 0.15s;
 }
-.pos-tab.active { border-bottom-color: #7C3AED; color: #eaecef; }
-.pos-tab:hover  { color: #eaecef; }
+.binance-bottom-section .pos-tab.active { border-bottom-color: #7C3AED; color: #eaecef; }
+.binance-bottom-section .pos-tab:hover { color: #eaecef; background: transparent; }
 
 .hide-symbols {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #848e9c;
-  font-size: 11px;
-  margin-left: auto;
-  padding: 0 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+  display: flex; align-items: center; gap: 4px; color: #848e9c;
+  font-size: 11px; margin-left: auto; padding: 0 8px;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
 }
 .hide-symbols input[type="checkbox"] { accent-color: #7C3AED; cursor: pointer; }
 
-.positions-table-headers {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  padding: 5px 12px;
-  border-bottom: 1px solid #1e2329;
-  flex-shrink: 0;
+.binance-bottom-section .positions-table-headers {
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  padding: 5px 12px; border-bottom: 1px solid #1e2329; flex-shrink: 0;
 }
-.positions-table-headers span { color: #848e9c; font-size: 10px; }
+.binance-bottom-section .positions-table-headers span { color: #848e9c; font-size: 10px; }
 
 .empty-positions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: #848e9c;
-  font-size: 12px;
-  padding: 20px;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; color: #848e9c; font-size: 12px; padding: 20px;
 }
 .empty-positions svg { opacity: 0.2; }
 .empty-positions p { margin: 0; }
 
-/* Account panel */
-.account-panel {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.account-header {
-  font-size: 12px;
-  font-weight: 600;
-  color: #eaecef;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #1e2329;
-}
+.account-panel { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.account-header { font-size: 12px; font-weight: 600; color: #eaecef; padding-bottom: 6px; border-bottom: 1px solid #1e2329; }
 .account-stats { display: flex; flex-direction: column; gap: 6px; }
-.account-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #848e9c;
-}
+.account-row { display: flex; justify-content: space-between; font-size: 11px; color: #848e9c; }
 .account-row span:last-child { color: #eaecef; }
 .account-row span.positive { color: #0ecb81; }
 .account-row span.negative { color: #f6465d; }
-.account-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: auto;
-}
+.account-actions { display: flex; gap: 6px; margin-top: auto; }
 .account-actions button {
-  flex: 1;
-  background: #1e2329;
-  border: 1px solid #2b3139;
-  border-radius: 4px;
-  color: #eaecef;
-  font-size: 11px;
-  padding: 5px;
-  cursor: pointer;
-  transition: all 0.15s;
+  flex: 1; background: #1e2329; border: 1px solid #2b3139; border-radius: 4px;
+  color: #eaecef; font-size: 11px; padding: 5px; cursor: pointer; transition: all 0.15s;
 }
 .account-actions button:hover { border-color: #7C3AED; color: #a78bfa; }
 
-/* Shared positive/negative */
-.positive { color: #0ecb81; }
-.negative { color: #f6465d; }
+/* ── Kill any mobile-tab elements injected by old JSX ── */
+.mobile-trading-tabs { display: none !important; }
+
+/* Shared */
+.binance-markets-page .positive { color: #0ecb81; }
+.binance-markets-page .negative { color: #f6465d; }
 .text-right { text-align: right; }
 
 /* ============================================================
    MOBILE — 768px
    ============================================================ */
 @media (max-width: 768px) {
-  .binance-trading-grid {
-    grid-template-columns: 1fr 1fr !important;
-  }
+  .binance-trading-grid { grid-template-columns: 1fr 1fr !important; }
   .binance-chart-section { display: none !important; }
-  .binance-orderbook-column {
-    grid-column: 1;
-    height: 70vh;
-  }
-  .binance-order-entry {
-    grid-column: 2;
-    height: 70vh;
-    padding: 8px;
-  }
-  .binance-bottom-section {
-    grid-template-columns: 1fr;
-  }
+  .binance-orderbook-column { grid-column: 1; height: 70vh; }
+  .binance-order-entry { grid-column: 2; height: 70vh; padding: 8px; }
+  .binance-bottom-section { grid-template-columns: 1fr; }
   .account-panel { display: none; }
-}
-
-/* ============================================================
-   OVERRIDES — Beat conflicting rules in App.css
-   These MUST stay at the bottom of this file.
-   ============================================================ */
-
-/* App.css sets .chart-expand-btn to position:absolute with no text.
-   We need it in flow inside .chart-expand-bar with label text visible. */
-.binance-markets-page .chart-expand-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 4px 8px;
-  border-bottom: 1px solid #1e2329;
-  background: #0f1115;
-  flex-shrink: 0;
-  min-height: 28px;
-  position: relative;
-  z-index: 2;
-}
-
-.binance-markets-page .chart-expand-btn {
-  position: static;
-  width: auto;
-  height: auto;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: 1px solid #2b3139;
-  border-radius: 4px;
-  color: #848e9c;
-  font-size: 11px;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.binance-markets-page .chart-expand-btn:hover {
-  border-color: #7C3AED;
-  color: #a78bfa;
-  background: transparent;
-}
-
-/* App.css has unscoped .pos-tab with padding:1rem 1.5rem (dashboard context).
-   Force markets-page tabs to be compact. */
-.binance-bottom-section .positions-tabs {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #1e2329;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-shrink: 0;
-  padding: 0 8px;
-  background: transparent;
-  gap: 0;
-}
-
-.binance-bottom-section .pos-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #848e9c;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 8px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.binance-bottom-section .pos-tab.active {
-  border-bottom-color: #7C3AED;
-  color: #eaecef;
-}
-.binance-bottom-section .pos-tab:hover {
-  color: #eaecef;
-  background: transparent;
-}
-
-/* App.css has .order-type-selector without !important overrides */
-.binance-order-entry .order-type-selector {
-  display: flex !important;
-  border: 1px solid #2b3139 !important;
-  border-radius: 6px !important;
-  overflow: hidden !important;
-  margin-bottom: 10px !important;
-  background: transparent !important;
-  padding: 0 !important;
-  gap: 0 !important;
-}
-
-/* App.css has .input-row with background/border that breaks our +/- layout */
-.binance-order-entry .input-row {
-  display: flex !important;
-  align-items: stretch !important;
-  border-radius: 4px !important;
-  overflow: hidden !important;
-  background: transparent !important;
-  border: none !important;
-  height: 34px;
-}
-
-/* App.css .order-summary has bg/padding from dashboard context */
-.binance-order-entry .order-summary {
-  background: transparent;
-  border-radius: 0;
-  padding: 8px 0 0;
-  border-top: 1px solid #1e2329;
-}
-
-/* App.css .positions-table-headers has 9 columns — we use 8 */
-.binance-bottom-section .positions-table-headers {
-  grid-template-columns: repeat(8, 1fr);
 }
