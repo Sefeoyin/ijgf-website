@@ -10488,3 +10488,149 @@ html, body {
     min-height: 100%;
   }
 }
+
+/* ============================================================
+   LIGHT MODE — Landing page section titles & subtitles
+   ============================================================ */
+body[data-theme="day"] .section-title {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+body[data-theme="day"] .section-subtitle {
+  color: var(--text-secondary);
+  text-shadow: none;
+}
+
+/* Card headings and text in light mode */
+body[data-theme="day"] .benefit-card h3,
+body[data-theme="day"] .dark-card h3 {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .benefit-card p,
+body[data-theme="day"] .dark-card p {
+  color: var(--text-secondary);
+}
+
+/* Step cards */
+body[data-theme="day"] .step-number {
+  color: var(--text-muted);
+}
+
+/* Challenge cards */
+body[data-theme="day"] .challenge-card h3 {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .challenge-card p,
+body[data-theme="day"] .challenge-card li {
+  color: var(--text-secondary);
+}
+
+/* FAQ */
+body[data-theme="day"] .faq-question {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .faq-answer {
+  color: var(--text-secondary);
+}
+
+/* Footer */
+body[data-theme="day"] .footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+body[data-theme="day"] .footer-link,
+body[data-theme="day"] .footer-text {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   LANDSCAPE MOBILE FIX — prevent desktop layout on phone landscape
+   Touch devices in landscape should keep mobile layout
+   ============================================================ */
+@media (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {
+  /* Force mobile markets layout on touch devices in landscape */
+  .binance-trading-grid {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .binance-chart-section {
+    display: none !important;
+  }
+
+  .binance-orderbook-column {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 1;
+    height: 90vh;
+    border-right: 1px solid var(--border-color, #2b3139);
+  }
+
+  .binance-order-entry {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 2;
+    height: 90vh;
+    overflow-y: auto;
+  }
+
+  .binance-bottom-section {
+    grid-template-columns: 1fr;
+  }
+  .account-panel { display: none; }
+
+  /* Keep mobile pair info bar visible */
+  .mobile-pair-info-bar {
+    display: flex !important;
+  }
+
+  /* Mobile chart overlay fills landscape */
+  .mobile-chart-overlay {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .mobile-chart-btn {
+    display: flex !important;
+  }
+
+  .chart-expand-btn-header {
+    display: none !important;
+  }
+}
+
+/* Also handle landscape for general pages on touch devices */
+@media (orientation: landscape) and (max-height: 500px) and (hover: none) {
+  /* Prevent horizontal overflow on all pages */
+  body, html, #root, .App {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Navigation adjustments */
+  .nav {
+    padding: 0.5rem 1rem;
+  }
+
+  /* Hero section — reduce heights */
+  .hero {
+    min-height: auto;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+
+  /* Section containers */
+  .section-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}
