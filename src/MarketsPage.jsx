@@ -107,9 +107,7 @@ function MarketsPage() {
         if (tvWidgetRef.current && typeof tvWidgetRef.current.remove === 'function') {
           tvWidgetRef.current.remove()
         }
-      } catch (_err) {
-        // TradingView cleanup can throw during unmount
-      }
+      } catch { /* TradingView cleanup can throw during unmount */ }
       tvWidgetRef.current = null
     }
   }, [selectedPair])
