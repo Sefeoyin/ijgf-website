@@ -94,13 +94,19 @@ function AnimatedRoutes() {
 }
 
 function App() {
-  const [theme, setTheme] = useState('night')
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('ijgf-theme') || 'night' } catch { return 'night' }
+  })
 
   useScrollAnimation()
   useMouseTracking()
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'night' ? 'day' : 'night')
+    setTheme(prevTheme => {
+      const next = prevTheme === 'night' ? 'day' : 'night'
+      try { localStorage.setItem('ijgf-theme', next) } catch { /* ignore */ }
+      return next
+    })
   }
 
   useEffect(() => {

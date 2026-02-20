@@ -10236,3 +10236,255 @@ body[data-theme="day"] .dash-header {
   color: #eaecef !important;
   background: rgba(255,255,255,0.08) !important;
 }
+
+/* ============================================================
+   LIGHT MODE — Markets Page overrides
+   ============================================================ */
+body[data-theme="day"] .binance-markets-page {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Pair header & dropdown */
+body[data-theme="day"] .binance-pair-header {
+  background: var(--bg-primary);
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .pair-symbol {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .pair-name-row {
+  color: var(--text-secondary);
+}
+body[data-theme="day"] .pair-type {
+  background: rgba(124,58,237,0.1);
+  color: #7c3aed;
+}
+body[data-theme="day"] .pair-24h-stats .stat-label {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .pair-24h-stats .stat-value {
+  color: var(--text-primary);
+}
+
+/* Pair dropdown */
+body[data-theme="day"] .pair-dropdown-overlay {
+  background: rgba(0,0,0,0.15);
+}
+body[data-theme="day"] .pair-dropdown {
+  background: #ffffff;
+  border-color: var(--border-color);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+body[data-theme="day"] .pair-dropdown-item {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .pair-dropdown-item:hover {
+  background: rgba(0,0,0,0.04);
+}
+body[data-theme="day"] .pair-dropdown-item.active {
+  background: rgba(124,58,237,0.08);
+  color: #7c3aed;
+}
+body[data-theme="day"] .pair-dropdown-quote {
+  color: var(--text-muted);
+}
+
+/* Order book */
+body[data-theme="day"] .binance-orderbook-column {
+  background: var(--bg-primary);
+  border-right-color: var(--border-color);
+}
+body[data-theme="day"] .orderbook-header {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .orderbook-table-headers {
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .orderbook-table-headers span {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .ob-spread {
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* Order entry */
+body[data-theme="day"] .binance-order-entry {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+body[data-theme="day"] .order-entry-header {
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .isolated-btn,
+body[data-theme="day"] .leverage-display {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+body[data-theme="day"] .ot-btn {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .ot-btn.active {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .avbl-row {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .avbl-value {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .entry-input-group label {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .entry-input-group input {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+body[data-theme="day"] .input-adj-btn {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+body[data-theme="day"] .input-with-unit {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+body[data-theme="day"] .input-with-unit input {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .size-pct-btns button {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+/* Risk metrics panel (profit target, daily loss, max drawdown) */
+body[data-theme="day"] .risk-metrics-panel {
+  background: transparent;
+}
+body[data-theme="day"] .risk-metric-row {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .rm-label {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .rm-value {
+  color: var(--text-primary);
+}
+
+/* Order summary */
+body[data-theme="day"] .order-summary {
+  border-top-color: var(--border-color);
+}
+body[data-theme="day"] .summary-row {
+  color: var(--text-muted);
+}
+
+/* Positions / Bottom section */
+body[data-theme="day"] .binance-bottom-section {
+  background: var(--bg-primary);
+  border-top-color: var(--border-color);
+}
+body[data-theme="day"] .positions-panel {
+  background: var(--bg-primary);
+}
+body[data-theme="day"] .positions-tabs {
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .pos-tab {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .pos-tab.active {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .positions-table-headers {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .positions-table-headers span {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .empty-positions {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .empty-positions p {
+  color: var(--text-muted);
+}
+
+/* Account panel */
+body[data-theme="day"] .account-panel {
+  background: var(--bg-primary);
+  border-left-color: var(--border-color);
+}
+body[data-theme="day"] .account-header {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .account-row {
+  color: var(--text-primary);
+}
+body[data-theme="day"] .account-row span:first-child {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .account-actions button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* Mobile pair info bar */
+body[data-theme="day"] .mobile-pair-info-bar {
+  background: var(--bg-primary);
+  border-bottom-color: var(--border-color);
+}
+body[data-theme="day"] .funding-label {
+  color: var(--text-muted);
+}
+body[data-theme="day"] .funding-value {
+  color: var(--text-primary);
+}
+
+/* Mobile chart btn */
+body[data-theme="day"] .mobile-chart-btn {
+  background: rgba(0,0,0,0.05);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Chart section */
+body[data-theme="day"] .binance-chart-section {
+  border-right-color: var(--border-color);
+}
+
+/* Expand button in header */
+body[data-theme="day"] .chart-expand-btn-header {
+  background: rgba(0,0,0,0.05);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Trading grid border */
+body[data-theme="day"] .binance-trading-grid {
+  border-bottom-color: var(--border-color);
+}
+
+/* ============================================================
+   Landscape viewport fix — entire site
+   ============================================================ */
+html, body {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  html, body {
+    height: 100%;
+  }
+  #root {
+    min-height: 100%;
+  }
+}

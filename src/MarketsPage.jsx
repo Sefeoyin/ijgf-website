@@ -54,28 +54,41 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
       'NEARUSDT': 'near',
     }
 
+    // Reset immediately when pair changes
+    setMarketPrice(0)
+    setPriceChange(0)
+    setPriceChangePercent(0)
+    setHigh24h(0)
+    setPrice('')
+    setIsLoadingPrice(true)
+
+    let cancelled = false
+
     const fetchPrice = async () => {
       try {
-        setIsLoadingPrice(true)
         const coinId = coinGeckoMap[selectedPair] || 'bitcoin'
         const res = await fetch(
           `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`
         )
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
-        setMarketPrice(data.market_data.current_price.usd)
-        setPriceChange(data.market_data.price_change_24h || 0)
-        setPriceChangePercent(data.market_data.price_change_percentage_24h || 0)
-        setHigh24h(data.market_data.high_24h.usd || 0)
+        if (cancelled) return
+        if (data.market_data) {
+          setMarketPrice(data.market_data.current_price?.usd || 0)
+          setPriceChange(data.market_data.price_change_24h || 0)
+          setPriceChangePercent(data.market_data.price_change_percentage_24h || 0)
+          setHigh24h(data.market_data.high_24h?.usd || 0)
+        }
       } catch (err) {
         console.error('Price fetch error:', err)
       } finally {
-        setIsLoadingPrice(false)
+        if (!cancelled) setIsLoadingPrice(false)
       }
     }
 
     fetchPrice()
     const interval = setInterval(fetchPrice, 15000)
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [selectedPair])
 
   // TradingView chart
