@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './MarketsPage.css'
 
-function MarketsPage() {
+function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
   const [marketPrice, setMarketPrice] = useState(0)
@@ -20,7 +20,6 @@ function MarketsPage() {
   const [unrealizedPNL] = useState(0)
   const [positions] = useState([])
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
-  const [chartExpanded, setChartExpanded] = useState(false)
   const [mobileChartView, setMobileChartView] = useState(false)
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
@@ -207,6 +206,35 @@ function MarketsPage() {
 
   return (
     <div className="binance-markets-page">
+      {/* Mobile pair info bar — shown only on mobile, above the trading grid */}
+      <div className="mobile-pair-info-bar">
+        <div className="mobile-pair-top">
+          <div className="mobile-pair-name" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
+            <span className="pair-symbol">{selectedPair}</span>
+            <span className="pair-type">Perp</span>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ marginLeft: 4, opacity: 0.5 }}>
+              <path d="M2 4l4 4 4-4"/>
+            </svg>
+          </div>
+          <span className={`mobile-pair-change ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+            {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
+          </span>
+          {/* Mobile chart icon */}
+          <button className="mobile-chart-btn" onClick={() => setMobileChartView(true)} title="Chart">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="8" y1="6" x2="8" y2="18"/>
+              <line x1="16" y1="4" x2="16" y2="20"/>
+              <rect x="6" y="9" width="4" height="5" fill="currentColor" stroke="none" rx="0.5"/>
+              <rect x="14" y="8" width="4" height="7" fill="currentColor" stroke="none" rx="0.5"/>
+            </svg>
+          </button>
+        </div>
+        <div className="mobile-funding-row">
+          <span className="funding-label">Funding (8h) / Countdown</span>
+          <span className="funding-value">-0.00149% / 00:58:29</span>
+        </div>
+      </div>
+
       <div className={`binance-trading-grid ${chartExpanded ? 'chart-is-expanded' : ''}`}>
 
         {/* LEFT: Chart */}
@@ -222,21 +250,6 @@ function MarketsPage() {
                   <path d="M2 4l4 4 4-4"/>
                 </svg>
               </div>
-              {showPairDropdown && (
-                <div className="pair-dropdown-overlay" onClick={() => setShowPairDropdown(false)}>
-                  <div className="pair-dropdown" onClick={(ev) => ev.stopPropagation()}>
-                    {AVAILABLE_PAIRS.map(pair => (
-                      <button
-                        key={pair}
-                        className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
-                        onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
-                      >
-                        {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="pair-price-data">
                 <span className={`main-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
                   {isLoadingPrice ? '—' : formatPrice(marketPrice)}
@@ -277,18 +290,6 @@ function MarketsPage() {
               </button>
             )}
           </div>
-
-          {/* Retract bar — shown when chart is expanded, mimics Dashboard header */}
-          {chartExpanded && (
-            <div className="chart-retract-bar">
-              <span className="retract-bar-title">Market</span>
-              <button className="chart-retract-btn" onClick={() => setChartExpanded(false)} title="Retract Chart">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
-                </svg>
-              </button>
-            </div>
-          )}
 
           {/* TradingView Chart */}
           <div className="binance-chart-area">
@@ -370,23 +371,8 @@ function MarketsPage() {
         {/* RIGHT: Order Entry */}
         <div className="binance-order-entry">
           <div className="order-entry-header">
-            <div className="mobile-pair-selector" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
-              <span className="pair-symbol-mobile">{selectedPair.replace('USDT', '')}</span>
-              <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5 }}>
-                <path d="M2 4l4 4 4-4"/>
-              </svg>
-            </div>
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display">{leverage}x</button>
-            {/* Mobile chart icon */}
-            <button className="mobile-chart-btn" onClick={() => setMobileChartView(true)} title="Chart">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="8" y1="6" x2="8" y2="18"/>
-                <line x1="16" y1="4" x2="16" y2="20"/>
-                <rect x="6" y="9" width="4" height="5" fill="currentColor" stroke="none" rx="0.5"/>
-                <rect x="14" y="8" width="4" height="7" fill="currentColor" stroke="none" rx="0.5"/>
-              </svg>
-            </button>
           </div>
 
           <div className="order-type-selector">
@@ -603,6 +589,23 @@ function MarketsPage() {
               ref={mobileChartRef}
               style={{ width: '100%', height: '100%' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Page-level pair dropdown — fixed overlay, works on all views */}
+      {showPairDropdown && (
+        <div className="pair-dropdown-overlay" onClick={() => setShowPairDropdown(false)}>
+          <div className="pair-dropdown" onClick={(ev) => ev.stopPropagation()}>
+            {AVAILABLE_PAIRS.map(pair => (
+              <button
+                key={pair}
+                className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
+              >
+                {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+              </button>
+            ))}
           </div>
         </div>
       )}

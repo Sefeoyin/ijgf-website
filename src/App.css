@@ -8343,13 +8343,13 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     display: none !important;
   }
 
-  /* Order book takes left column — takes most of the screen */
+  /* Order book takes left column — fills remaining screen after pair info bar */
   .binance-orderbook-column {
     display: flex !important;
     flex-direction: column;
     grid-column: 1;
-    height: 82vh;
-    min-height: 500px;
+    height: calc(100vh - 160px);
+    min-height: 300px;
     border-right: 1px solid var(--border-color, #2b3139);
   }
 
@@ -8358,7 +8358,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     display: flex !important;
     flex-direction: column;
     grid-column: 2;
-    height: 82vh;
+    height: calc(100vh - 160px);
     overflow-y: auto;
   }
 
@@ -8439,8 +8439,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   .binance-trading-grid {
     grid-template-columns: 1fr 1fr !important;
   }
-  .binance-orderbook-column { height: 80vh; min-height: 450px; }
-  .binance-order-entry { height: 80vh; }
+  .binance-orderbook-column { height: calc(100vh - 150px); min-height: 280px; }
+  .binance-order-entry { height: calc(100vh - 150px); }
 }
 
 
@@ -10165,4 +10165,74 @@ body[data-theme="day"] .dash-header {
   .chart-expand-btn-header {
     display: none;
   }
+}
+
+/* ============================================================
+   Mobile Pair Info Bar — Binance-style top section
+   ============================================================ */
+.mobile-pair-info-bar {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  .mobile-pair-info-bar {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px 6px;
+    background: #0b0e11;
+    border-bottom: 1px solid #1e2329;
+  }
+
+  .mobile-pair-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-pair-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-pair-name .pair-symbol {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .mobile-pair-change {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .mobile-pair-change.positive { color: #0ecb81; }
+  .mobile-pair-change.negative { color: #f6465d; }
+
+  .mobile-chart-btn {
+    margin-left: auto;
+  }
+
+  .mobile-funding-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 11px;
+  }
+  .funding-label {
+    color: #848e9c;
+  }
+  .funding-value {
+    color: #eaecef;
+  }
+}
+
+/* ============================================================
+   Retract button in Dashboard header
+   ============================================================ */
+.chart-retract-header-btn {
+  color: #848e9c !important;
+}
+.chart-retract-header-btn:hover {
+  color: #eaecef !important;
+  background: rgba(255,255,255,0.08) !important;
 }

@@ -17,6 +17,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
+  const [chartExpanded, setChartExpanded] = useState(false)
 
   useEffect(() => { checkUserAndLoadProfile() }, [])
 
@@ -158,6 +159,14 @@ function Dashboard() {
           </div>
 
           <div className="dash-header-right">
+            {/* Retract chart button — only visible when market tab is active and chart is expanded */}
+            {activeTab === 'market' && chartExpanded && (
+              <button className="dash-icon-btn chart-retract-header-btn" onClick={() => setChartExpanded(false)} title="Retract Chart">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                </svg>
+              </button>
+            )}
             <div style={{ position: 'relative' }}>
               <button className="dash-icon-btn" onClick={() => setShowNotificationPanel(v => !v)} title="Alerts">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -200,7 +209,7 @@ function Dashboard() {
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard' && <DashboardOverview />}
-          {activeTab === 'market'    && <MarketsPage />}
+          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
         </div>
       </div>
