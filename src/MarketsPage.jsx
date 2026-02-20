@@ -7,7 +7,6 @@ function MarketsPage() {
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
   const [high24h, setHigh24h] = useState(0)
-  const [orderSide, setOrderSide] = useState('buy')
   const [orderType, setOrderType] = useState('Limit')
   const [price, setPrice] = useState('')
   const [size, setSize] = useState('')
@@ -108,8 +107,8 @@ function MarketsPage() {
         if (tvWidgetRef.current && typeof tvWidgetRef.current.remove === 'function') {
           tvWidgetRef.current.remove()
         }
-      } catch (e) {
-        // TradingView widget cleanup can fail during unmount — ignore
+      } catch (_err) {
+        // TradingView cleanup can throw during unmount
       }
       tvWidgetRef.current = null
     }
@@ -192,9 +191,9 @@ function MarketsPage() {
             </div>
           </div>
 
-          {/* Expand/retract icon — Binance-style small diagonal arrows */}
+          {/* Expand/retract icon — Binance-style diagonal arrows */}
           <div className="chart-expand-bar">
-            <button className="chart-expand-btn" onClick={() => setChartExpanded(e => !e)} title={chartExpanded ? 'Retract' : 'Expand'}>
+            <button className="chart-expand-btn" onClick={() => setChartExpanded(prev => !prev)} title={chartExpanded ? 'Retract' : 'Expand'}>
               {chartExpanded ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
@@ -291,7 +290,6 @@ function MarketsPage() {
             <button className="leverage-display">{leverage}x</button>
           </div>
 
-          {/* Order type: Limit / Market / Stop Limit */}
           <div className="order-type-selector">
             {['Limit', 'Market', 'Stop Limit'].map(t => (
               <button
@@ -309,7 +307,6 @@ function MarketsPage() {
             <span className="avbl-value">{accountBalance.toLocaleString()} USDT</span>
           </div>
 
-          {/* Price input */}
           {orderType !== 'Market' && (
             <div className="entry-input-group">
               <label>Price</label>
@@ -329,7 +326,6 @@ function MarketsPage() {
             </div>
           )}
 
-          {/* Size input */}
           <div className="entry-input-group">
             <label>Size</label>
             <div className="input-row">
@@ -354,19 +350,11 @@ function MarketsPage() {
 
           <div className="tp-sl-row">
             <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={tpEnabled}
-                onChange={e => setTpEnabled(e.target.checked)}
-              />
+              <input type="checkbox" checked={tpEnabled} onChange={e => setTpEnabled(e.target.checked)} />
               <span>Take Profit</span>
             </label>
             <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={slEnabled}
-                onChange={e => setSlEnabled(e.target.checked)}
-              />
+              <input type="checkbox" checked={slEnabled} onChange={e => setSlEnabled(e.target.checked)} />
               <span>Stop Loss</span>
             </label>
           </div>
@@ -378,14 +366,10 @@ function MarketsPage() {
             TP &amp; SL required by IJGF rules
           </p>
 
-          {/* Buy/Long and Sell/Short — BOTH always visible, side by side like Binance */}
+          {/* Buy/Long + Sell/Short — both always visible, side by side like Binance */}
           <div className="order-buttons-row">
-            <button className="order-submit-btn buy-long-btn" onClick={() => setOrderSide('buy')}>
-              Buy/Long
-            </button>
-            <button className="order-submit-btn sell-short-btn" onClick={() => setOrderSide('sell')}>
-              Sell/Short
-            </button>
+            <button className="order-submit-btn buy-long-btn">Buy/Long</button>
+            <button className="order-submit-btn sell-short-btn">Sell/Short</button>
           </div>
 
           <div className="risk-metrics-panel">
