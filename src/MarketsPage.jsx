@@ -223,16 +223,18 @@ function MarketsPage() {
                 </svg>
               </div>
               {showPairDropdown && (
-                <div className="pair-dropdown">
-                  {AVAILABLE_PAIRS.map(pair => (
-                    <button
-                      key={pair}
-                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
-                      onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
-                    >
-                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                    </button>
-                  ))}
+                <div className="pair-dropdown-overlay" onClick={() => setShowPairDropdown(false)}>
+                  <div className="pair-dropdown" onClick={(ev) => ev.stopPropagation()}>
+                    {AVAILABLE_PAIRS.map(pair => (
+                      <button
+                        key={pair}
+                        className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                        onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
+                      >
+                        {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="pair-price-data">
@@ -265,27 +267,36 @@ function MarketsPage() {
                 <span className="stat-value positive">{formatPrice(high24h)}</span>
               </div>
             </div>
+
+            {/* Expand button — right side of pair header */}
+            {!chartExpanded && (
+              <button className="chart-expand-btn-header" onClick={() => setChartExpanded(true)} title="Expand Chart">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            )}
           </div>
 
-          {/* TradingView Chart with expand overlay */}
+          {/* Retract bar — shown when chart is expanded, mimics Dashboard header */}
+          {chartExpanded && (
+            <div className="chart-retract-bar">
+              <span className="retract-bar-title">Market</span>
+              <button className="chart-retract-btn" onClick={() => setChartExpanded(false)} title="Retract Chart">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* TradingView Chart */}
           <div className="binance-chart-area">
             <div
               id="tv_chart_container"
               ref={chartContainerRef}
               style={{ width: '100%', height: '100%' }}
             />
-            {/* Expand/retract icon overlaid on chart, positioned next to TradingView toolbar icons */}
-            <button className="chart-expand-btn" onClick={() => setChartExpanded(prev => !prev)} title={chartExpanded ? 'Retract' : 'Expand'}>
-              {chartExpanded ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                </svg>
-              )}
-            </button>
           </div>
         </div>
 
@@ -359,24 +370,11 @@ function MarketsPage() {
         {/* RIGHT: Order Entry */}
         <div className="binance-order-entry">
           <div className="order-entry-header">
-            <div className="mobile-pair-selector" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer', position: 'relative' }}>
+            <div className="mobile-pair-selector" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
               <span className="pair-symbol-mobile">{selectedPair.replace('USDT', '')}</span>
               <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5 }}>
                 <path d="M2 4l4 4 4-4"/>
               </svg>
-              {showPairDropdown && (
-                <div className="pair-dropdown" style={{ top: '100%', left: 0 }}>
-                  {AVAILABLE_PAIRS.map(pair => (
-                    <button
-                      key={pair}
-                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
-                      onClick={(ev) => { ev.stopPropagation(); setSelectedPair(pair); setShowPairDropdown(false) }}
-                    >
-                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display">{leverage}x</button>
@@ -588,25 +586,12 @@ function MarketsPage() {
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
             </button>
-            <div className="mobile-chart-pair" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer', position: 'relative' }}>
+            <div className="mobile-chart-pair" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
               <span className="pair-symbol">{selectedPair}</span>
               <span className="pair-type">Perp</span>
               <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ marginLeft: 4, opacity: 0.5 }}>
                 <path d="M2 4l4 4 4-4"/>
               </svg>
-              {showPairDropdown && (
-                <div className="pair-dropdown" style={{ top: '100%', left: 0 }}>
-                  {AVAILABLE_PAIRS.map(pair => (
-                    <button
-                      key={pair}
-                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
-                      onClick={(ev) => { ev.stopPropagation(); setSelectedPair(pair); setShowPairDropdown(false) }}
-                    >
-                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
               {formatPrice(marketPrice)}

@@ -7757,26 +7757,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   background: var(--bg-primary, #0b0e11);
   overflow: hidden;
 }
-.chart-expand-btn {
-  position: absolute;
-  bottom: 48px;
-  right: 8px;
-  background: rgba(30,35,41,0.95);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 4px;
-  color: #eaecef;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 999;
-  transition: all 0.15s;
-  padding: 0;
-  pointer-events: auto;
-}
-.chart-expand-btn:hover { background: rgba(255,255,255,0.12); color: #eaecef; }
+/* chart-expand-btn removed — now using chart-expand-btn-header and chart-retract-btn */
 .chart-placeholder {
   display: flex;
   flex-direction: column;
@@ -8450,9 +8431,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   }
 
   /* Hide expand button on mobile (use chart icon instead) */
-  .chart-expand-btn {
-    display: none !important;
-  }
+  /* chart-expand-btn class removed */
 }
 
 /* Very small phones */
@@ -8482,11 +8461,6 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 }
 .binance-chart-section.chart-expanded .binance-pair-header {
   display: none;
-}
-.binance-chart-section.chart-expanded .chart-expand-btn {
-  bottom: 50px;
-  right: 6px;
-  z-index: 25;
 }
 .binance-chart-section.chart-expanded .binance-chart-area {
   flex: 1;
@@ -10020,24 +9994,30 @@ body[data-theme="day"] .dash-header {
 }
 
 /* ============================================================
-   Pair Selector Dropdown
+   Pair Selector Dropdown — Fixed overlay
    ============================================================ */
-.pair-name-row {
-  position: relative;
+.pair-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
+  background: rgba(0,0,0,0.3);
 }
 
 .pair-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
+  top: 100px;
+  left: 60px;
   background: #1e2329;
   border: 1px solid #2b3139;
   border-radius: 6px;
-  min-width: 180px;
-  max-height: 300px;
+  min-width: 200px;
+  max-height: 350px;
   overflow-y: auto;
-  z-index: 100;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 5001;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   padding: 4px 0;
 }
 
@@ -10097,5 +10077,92 @@ body[data-theme="day"] .dash-header {
     max-height: 250px;
     left: 0;
     top: 100%;
+  }
+}
+
+/* ============================================================
+   Expand button — in pair header bar (right side)
+   ============================================================ */
+.chart-expand-btn-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #848e9c;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.chart-expand-btn-header:hover {
+  background: rgba(255,255,255,0.12);
+  color: #eaecef;
+}
+
+/* ============================================================
+   Retract bar — shown when chart is expanded
+   Mimics Dashboard header style
+   ============================================================ */
+.chart-retract-bar {
+  display: none;
+}
+
+.binance-chart-section.chart-expanded .chart-retract-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #0b0e11;
+  border-bottom: 1px solid #1e2329;
+  flex-shrink: 0;
+}
+
+.retract-bar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #eaecef;
+}
+
+.chart-retract-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #848e9c;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.chart-retract-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #eaecef;
+}
+
+/* When expanded — hide pair header, show retract bar */
+.binance-chart-section.chart-expanded .binance-pair-header {
+  display: none;
+}
+
+/* Mobile dropdown position */
+@media (max-width: 768px) {
+  .pair-dropdown {
+    top: 60px !important;
+    left: 10px !important;
+    right: 10px !important;
+    min-width: auto !important;
+  }
+
+  /* Hide expand button on mobile */
+  .chart-expand-btn-header {
+    display: none;
   }
 }
