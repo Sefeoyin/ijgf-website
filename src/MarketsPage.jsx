@@ -581,9 +581,9 @@ function MarketsPage() {
 
       {/* Mobile full-screen chart page */}
       {mobileChartView && (
-        <div className="mobile-chart-overlay">
+        <div className="mobile-chart-overlay" ref={(el) => { if (el) { window.scrollTo(0, 1); document.body.style.overflow = 'hidden'; } }}>
           <div className="mobile-chart-header">
-            <button className="mobile-chart-back" onClick={() => setMobileChartView(false)}>
+            <button className="mobile-chart-back" onClick={() => { setMobileChartView(false); document.body.style.overflow = ''; }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
