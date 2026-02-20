@@ -7760,16 +7760,16 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .chart-expand-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: transparent;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 4px;
   color: var(--text-muted, #848e9c);
-  font-size: 11px;
-  padding: 4px 10px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
-  white-space: nowrap;
   transition: all 0.15s;
+  padding: 0;
 }
 .chart-expand-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary, #eaecef); }
 .chart-placeholder {
@@ -8227,22 +8227,17 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   margin-bottom: 10px;
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid #2b3139;
-  min-height: 36px;
 }
 .bs-tab {
   flex: 1;
   padding: 9px 6px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   border: none;
   cursor: pointer;
   transition: all 0.15s;
   background: var(--bg-secondary, #1e2329);
   color: var(--text-muted, #848e9c);
-  text-align: center;
-  line-height: 1.2;
-  min-height: 36px;
 }
 .bs-tab.buy.active  { background: #0ecb81; color: #000; }
 .bs-tab.sell.active { background: #f6465d; color: #fff; }
@@ -8263,6 +8258,17 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .order-submit-btn.buy-long-btn  { background: #0ecb81; color: #000; }
 .order-submit-btn.sell-short-btn { background: #f6465d; color: #fff; }
 .order-submit-btn:hover { opacity: 0.9; }
+
+/* Binance-style side-by-side Buy/Long + Sell/Short buttons */
+.order-buttons-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.order-buttons-row .order-submit-btn {
+  flex: 1;
+  margin-bottom: 0;
+}
 
 /* Size percentage buttons */
 .size-pct-btns {
@@ -8353,7 +8359,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     overflow: visible !important;
   }
 
-  /* Hide chart on mobile */
+  /* Hide chart on mobile — too small to be useful */
   .binance-chart-section {
     display: none !important;
   }
@@ -8433,12 +8439,14 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   display: none;
 }
 .binance-chart-section.chart-expanded .chart-expand-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border-bottom: 1px solid #1e2329;
-  background: #0b0e11;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: auto;
 }
 .binance-chart-section.chart-expanded .binance-chart-area {
   flex: 1;

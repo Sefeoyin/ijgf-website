@@ -104,9 +104,14 @@ function MarketsPage() {
     }
 
     return () => {
-      if (tvWidgetRef.current && typeof tvWidgetRef.current.remove === 'function') {
-        tvWidgetRef.current.remove()
+      try {
+        if (tvWidgetRef.current && typeof tvWidgetRef.current.remove === 'function') {
+          tvWidgetRef.current.remove()
+        }
+      } catch (e) {
+        // TradingView widget cleanup can fail during unmount — ignore
       }
+      tvWidgetRef.current = null
     }
   }, [selectedPair])
 
@@ -187,24 +192,17 @@ function MarketsPage() {
             </div>
           </div>
 
-          {/* Expand bar — directly above the chart */}
+          {/* Expand/retract icon — Binance-style small diagonal arrows */}
           <div className="chart-expand-bar">
-            <button className="chart-expand-btn" onClick={() => setChartExpanded(e => !e)}>
+            <button className="chart-expand-btn" onClick={() => setChartExpanded(e => !e)} title={chartExpanded ? 'Retract' : 'Expand'}>
               {chartExpanded ? (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                  Close
-                </>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                </svg>
               ) : (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                  </svg>
-                  Expand Chart
-                </>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
               )}
             </button>
           </div>
@@ -293,21 +291,7 @@ function MarketsPage() {
             <button className="leverage-display">{leverage}x</button>
           </div>
 
-          <div className="buy-sell-tabs">
-            <button
-              className={`bs-tab buy ${orderSide === 'buy' ? 'active' : ''}`}
-              onClick={() => setOrderSide('buy')}
-            >
-              Buy / Long
-            </button>
-            <button
-              className={`bs-tab sell ${orderSide === 'sell' ? 'active' : ''}`}
-              onClick={() => setOrderSide('sell')}
-            >
-              Sell / Short
-            </button>
-          </div>
-
+          {/* Order type: Limit / Market / Stop Limit */}
           <div className="order-type-selector">
             {['Limit', 'Market', 'Stop Limit'].map(t => (
               <button
@@ -325,7 +309,7 @@ function MarketsPage() {
             <span className="avbl-value">{accountBalance.toLocaleString()} USDT</span>
           </div>
 
-          {/* Price input: [−] [input | BASE ASSET] [+] */}
+          {/* Price input */}
           {orderType !== 'Market' && (
             <div className="entry-input-group">
               <label>Price</label>
@@ -345,7 +329,7 @@ function MarketsPage() {
             </div>
           )}
 
-          {/* Size input: [−] [input | USDT] [+] */}
+          {/* Size input */}
           <div className="entry-input-group">
             <label>Size</label>
             <div className="input-row">
@@ -394,9 +378,15 @@ function MarketsPage() {
             TP &amp; SL required by IJGF rules
           </p>
 
-          <button className={`order-submit-btn ${orderSide === 'buy' ? 'buy-long-btn' : 'sell-short-btn'}`}>
-            {orderSide === 'buy' ? '▲ Buy / Long' : '▼ Sell / Short'}
-          </button>
+          {/* Buy/Long and Sell/Short — BOTH always visible, side by side like Binance */}
+          <div className="order-buttons-row">
+            <button className="order-submit-btn buy-long-btn" onClick={() => setOrderSide('buy')}>
+              Buy/Long
+            </button>
+            <button className="order-submit-btn sell-short-btn" onClick={() => setOrderSide('sell')}>
+              Sell/Short
+            </button>
+          </div>
 
           <div className="risk-metrics-panel">
             <div className="risk-metric-row">
