@@ -20,8 +20,11 @@ function MarketsPage() {
   const [positions] = useState([])
   const [isLoadingPrice, setIsLoadingPrice] = useState(true)
   const [chartExpanded, setChartExpanded] = useState(false)
+  const [mobileChartView, setMobileChartView] = useState(false)
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
+  const mobileChartRef = useRef(null)
+  const mobileTvWidgetRef = useRef(null)
 
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
 
@@ -112,6 +115,48 @@ function MarketsPage() {
     }
   }, [selectedPair])
 
+  // Mobile chart — initialize TradingView when mobile chart overlay opens
+  useEffect(() => {
+    if (!mobileChartView || !mobileChartRef.current) return
+    mobileChartRef.current.innerHTML = ''
+
+    const mobileConfig = {
+      autosize: true,
+      symbol: getTVSymbol(selectedPair),
+      interval: '60',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      toolbar_bg: '#0d0d0d',
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      hide_side_toolbar: true,
+      allow_symbol_change: false,
+      container_id: 'tv_chart_container_mobile',
+      backgroundColor: '#0d0d0d',
+      gridColor: 'rgba(255,255,255,0.04)',
+      hide_volume: false,
+      disabled_features: [
+        'header_symbol_search', 'header_compare', 'header_screenshot',
+        'header_undo_redo', 'use_localstorage_for_settings', 'border_around_the_chart',
+      ],
+    }
+
+    if (typeof window.TradingView !== 'undefined') {
+      mobileTvWidgetRef.current = new window.TradingView.widget(mobileConfig)
+    }
+
+    return () => {
+      try {
+        if (mobileTvWidgetRef.current && typeof mobileTvWidgetRef.current.remove === 'function') {
+          mobileTvWidgetRef.current.remove()
+        }
+      } catch { /* ignore */ }
+      mobileTvWidgetRef.current = null
+    }
+  }, [mobileChartView, selectedPair])
+
   const formatPrice = (num) => {
     if (!num || num === 0) return '0.00'
     if (num < 1) return num.toFixed(6)
@@ -189,8 +234,14 @@ function MarketsPage() {
             </div>
           </div>
 
-          {/* Expand/retract icon — Binance-style diagonal arrows */}
-          <div className="chart-expand-bar">
+          {/* TradingView Chart with expand overlay */}
+          <div className="binance-chart-area">
+            <div
+              id="tv_chart_container"
+              ref={chartContainerRef}
+              style={{ width: '100%', height: '100%' }}
+            />
+            {/* Expand/retract icon overlaid on chart, positioned next to TradingView toolbar icons */}
             <button className="chart-expand-btn" onClick={() => setChartExpanded(prev => !prev)} title={chartExpanded ? 'Retract' : 'Expand'}>
               {chartExpanded ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -202,15 +253,6 @@ function MarketsPage() {
                 </svg>
               )}
             </button>
-          </div>
-
-          {/* TradingView Chart */}
-          <div className="binance-chart-area">
-            <div
-              id="tv_chart_container"
-              ref={chartContainerRef}
-              style={{ width: '100%', height: '100%' }}
-            />
           </div>
         </div>
 
@@ -286,6 +328,15 @@ function MarketsPage() {
           <div className="order-entry-header">
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display">{leverage}x</button>
+            {/* Mobile chart icon — 2 candles, opens full-screen chart page */}
+            <button className="mobile-chart-btn" onClick={() => setMobileChartView(true)} title="Chart">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="8" y1="6" x2="8" y2="18"/>
+                <line x1="16" y1="4" x2="16" y2="20"/>
+                <rect x="6" y="9" width="4" height="5" fill="currentColor" stroke="none" rx="0.5"/>
+                <rect x="14" y="8" width="4" height="7" fill="currentColor" stroke="none" rx="0.5"/>
+              </svg>
+            </button>
           </div>
 
           <div className="order-type-selector">
@@ -475,6 +526,33 @@ function MarketsPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile full-screen chart page */}
+      {mobileChartView && (
+        <div className="mobile-chart-overlay">
+          <div className="mobile-chart-header">
+            <button className="mobile-chart-back" onClick={() => setMobileChartView(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div className="mobile-chart-pair">
+              <span className="pair-symbol">{selectedPair}</span>
+              <span className="pair-type">Perp</span>
+            </div>
+            <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+              {formatPrice(marketPrice)}
+            </span>
+          </div>
+          <div className="mobile-chart-body">
+            <div
+              id="tv_chart_container_mobile"
+              ref={mobileChartRef}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
