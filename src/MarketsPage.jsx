@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import './MarketsPage.css'
 
 function MarketsPage() {
-  const [selectedPair] = useState('BTCUSDT')
+  const [selectedPair, setSelectedPair] = useState('BTCUSDT')
+  const [showPairDropdown, setShowPairDropdown] = useState(false)
   const [marketPrice, setMarketPrice] = useState(0)
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
@@ -26,6 +27,12 @@ function MarketsPage() {
   const mobileChartRef = useRef(null)
   const mobileTvWidgetRef = useRef(null)
 
+  const AVAILABLE_PAIRS = [
+    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+    'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+    'MATICUSDT', 'LTCUSDT', 'BCHUSDT', 'ATOMUSDT', 'NEARUSDT'
+  ]
+
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
 
   // Fetch live price from CoinGecko
@@ -36,6 +43,16 @@ function MarketsPage() {
       'SOLUSDT': 'solana',
       'BNBUSDT': 'binancecoin',
       'DOGEUSDT': 'dogecoin',
+      'XRPUSDT': 'ripple',
+      'ADAUSDT': 'cardano',
+      'AVAXUSDT': 'avalanche-2',
+      'DOTUSDT': 'polkadot',
+      'LINKUSDT': 'chainlink',
+      'MATICUSDT': 'matic-network',
+      'LTCUSDT': 'litecoin',
+      'BCHUSDT': 'bitcoin-cash',
+      'ATOMUSDT': 'cosmos',
+      'NEARUSDT': 'near',
     }
 
     const fetchPrice = async () => {
@@ -198,10 +215,26 @@ function MarketsPage() {
           {/* Pair Header */}
           <div className="binance-pair-header">
             <div className="pair-info">
-              <div className="pair-name-row">
+              <div className="pair-name-row" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
                 <span className="pair-symbol">{selectedPair}</span>
                 <span className="pair-type">Perp</span>
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ marginLeft: 4, opacity: 0.5 }}>
+                  <path d="M2 4l4 4 4-4"/>
+                </svg>
               </div>
+              {showPairDropdown && (
+                <div className="pair-dropdown">
+                  {AVAILABLE_PAIRS.map(pair => (
+                    <button
+                      key={pair}
+                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                      onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
+                    >
+                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="pair-price-data">
                 <span className={`main-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
                   {isLoadingPrice ? '—' : formatPrice(marketPrice)}
@@ -326,9 +359,28 @@ function MarketsPage() {
         {/* RIGHT: Order Entry */}
         <div className="binance-order-entry">
           <div className="order-entry-header">
+            <div className="mobile-pair-selector" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer', position: 'relative' }}>
+              <span className="pair-symbol-mobile">{selectedPair.replace('USDT', '')}</span>
+              <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5 }}>
+                <path d="M2 4l4 4 4-4"/>
+              </svg>
+              {showPairDropdown && (
+                <div className="pair-dropdown" style={{ top: '100%', left: 0 }}>
+                  {AVAILABLE_PAIRS.map(pair => (
+                    <button
+                      key={pair}
+                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                      onClick={(ev) => { ev.stopPropagation(); setSelectedPair(pair); setShowPairDropdown(false) }}
+                    >
+                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display">{leverage}x</button>
-            {/* Mobile chart icon — 2 candles, opens full-screen chart page */}
+            {/* Mobile chart icon */}
             <button className="mobile-chart-btn" onClick={() => setMobileChartView(true)} title="Chart">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="8" y1="6" x2="8" y2="18"/>
@@ -536,9 +588,25 @@ function MarketsPage() {
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
             </button>
-            <div className="mobile-chart-pair">
+            <div className="mobile-chart-pair" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer', position: 'relative' }}>
               <span className="pair-symbol">{selectedPair}</span>
               <span className="pair-type">Perp</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ marginLeft: 4, opacity: 0.5 }}>
+                <path d="M2 4l4 4 4-4"/>
+              </svg>
+              {showPairDropdown && (
+                <div className="pair-dropdown" style={{ top: '100%', left: 0 }}>
+                  {AVAILABLE_PAIRS.map(pair => (
+                    <button
+                      key={pair}
+                      className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                      onClick={(ev) => { ev.stopPropagation(); setSelectedPair(pair); setShowPairDropdown(false) }}
+                    >
+                      {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
               {formatPrice(marketPrice)}

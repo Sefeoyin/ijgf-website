@@ -7759,19 +7759,19 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 }
 .chart-expand-btn {
   position: absolute;
-  bottom: 50px;
-  right: 6px;
-  background: rgba(30,35,41,0.9);
-  border: 1px solid rgba(255,255,255,0.1);
+  bottom: 48px;
+  right: 8px;
+  background: rgba(30,35,41,0.92);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 4px;
   color: var(--text-muted, #848e9c);
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 20;
+  z-index: 30;
   transition: all 0.15s;
   padding: 0;
 }
@@ -8366,8 +8366,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     display: flex !important;
     flex-direction: column;
     grid-column: 1;
-    height: 70vh;
-    min-height: 400px;
+    height: 60vh;
+    min-height: 350px;
     border-right: 1px solid var(--border-color, #2b3139);
   }
 
@@ -8376,7 +8376,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
     display: flex !important;
     flex-direction: column;
     grid-column: 2;
-    height: 70vh;
+    height: 60vh;
     overflow-y: auto;
   }
 
@@ -8456,8 +8456,8 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
   .binance-trading-grid {
     grid-template-columns: 1fr 1fr !important;
   }
-  .binance-orderbook-column { height: 65vh; }
-  .binance-order-entry { height: 65vh; }
+  .binance-orderbook-column { height: 55vh; }
+  .binance-order-entry { height: 55vh; }
 }
 
 
@@ -10006,5 +10006,86 @@ body[data-theme="day"] .dash-header {
   }
   .mobile-chart-body {
     flex: 1;
+  }
+}
+
+/* ============================================================
+   Pair Selector Dropdown
+   ============================================================ */
+.pair-name-row {
+  position: relative;
+}
+
+.pair-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #1e2329;
+  border: 1px solid #2b3139;
+  border-radius: 6px;
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  padding: 4px 0;
+}
+
+.pair-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #eaecef;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.pair-dropdown-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+.pair-dropdown-item.active {
+  background: rgba(124,58,237,0.15);
+  color: #a78bfa;
+}
+.pair-dropdown-quote {
+  color: #848e9c;
+  font-weight: 400;
+  font-size: 11px;
+}
+
+/* Scrollbar for dropdown */
+.pair-dropdown::-webkit-scrollbar { width: 4px; }
+.pair-dropdown::-webkit-scrollbar-track { background: transparent; }
+.pair-dropdown::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
+
+/* Mobile pair selector in order entry header */
+.mobile-pair-selector {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-pair-selector {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
+  .pair-symbol-mobile {
+    font-size: 13px;
+    font-weight: 700;
+    color: #eaecef;
+  }
+  /* Adjust dropdown for mobile */
+  .mobile-pair-selector .pair-dropdown {
+    min-width: 160px;
+    max-height: 250px;
+    left: 0;
+    top: 100%;
   }
 }
