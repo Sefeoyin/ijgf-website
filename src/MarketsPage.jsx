@@ -33,10 +33,11 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     account, positions, openOrders, recentTrades,
     currentPrice, currentPriceData, hasPrices, priceMode,
     bids: liveBids, asks: liveAsks, obMode,
-    equity, totalUnrealizedPNL,
+    equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
+    isLoading, error: tradingError,
   } = trading
 
   // Use simulated order book when WS order book isn't connected
@@ -446,6 +447,22 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
         {/* RIGHT: Order Entry */}
         <div className="binance-order-entry">
+          {/* Error display for debugging */}
+          {trading.error && (
+            <div style={{
+              padding: '8px 12px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '6px',
+              color: '#ef4444',
+              fontSize: '11px',
+              marginBottom: '8px',
+              wordBreak: 'break-word'
+            }}>
+              ⚠️ {trading.error}
+            </div>
+          )}
+
           {/* Leverage bar — clickable to open modal */}
           <div className="order-entry-header">
             <button className="isolated-btn">Isolated</button>
@@ -599,16 +616,15 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </button>
           </div>
 
-          {/* Risk metrics */}
+          {/* Risk metrics — uses EQUITY not just balance */}
           <div className="risk-metrics-panel">
             <div className="risk-metric-row">
               <span className="rm-label">
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="#22c55e"><circle cx="8" cy="8" r="6"/></svg>
                 Profit Target
               </span>
-              <span className="rm-value">
-                ${account ? (account.current_balance - account.initial_balance).toFixed(0) : '0'}
-                {' / '}${account?.profit_target?.toFixed(0) || '1,000'}
+              <span className={`rm-value ${equityProfit >= 0 ? 'positive' : ''}`}>
+                ${equityProfit.toFixed(0)} / ${account?.profit_target?.toFixed(0) || '1,000'}
               </span>
             </div>
             <div className="risk-metric-row">
@@ -618,7 +634,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 </svg>
                 Daily Loss
               </span>
-              <span className="rm-value">$0 / ${account?.max_daily_loss?.toFixed(0) || '400'}</span>
+              <span className="rm-value">
+                ${drawdownUsed.toFixed(0)} / ${account?.max_daily_loss?.toFixed(0) || '400'}
+              </span>
             </div>
             <div className="risk-metric-row">
               <span className="rm-label">

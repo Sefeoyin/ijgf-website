@@ -210,15 +210,19 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 12px 12px 8px;
+  padding: 10px 12px 8px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #2b3139 transparent;
   background: #0b0e11;
+  max-height: calc(100vh - 56px);
 }
 
-.order-entry-header { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+.order-entry-header { 
+  display: flex; gap: 6px; align-items: center; margin-bottom: 8px;
+  position: sticky; top: 0; z-index: 2; background: #0b0e11; padding-top: 2px;
+}
 .isolated-btn, .leverage-display {
   background: #1e2329; border: 1px solid #2b3139; border-radius: 4px;
   color: #848e9c; font-size: 11px; padding: 3px 8px; cursor: pointer; transition: all 0.15s;
@@ -241,8 +245,9 @@
 
 .binance-order-entry .order-type-selector {
   display: flex !important; border: 1px solid #2b3139 !important; border-radius: 6px !important;
-  overflow: hidden !important; margin-bottom: 10px !important;
-  background: transparent !important; padding: 0 !important; gap: 0 !important;
+  overflow: hidden !important; margin-bottom: 8px !important;
+  background: #0b0e11 !important; padding: 0 !important; gap: 0 !important;
+  position: sticky; top: 32px; z-index: 2;
 }
 .ot-btn {
   flex: 1; background: transparent; border: none; border-right: 1px solid #2b3139;

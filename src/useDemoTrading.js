@@ -59,7 +59,11 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
 
   // --------------- Load account state ---------------
   const refreshState = useCallback(async () => {
-    if (!userId) return
+    if (!userId) {
+      console.warn('useDemoTrading: no userId provided')
+      setIsLoading(false)
+      return
+    }
     try {
       const state = await getAccountState(userId)
       setAccount(state.account)
@@ -69,7 +73,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setError(null)
     } catch (err) {
       console.error('Error loading account state:', err)
-      setError(err.message)
+      setError(err.message || 'Failed to load demo account')
     } finally {
       setIsLoading(false)
     }
@@ -276,22 +280,24 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     }
   }, [refreshState, addNotification])
 
-  // --------------- Derived stats ---------------
+  // --------------- Derived stats (ALL use EQUITY, not raw balance) ---------------
   const winRate = account && account.total_trades > 0
     ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
     : '0.0'
 
+  // Equity-based profit: how far toward target INCLUDING open positions
+  const equityProfit = account ? equity - account.initial_balance : 0
+
   const profitTargetProgress = account
-    ? Math.min(100, Math.max(0,
-        ((account.current_balance - account.initial_balance) / account.profit_target) * 100
-      ))
+    ? Math.min(100, Math.max(0, (equityProfit / account.profit_target) * 100))
     : 0
 
+  // Drawdown based on equity, not raw balance
   const drawdownUsed = account
-    ? Math.max(0, account.initial_balance - account.current_balance)
+    ? Math.max(0, account.initial_balance - equity)
     : 0
 
-  const drawdownPercent = account
+  const drawdownPercent = account && account.max_total_drawdown > 0
     ? (drawdownUsed / account.max_total_drawdown) * 100
     : 0
 
@@ -321,6 +327,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
 
     // Derived
     equity,
+    equityProfit,
     totalUnrealizedPNL,
     winRate,
     profitTargetProgress,
