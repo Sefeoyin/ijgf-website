@@ -10651,3 +10651,172 @@ body[data-theme="day"] .footer-text {
     min-height: auto !important;
   }
 }
+
+/* ============================================================
+   DASHBOARD OVERVIEW — Widget height & layout fixes
+   ============================================================ */
+
+/* Desktop: Increase widget heights so markets shows 3-4 tokens */
+.equity-chart-widget {
+  height: 380px !important;
+}
+.markets-widget {
+  height: 420px !important;
+  overflow: visible !important;
+}
+.markets-widget .markets-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 120px;
+}
+
+/* Equity chart Y-axis alignment fix */
+.chart-y-axis {
+  min-width: 60px !important;
+  text-align: right !important;
+  align-items: flex-end !important;
+  padding-right: 4px;
+}
+.chart-y-axis span {
+  display: block;
+  text-align: right;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart container — ensure enough height */
+.chart-container {
+  flex: 1;
+  min-height: 140px;
+}
+
+/* Market item — ensure proper layout */
+.market-item {
+  min-height: 44px;
+  padding: 0.4rem 0.5rem !important;
+  margin: 0 !important;
+}
+
+/* Market controls — tighter spacing */
+.market-controls {
+  margin-bottom: 0.375rem;
+}
+.market-search {
+  margin-bottom: 0.5rem !important;
+}
+
+/* ============================================================
+   MOBILE DASHBOARD — tighter padding, closer to edges
+   ============================================================ */
+@media (max-width: 768px) {
+  .dashboard-overview {
+    padding: 0 !important;
+    gap: 0.625rem !important;
+    max-height: none !important;
+  }
+
+  .dash-content {
+    padding: 0.5rem 0.5rem !important;
+  }
+
+  /* Stats cards — tighter gap and padding */
+  .stats-cards-row {
+    gap: 0.5rem !important;
+  }
+  .stats-card {
+    padding: 0.625rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Widget grid gap */
+  .dashboard-widgets-grid {
+    gap: 0.625rem !important;
+  }
+
+  /* All widgets — less padding, full width feel */
+  .equity-chart-widget,
+  .markets-widget,
+  .active-challenges-widget,
+  .history-widget {
+    padding: 0.75rem 0.75rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Equity chart mobile — proper height */
+  .equity-chart-widget {
+    height: 340px !important;
+  }
+
+  /* Markets widget mobile — taller to show 3-4 tokens */
+  .markets-widget {
+    height: 400px !important;
+  }
+
+  /* Market search — tighter */
+  .market-search {
+    margin-bottom: 0.375rem !important;
+  }
+  .search-input {
+    padding: 0.375rem 2rem 0.375rem 2.25rem !important;
+    font-size: 14px !important;
+  }
+
+  /* Market controls — compact */
+  .market-controls {
+    margin-bottom: 0.25rem !important;
+    gap: 0.375rem !important;
+  }
+  .filter-toggle {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+  .sort-select {
+    padding: 0.25rem 0.375rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Market items — compact rows */
+  .market-item {
+    padding: 0.35rem 0.25rem !important;
+    min-height: 40px;
+  }
+  .market-symbol {
+    font-size: 0.8rem !important;
+  }
+  .market-name {
+    font-size: 0.7rem !important;
+  }
+  .market-price {
+    font-size: 0.8rem !important;
+  }
+  .market-change {
+    font-size: 0.7rem !important;
+  }
+
+  /* Equity chart Y-axis mobile — tighter */
+  .chart-y-axis {
+    min-width: 50px !important;
+    font-size: 0.65rem !important;
+  }
+
+  /* View All Markets button */
+  .btn-view-all {
+    padding: 0.5rem !important;
+    font-size: 0.8rem !important;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 400px) {
+  .dash-content {
+    padding: 0.375rem 0.375rem !important;
+  }
+
+  .equity-chart-widget,
+  .markets-widget,
+  .active-challenges-widget,
+  .history-widget {
+    padding: 0.625rem !important;
+  }
+}
