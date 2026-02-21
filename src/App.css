@@ -5438,7 +5438,7 @@ body[data-theme="day"] .footer {
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
-  height: 280px;
+  height: 320px;
 }
 
 .active-challenges-widget h3 {
@@ -5573,7 +5573,7 @@ body[data-theme="day"] .footer {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 280px;
+  height: 320px;
 }
 
 .history-widget .widget-header {
@@ -6375,8 +6375,8 @@ body[data-theme="day"] .footer {
   
   .active-challenges-widget,
   .history-widget {
-    height: auto;
-    min-height: 250px;
+    height: 320px;
+    min-height: 280px;
   }
 }
 
@@ -8877,6 +8877,11 @@ body[data-theme="day"] .dash-header {
   flex-direction: column;
   gap: 1rem;
   min-height: 0;
+}
+
+.active-challenges-widget,
+.history-widget {
+  height: 320px;
 }
 
 .widget-header {
