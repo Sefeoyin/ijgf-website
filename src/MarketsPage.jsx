@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useDemoTrading } from './hooks/useDemoTrading'
+import { useDemoTrading } from './useDemoTrading'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {

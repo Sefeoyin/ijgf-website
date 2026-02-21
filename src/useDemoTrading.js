@@ -23,7 +23,7 @@ import {
   checkPositionTPSL,
   computeUnrealizedPNL,
   resetDemoAccount,
-} from '../services/tradingService'
+} from './tradingService'
 
 const ALL_PAIRS = [
   'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
