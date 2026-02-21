@@ -4872,8 +4872,6 @@ body[data-theme="day"] .footer {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
 }
 
 /* Stats Cards Row - More Compact */
