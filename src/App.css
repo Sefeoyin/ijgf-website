@@ -9901,97 +9901,76 @@ body[data-theme="day"] .dash-header {
    Mobile full-screen chart overlay
    ============================================================ */
 .mobile-chart-overlay {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background: #0b0e11;
 }
 
-@media (max-width: 768px) {
-  .mobile-chart-overlay {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    background: #0b0e11;
-  }
-
-  .mobile-chart-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
-    background: #0b0e11;
-    border-bottom: 1px solid #1e2329;
-    flex-shrink: 0;
-  }
-
-  .mobile-chart-back {
-    background: none;
-    border: none;
-    color: #eaecef;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-  }
-
-  .mobile-chart-pair {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .mobile-chart-pair .pair-symbol {
-    font-size: 16px;
-    font-weight: 700;
-    color: #eaecef;
-  }
-
-  .mobile-chart-pair .pair-type {
-    font-size: 10px;
-    padding: 1px 4px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 2px;
-    color: #848e9c;
-  }
-
-  .mobile-chart-price {
-    margin-left: auto;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .mobile-chart-price.positive { color: #0ecb81; }
-  .mobile-chart-price.negative { color: #f6465d; }
-
-  .mobile-chart-body {
-    flex: 1;
-    min-height: 0;
-    background: #0d0d0d;
-    width: 100%;
-    overflow: hidden;
-  }
+.mobile-chart-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #0b0e11;
+  border-bottom: 1px solid #1e2329;
+  flex-shrink: 0;
 }
 
-/* Landscape — minimize header, maximize chart */
-@media (orientation: landscape) and (max-height: 500px) {
-  .mobile-chart-header {
-    padding: 2px 8px;
-  }
-  .mobile-chart-pair .pair-symbol {
-    font-size: 12px !important;
-  }
-  .mobile-chart-price {
-    font-size: 12px !important;
-  }
-  .mobile-chart-back svg {
-    width: 16px;
-    height: 16px;
-  }
+.mobile-chart-back {
+  background: none;
+  border: none;
+  color: #eaecef;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
 }
+
+.mobile-chart-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-chart-pair .pair-symbol {
+  font-size: 16px;
+  font-weight: 700;
+  color: #eaecef;
+}
+
+.mobile-chart-pair .pair-type {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  color: #848e9c;
+}
+
+.mobile-chart-price {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mobile-chart-price.positive { color: #0ecb81; }
+.mobile-chart-price.negative { color: #f6465d; }
+
+.mobile-chart-body {
+  flex: 1;
+  min-height: 0;
+  background: #0d0d0d;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Landscape chart styles moved to main landscape block below */
 
 /* ============================================================
    Pair Selector Dropdown — Fixed overlay
@@ -10545,10 +10524,13 @@ body[data-theme="day"] .footer-text {
 
 /* ============================================================
    LANDSCAPE MOBILE FIX — prevent desktop layout on phone landscape
-   Touch devices in landscape should keep mobile layout
+   max-height: 500px catches ALL phones in landscape
+   (desktop monitors are always taller than 500px)
    ============================================================ */
-@media (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {
-  /* Force mobile markets layout on touch devices in landscape */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* === MARKETS PAGE === */
+  
+  /* Force mobile 2-column layout */
   .binance-trading-grid {
     grid-template-columns: 1fr 1fr !important;
     grid-template-rows: auto !important;
@@ -10557,80 +10539,115 @@ body[data-theme="day"] .footer-text {
     overflow: visible !important;
   }
 
+  /* Hide chart section (use chart overlay instead) */
   .binance-chart-section {
     display: none !important;
   }
 
+  /* Order book — left column, full height */
   .binance-orderbook-column {
     display: flex !important;
     flex-direction: column;
     grid-column: 1;
-    height: 90vh;
+    height: calc(100vh - 80px) !important;
+    min-height: auto !important;
     border-right: 1px solid var(--border-color, #2b3139);
   }
 
+  /* Order entry — right column, full height */
   .binance-order-entry {
     display: flex !important;
     flex-direction: column;
     grid-column: 2;
-    height: 90vh;
+    height: calc(100vh - 80px) !important;
     overflow-y: auto;
   }
 
+  /* Bottom section — single column */
   .binance-bottom-section {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
-  .account-panel { display: none; }
+  .account-panel { display: none !important; }
 
-  /* Keep mobile pair info bar visible */
+  /* Show mobile pair info bar */
   .mobile-pair-info-bar {
     display: flex !important;
+    flex-direction: column;
+    padding: 4px 12px !important;
   }
 
-  /* Mobile chart overlay fills landscape */
-  .mobile-chart-overlay {
-    display: flex !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
+  /* Show mobile chart button */
   .mobile-chart-btn {
     display: flex !important;
   }
 
+  /* Hide desktop expand button */
   .chart-expand-btn-header {
     display: none !important;
   }
-}
 
-/* Also handle landscape for general pages on touch devices */
-@media (orientation: landscape) and (max-height: 500px) and (hover: none) {
-  /* Prevent horizontal overflow on all pages */
+  /* === MOBILE CHART OVERLAY — must fill entire landscape viewport === */
+  .mobile-chart-overlay {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: #0b0e11 !important;
+  }
+
+  /* Compact chart header in landscape */
+  .mobile-chart-header {
+    display: flex !important;
+    padding: 2px 8px !important;
+    min-height: auto !important;
+    flex-shrink: 0 !important;
+  }
+  .mobile-chart-pair .pair-symbol {
+    font-size: 13px !important;
+  }
+  .mobile-chart-price {
+    font-size: 12px !important;
+  }
+  .mobile-chart-back svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Chart body fills remaining space */
+  .mobile-chart-body {
+    flex: 1 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+  }
+
+  /* === GENERAL PAGE FIXES === */
   body, html, #root, .App {
     max-width: 100vw;
     overflow-x: hidden;
   }
 
-  /* Navigation adjustments */
   .nav {
     padding: 0.5rem 1rem;
   }
 
-  /* Hero section — reduce heights */
   .hero {
     min-height: auto;
     padding-top: 60px;
     padding-bottom: 40px;
   }
 
-  /* Section containers */
   .section-container {
     padding-top: 2rem;
     padding-bottom: 2rem;
+  }
+
+  /* Dashboard header compact */
+  .dash-header {
+    padding: 4px 12px !important;
+    min-height: auto !important;
   }
 }
