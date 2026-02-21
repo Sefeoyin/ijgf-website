@@ -463,16 +463,34 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           )}
 
           {/* Leverage bar — clickable to open modal */}
-          <div className="order-entry-header">
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display" onClick={openLeverageModal}>{leverage}x</button>
           </div>
 
-          <div className="order-type-selector">
+          {/* Order type tabs — forced visible with inline styles */}
+          <div style={{
+            display: 'flex',
+            border: '1px solid #2b3139',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            marginBottom: '8px',
+          }}>
             {['Limit', 'Market', 'Stop Limit'].map(t => (
               <button
                 key={t}
-                className={`ot-btn ${orderType === t ? 'active' : ''}`}
+                style={{
+                  flex: 1,
+                  background: orderType === t ? 'rgba(124,58,237,0.15)' : 'transparent',
+                  border: 'none',
+                  borderRight: t !== 'Stop Limit' ? '1px solid #2b3139' : 'none',
+                  color: orderType === t ? '#a78bfa' : '#848e9c',
+                  fontSize: '12px',
+                  fontWeight: orderType === t ? '600' : '400',
+                  padding: '8px 4px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
                 onClick={() => setOrderType(t)}
               >
                 {t}
