@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
+import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
@@ -27,13 +28,21 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
   const {
     account, positions, openOrders, recentTrades,
-    currentPrice, currentPriceData, isConnected,
-    bids, asks,
+    currentPrice, currentPriceData, isConnected, priceMode,
+    bids: liveBids, asks: liveAsks, obMode,
     equity, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
+
+  // Use simulated order book when WS order book isn't connected
+  const simOb = useMemo(
+    () => generateSimulatedOrderBook(currentPrice, 8),
+    [currentPrice]
+  )
+  const bids = obMode === 'ws' ? liveBids : simOb.bids
+  const asks = obMode === 'ws' ? liveAsks : simOb.asks
 
   const AVAILABLE_PAIRS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
@@ -231,10 +240,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         ))}
       </div>
 
-      {/* Connection status */}
-      {!isConnected && (
+      {/* Connection status — only show if neither WS nor polling is working */}
+      {!isConnected && priceMode === 'connecting' && (
         <div className="ws-status disconnected">
-          <span className="ws-dot"></span> Reconnecting to price feed...
+          <span className="ws-dot"></span> Connecting to price feed...
         </div>
       )}
 
@@ -322,9 +331,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         <div className="binance-orderbook-column">
           <div className="orderbook-header">
             <span>Order Book</span>
-            <span className={`ob-status ${isConnected ? 'live' : ''}`}>
+            <span className={`ob-status ${obMode === 'ws' ? 'live' : 'simulated'}`}>
               <span className="live-dot"></span>
-              {isConnected ? 'Live' : '...'}
+              {obMode === 'ws' ? 'Live' : obMode === 'simulated' ? 'Simulated' : '...'}
             </span>
           </div>
 
@@ -336,11 +345,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Sell orders (asks) */}
           <div className="ob-sells">
-            {(asks.length > 0 ? asks.slice(0, 8) : [...Array(8)].map((_, i) => ({
-              price: currentPrice + (8 - i) * 12,
-              qty: ((i * 1.3 + 0.7) % 3.5 + 0.1),
-              total: 0,
-            }))).reverse().map((row, i) => (
+            {asks.slice(0, 8).reverse().map((row, i) => (
               <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price negative">{fmt(row.price)}</span>
                 <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
@@ -365,11 +370,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Buy orders (bids) */}
           <div className="ob-buys">
-            {(bids.length > 0 ? bids.slice(0, 8) : [...Array(8)].map((_, i) => ({
-              price: currentPrice - (i + 1) * 12,
-              qty: ((i * 0.9 + 1.1) % 3.5 + 0.1),
-              total: 0,
-            }))).map((row, i) => (
+            {bids.slice(0, 8).map((row, i) => (
               <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price positive">{fmt(row.price)}</span>
                 <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>

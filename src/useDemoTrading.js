@@ -42,8 +42,8 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [notifications, setNotifications] = useState([])
 
   // --------------- WebSocket prices ---------------
-  const { prices, priceMap, isConnected } = useBinanceWebSocket(ALL_PAIRS)
-  const { bids, asks, isConnected: obConnected } = useBinanceOrderBook(selectedPair, 10)
+  const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(ALL_PAIRS)
+  const { bids, asks, isConnected: obConnected, mode: obMode } = useBinanceOrderBook(selectedPair, 10)
 
   // Current pair price
   const currentPrice = priceMap[selectedPair] || 0
@@ -300,11 +300,13 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     currentPrice,
     currentPriceData,
     isConnected,
+    priceMode,
 
     // Order book
     bids,
     asks,
     obConnected,
+    obMode,
 
     // Derived
     equity,
