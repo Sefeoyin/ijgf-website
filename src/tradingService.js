@@ -1,16 +1,11 @@
 /**
- * tradingService.js
- *
- * All demo-trading logic in one service module.
- * Works directly with Supabase (RLS protects per-user data).
+ * tradingService.js — Demo trading logic
+ * All Supabase calls use anon key + RLS
  */
 
 import { supabase } from './supabase'
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-const FEE_RATE = 0.0004 // 0.04% taker fee (Binance futures standard)
+const FEE_RATE = 0.0004
 
 const CHALLENGE_CONFIGS = {
   '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 200,  maxDrawdown: 300  },
@@ -20,17 +15,18 @@ const CHALLENGE_CONFIGS = {
   '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 4000, maxDrawdown: 6000 },
 }
 
-const MAX_LEVERAGE = {
+export const MAX_LEVERAGE = {
   BTCUSDT: 10, ETHUSDT: 10,
   DEFAULT: 5,
 }
 
-export { MAX_LEVERAGE }
-
 // ---------------------------------------------------------------------------
-// Account helpers
+// Account
 // ---------------------------------------------------------------------------
 export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
+  if (!userId) throw new Error('No user ID provided')
+
+  // 1) Try active
   const { data: existing, error: fetchErr } = await supabase
     .from('demo_accounts')
     .select('*')
@@ -39,9 +35,23 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     .eq('status', 'active')
     .maybeSingle()
 
-  if (fetchErr) throw fetchErr
+  if (fetchErr) {
+    console.error('[Trading] Fetch account error:', fetchErr)
+    throw new Error(`Failed to fetch account: ${fetchErr.message}`)
+  }
   if (existing) return existing
 
+  // 2) Check any status (failed/passed/expired)
+  const { data: anyAccount } = await supabase
+    .from('demo_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_type', challengeType)
+    .maybeSingle()
+
+  if (anyAccount) return anyAccount
+
+  // 3) Create new
   const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
   const { data: account, error: insertErr } = await supabase
     .from('demo_accounts')
@@ -59,7 +69,11 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     .select()
     .single()
 
-  if (insertErr) throw insertErr
+  if (insertErr) {
+    console.error('[Trading] Create account error:', insertErr)
+    throw new Error(`Failed to create demo account: ${insertErr.message}`)
+  }
+  console.log('[Trading] Created demo account:', account.id)
   return account
 }
 
@@ -96,18 +110,14 @@ export async function getAccountState(userId) {
 }
 
 // ---------------------------------------------------------------------------
-// Place a market order (instant fill at current price)
+// Market Order
 // ---------------------------------------------------------------------------
 export async function placeMarketOrder({
-  userId,
-  symbol,
-  side,
-  sizeUsdt,
-  leverage,
-  currentPrice,
-  takeProfit = null,
-  stopLoss = null,
+  userId, symbol, side, sizeUsdt, leverage, currentPrice,
+  takeProfit = null, stopLoss = null,
 }) {
+  console.log('[Trading] Market order:', { symbol, side, sizeUsdt, leverage, currentPrice })
+
   if (!currentPrice || currentPrice <= 0) throw new Error('Invalid price')
   if (!sizeUsdt || sizeUsdt <= 0) throw new Error('Invalid size')
 
@@ -122,9 +132,10 @@ export async function placeMarketOrder({
   const fee = sizeUsdt * FEE_RATE
 
   if (margin + fee > account.current_balance) {
-    throw new Error('Insufficient balance')
+    throw new Error(`Insufficient balance. Need $${(margin + fee).toFixed(2)}, have $${account.current_balance.toFixed(2)}`)
   }
 
+  // Check for existing opposite position
   const { data: existingPos } = await supabase
     .from('demo_positions')
     .select('*')
@@ -136,12 +147,8 @@ export async function placeMarketOrder({
   const positionSide = side === 'BUY' ? 'LONG' : 'SHORT'
 
   if (existingPos && existingPos.side !== positionSide) {
-    await closePosition({
-      userId,
-      positionId: existingPos.id,
-      currentPrice,
-      reason: 'reversed',
-    })
+    console.log('[Trading] Closing opposite position:', existingPos.id)
+    await closePosition({ userId, positionId: existingPos.id, currentPrice, reason: 'reversed' })
     const refreshed = await getOrCreateDemoAccount(userId)
     if (margin + fee > refreshed.current_balance) {
       throw new Error('Insufficient balance after closing opposite position')
@@ -152,6 +159,7 @@ export async function placeMarketOrder({
     ? currentPrice * (1 - 1 / leverage * 0.95)
     : currentPrice * (1 + 1 / leverage * 0.95)
 
+  // Insert position
   const { data: position, error: posErr } = await supabase
     .from('demo_positions')
     .insert({
@@ -170,50 +178,49 @@ export async function placeMarketOrder({
     .select()
     .single()
 
-  if (posErr) throw posErr
+  if (posErr) {
+    console.error('[Trading] Insert position error:', posErr)
+    throw new Error(`Failed to open position: ${posErr.message}`)
+  }
 
+  // Trade log
   const { error: tradeErr } = await supabase
     .from('demo_trades')
     .insert({
       demo_account_id: account.id,
       user_id: userId,
       position_id: position.id,
-      symbol,
-      side,
+      symbol, side,
       order_type: 'MARKET',
       price: currentPrice,
-      quantity,
-      leverage,
+      quantity, leverage,
       total: sizeUsdt,
       fee,
       is_close: false,
     })
 
-  if (tradeErr) throw tradeErr
+  if (tradeErr) console.error('[Trading] Trade log error:', tradeErr)
 
+  // Update balance
   const newBalance = account.current_balance - margin - fee
   await updateAccountBalance(account.id, newBalance)
 
-  await checkChallengeRules(account.id, userId)
+  // Challenge rules (non-blocking)
+  safeCheckRules(account.id, userId)
 
+  console.log('[Trading] Position opened:', position.id, '| Margin:', margin, '| Fee:', fee)
   return { position, fee, margin }
 }
 
 // ---------------------------------------------------------------------------
-// Place a limit / stop-limit order
+// Limit / Stop-Limit Order
 // ---------------------------------------------------------------------------
 export async function placeLimitOrder({
-  userId,
-  symbol,
-  side,
-  orderType,
-  price,
-  stopPrice = null,
-  sizeUsdt,
-  leverage,
-  takeProfit = null,
-  stopLoss = null,
+  userId, symbol, side, orderType, price, stopPrice = null,
+  sizeUsdt, leverage, takeProfit = null, stopLoss = null,
 }) {
+  console.log('[Trading] Limit order:', { symbol, side, orderType, price, sizeUsdt })
+
   if (orderType === 'STOP_LIMIT' && !stopPrice) {
     throw new Error('Stop price required for stop-limit orders')
   }
@@ -233,25 +240,26 @@ export async function placeLimitOrder({
     .insert({
       demo_account_id: account.id,
       user_id: userId,
-      symbol,
-      side,
-      order_type: orderType,
-      price,
-      stop_price: stopPrice,
-      quantity,
-      leverage,
+      symbol, side, order_type: orderType,
+      price, stop_price: stopPrice,
+      quantity, leverage,
       take_profit: takeProfit,
       stop_loss: stopLoss,
     })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('[Trading] Insert order error:', error)
+    throw new Error(`Failed to place order: ${error.message}`)
+  }
+
+  console.log('[Trading] Order placed:', order.id)
   return order
 }
 
 // ---------------------------------------------------------------------------
-// Cancel an open order
+// Cancel Order
 // ---------------------------------------------------------------------------
 export async function cancelOrder(userId, orderId) {
   const { data, error } = await supabase
@@ -263,19 +271,17 @@ export async function cancelOrder(userId, orderId) {
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('[Trading] Cancel order error:', error)
+    throw new Error(`Failed to cancel: ${error.message}`)
+  }
   return data
 }
 
 // ---------------------------------------------------------------------------
-// Close an open position
+// Close Position
 // ---------------------------------------------------------------------------
-export async function closePosition({
-  userId,
-  positionId,
-  currentPrice,
-  reason = 'manual',
-}) {
+export async function closePosition({ userId, positionId, currentPrice, reason = 'manual' }) {
   const { data: pos, error: fetchErr } = await supabase
     .from('demo_positions')
     .select('*')
@@ -284,7 +290,10 @@ export async function closePosition({
     .eq('status', 'open')
     .single()
 
-  if (fetchErr || !pos) throw new Error('Position not found or already closed')
+  if (fetchErr || !pos) {
+    console.error('[Trading] Close position fetch error:', fetchErr)
+    throw new Error('Position not found or already closed')
+  }
 
   const pnl = pos.side === 'LONG'
     ? (currentPrice - pos.entry_price) * pos.quantity
@@ -301,10 +310,14 @@ export async function closePosition({
     })
     .eq('id', positionId)
 
-  if (closeErr) throw closeErr
+  if (closeErr) {
+    console.error('[Trading] Close position update error:', closeErr)
+    throw new Error(`Failed to close position: ${closeErr.message}`)
+  }
 
+  // Trade log (non-blocking)
   const closeSide = pos.side === 'LONG' ? 'SELL' : 'BUY'
-  await supabase.from('demo_trades').insert({
+  supabase.from('demo_trades').insert({
     demo_account_id: pos.demo_account_id,
     user_id: userId,
     position_id: positionId,
@@ -318,12 +331,15 @@ export async function closePosition({
     fee,
     realized_pnl: pnl,
     is_close: true,
+  }).then(({ error }) => {
+    if (error) console.error('[Trading] Close trade log error:', error)
   })
 
+  // Update balance
   const account = await getOrCreateDemoAccount(userId)
   const newBalance = account.current_balance + pos.margin + pnl - fee
-
   const isWin = pnl > 0
+
   await supabase
     .from('demo_accounts')
     .update({
@@ -335,13 +351,15 @@ export async function closePosition({
     })
     .eq('id', account.id)
 
-  await checkChallengeRules(account.id, userId)
+  // Challenge rules (non-blocking)
+  safeCheckRules(account.id, userId)
 
+  console.log('[Trading] Position closed:', positionId, '| PNL:', pnl.toFixed(2), '| Reason:', reason)
   return { pnl, fee, newBalance: Math.max(0, newBalance) }
 }
 
 // ---------------------------------------------------------------------------
-// Check pending orders against current prices
+// Check pending orders
 // ---------------------------------------------------------------------------
 export async function checkPendingOrders(userId, priceMap) {
   const { data: orders } = await supabase
@@ -355,44 +373,35 @@ export async function checkPendingOrders(userId, priceMap) {
   const filled = []
 
   for (const order of orders) {
-    const currentPrice = priceMap[order.symbol]
-    if (!currentPrice) continue
+    const cp = priceMap[order.symbol]
+    if (!cp) continue
 
     let shouldFill = false
 
     if (order.order_type === 'LIMIT') {
-      shouldFill = order.side === 'BUY'
-        ? currentPrice <= order.price
-        : currentPrice >= order.price
+      shouldFill = order.side === 'BUY' ? cp <= order.price : cp >= order.price
     } else if (order.order_type === 'STOP_LIMIT' && order.stop_price) {
-      const stopTriggered = order.side === 'BUY'
-        ? currentPrice >= order.stop_price
-        : currentPrice <= order.stop_price
-
-      if (stopTriggered) {
-        shouldFill = order.side === 'BUY'
-          ? currentPrice <= order.price
-          : currentPrice >= order.price
+      const triggered = order.side === 'BUY' ? cp >= order.stop_price : cp <= order.stop_price
+      if (triggered) {
+        shouldFill = order.side === 'BUY' ? cp <= order.price : cp >= order.price
       }
     }
 
     if (shouldFill) {
       try {
+        // Mark filled
         await supabase
           .from('demo_orders')
-          .update({
-            status: 'filled',
-            filled_qty: order.quantity,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
           .eq('id', order.id)
 
-        const fillSizeUsdt = order.price * order.quantity
+        // Execute
+        const fillSize = order.price * order.quantity
         await placeMarketOrder({
           userId,
           symbol: order.symbol,
           side: order.side,
-          sizeUsdt: fillSizeUsdt,
+          sizeUsdt: fillSize,
           leverage: order.leverage,
           currentPrice: order.price,
           takeProfit: order.take_profit,
@@ -400,8 +409,9 @@ export async function checkPendingOrders(userId, priceMap) {
         })
 
         filled.push(order)
+        console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
       } catch (err) {
-        console.error(`Failed to fill order ${order.id}:`, err)
+        console.error('[Trading] Fill order error:', order.id, err)
       }
     }
   }
@@ -410,7 +420,7 @@ export async function checkPendingOrders(userId, priceMap) {
 }
 
 // ---------------------------------------------------------------------------
-// Check TP/SL on open positions
+// Check TP/SL
 // ---------------------------------------------------------------------------
 export async function checkPositionTPSL(userId, priceMap) {
   const { data: positions } = await supabase
@@ -424,41 +434,30 @@ export async function checkPositionTPSL(userId, priceMap) {
   const closed = []
 
   for (const pos of positions) {
-    const currentPrice = priceMap[pos.symbol]
-    if (!currentPrice) continue
+    const cp = priceMap[pos.symbol]
+    if (!cp) continue
 
     let closeReason = null
 
-    // Check liquidation
-    if (pos.side === 'LONG' && currentPrice <= pos.liquidation_price) {
-      closeReason = 'liquidation'
-    } else if (pos.side === 'SHORT' && currentPrice >= pos.liquidation_price) {
-      closeReason = 'liquidation'
-    }
+    if (pos.side === 'LONG' && cp <= pos.liquidation_price) closeReason = 'liquidation'
+    else if (pos.side === 'SHORT' && cp >= pos.liquidation_price) closeReason = 'liquidation'
 
-    // Check take profit (FIXED: SHORT TP was incorrectly set to 'sl')
     if (!closeReason && pos.take_profit) {
-      if (pos.side === 'LONG' && currentPrice >= pos.take_profit) closeReason = 'tp'
-      if (pos.side === 'SHORT' && currentPrice <= pos.take_profit) closeReason = 'tp'
+      if (pos.side === 'LONG' && cp >= pos.take_profit) closeReason = 'tp'
+      if (pos.side === 'SHORT' && cp <= pos.take_profit) closeReason = 'tp'
     }
 
-    // Check stop loss
     if (!closeReason && pos.stop_loss) {
-      if (pos.side === 'LONG' && currentPrice <= pos.stop_loss) closeReason = 'sl'
-      if (pos.side === 'SHORT' && currentPrice >= pos.stop_loss) closeReason = 'sl'
+      if (pos.side === 'LONG' && cp <= pos.stop_loss) closeReason = 'sl'
+      if (pos.side === 'SHORT' && cp >= pos.stop_loss) closeReason = 'sl'
     }
 
     if (closeReason) {
       try {
-        const result = await closePosition({
-          userId,
-          positionId: pos.id,
-          currentPrice,
-          reason: closeReason,
-        })
+        const result = await closePosition({ userId, positionId: pos.id, currentPrice: cp, reason: closeReason })
         closed.push({ ...pos, closeReason, ...result })
       } catch (err) {
-        console.error(`Failed to close position ${pos.id}:`, err)
+        console.error('[Trading] TP/SL close error:', pos.id, err)
       }
     }
   }
@@ -467,22 +466,30 @@ export async function checkPositionTPSL(userId, priceMap) {
 }
 
 // ---------------------------------------------------------------------------
-// Compute unrealized PNL (pure function, no DB)
+// Unrealized PNL (pure)
 // ---------------------------------------------------------------------------
 export function computeUnrealizedPNL(positions, priceMap) {
   return positions.map(pos => {
-    const currentPrice = priceMap[pos.symbol] || pos.entry_price
+    const cp = priceMap[pos.symbol] || pos.entry_price
     const pnl = pos.side === 'LONG'
-      ? (currentPrice - pos.entry_price) * pos.quantity
-      : (pos.entry_price - currentPrice) * pos.quantity
-    const roi = (pnl / pos.margin) * 100
+      ? (cp - pos.entry_price) * pos.quantity
+      : (pos.entry_price - cp) * pos.quantity
+    const roi = pos.margin ? (pnl / pos.margin) * 100 : 0
     return { ...pos, unrealized_pnl: pnl, roi }
   })
 }
 
 // ---------------------------------------------------------------------------
-// Challenge rule checks
+// Challenge rules — WRAPPED IN TRY/CATCH so failures never block trades
 // ---------------------------------------------------------------------------
+async function safeCheckRules(accountId, userId) {
+  try {
+    await checkChallengeRules(accountId, userId)
+  } catch (err) {
+    console.error('[Trading] Challenge rules check failed (non-blocking):', err)
+  }
+}
+
 async function checkChallengeRules(accountId, userId) {
   const { data: account } = await supabase
     .from('demo_accounts')
@@ -494,15 +501,18 @@ async function checkChallengeRules(accountId, userId) {
 
   const totalDrawdown = account.initial_balance - account.current_balance
 
+  // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
-    await supabase.from('challenge_violations').insert({
-      demo_account_id: accountId,
-      user_id: userId,
-      violation_type: 'MAX_DRAWDOWN',
-      description: `Drawdown of $${totalDrawdown.toFixed(2)} exceeded limit of $${account.max_total_drawdown}`,
-      balance_at_violation: account.current_balance,
-      violation_amount: totalDrawdown,
-    })
+    // Try to log violation (may fail if no INSERT policy — that's ok)
+    try {
+      await supabase.from('challenge_violations').insert({
+        demo_account_id: accountId, user_id: userId,
+        violation_type: 'MAX_DRAWDOWN',
+        description: `Drawdown $${totalDrawdown.toFixed(2)} exceeded $${account.max_total_drawdown}`,
+        balance_at_violation: account.current_balance, violation_amount: totalDrawdown,
+      })
+    } catch { /* non-critical */ }
+
     await supabase
       .from('demo_accounts')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
@@ -510,25 +520,29 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  const { data: todaySnap } = await supabase
-    .from('challenge_progress')
-    .select('starting_balance')
-    .eq('demo_account_id', accountId)
-    .eq('snapshot_date', new Date().toISOString().split('T')[0])
-    .maybeSingle()
+  // Daily loss
+  let dayStart = account.initial_balance
+  try {
+    const { data: todaySnap } = await supabase
+      .from('challenge_progress')
+      .select('starting_balance')
+      .eq('demo_account_id', accountId)
+      .eq('snapshot_date', new Date().toISOString().split('T')[0])
+      .maybeSingle()
+    if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
+  } catch { /* use initial_balance */ }
 
-  const dayStart = todaySnap?.starting_balance ?? account.initial_balance
   const dailyLoss = dayStart - account.current_balance
-
   if (dailyLoss >= account.max_daily_loss) {
-    await supabase.from('challenge_violations').insert({
-      demo_account_id: accountId,
-      user_id: userId,
-      violation_type: 'DAILY_LOSS',
-      description: `Daily loss of $${dailyLoss.toFixed(2)} exceeded limit of $${account.max_daily_loss}`,
-      balance_at_violation: account.current_balance,
-      violation_amount: dailyLoss,
-    })
+    try {
+      await supabase.from('challenge_violations').insert({
+        demo_account_id: accountId, user_id: userId,
+        violation_type: 'DAILY_LOSS',
+        description: `Daily loss $${dailyLoss.toFixed(2)} exceeded $${account.max_daily_loss}`,
+        balance_at_violation: account.current_balance, violation_amount: dailyLoss,
+      })
+    } catch { /* non-critical */ }
+
     await supabase
       .from('demo_accounts')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
@@ -536,6 +550,7 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'DAILY_LOSS' }
   }
 
+  // Profit target
   const totalProfit = account.current_balance - account.initial_balance
   if (totalProfit >= account.profit_target) {
     await supabase
@@ -545,6 +560,7 @@ async function checkChallengeRules(accountId, userId) {
     return { passed: true }
   }
 
+  // High water mark
   if (account.current_balance > account.high_water_mark) {
     await supabase
       .from('demo_accounts')
@@ -557,47 +573,21 @@ async function checkChallengeRules(accountId, userId) {
 
 async function updateAccountBalance(accountId, newBalance) {
   const equity = Math.max(0, newBalance)
-  await supabase
+  const { error } = await supabase
     .from('demo_accounts')
     .update({ current_balance: equity, equity, updated_at: new Date().toISOString() })
     .eq('id', accountId)
-}
-
-export async function getChallengeProgress(userId) {
-  const { data, error } = await supabase
-    .from('challenge_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .order('snapshot_date', { ascending: true })
-  if (error) throw error
-  return data || []
-}
-
-export async function getViolations(userId) {
-  const { data, error } = await supabase
-    .from('challenge_violations')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data || []
+  if (error) console.error('[Trading] Update balance error:', error)
 }
 
 export async function resetDemoAccount(userId, challengeType = '10k') {
-  await supabase
-    .from('demo_positions')
+  await supabase.from('demo_positions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('status', 'open')
-  await supabase
-    .from('demo_orders')
+    .eq('user_id', userId).eq('status', 'open')
+  await supabase.from('demo_orders')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('status', 'open')
-  await supabase
-    .from('demo_accounts')
-    .delete()
-    .eq('user_id', userId)
-    .eq('challenge_type', challengeType)
+    .eq('user_id', userId).eq('status', 'open')
+  await supabase.from('demo_accounts')
+    .delete().eq('user_id', userId).eq('challenge_type', challengeType)
   return getOrCreateDemoAccount(userId, challengeType)
 }
