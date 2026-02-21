@@ -9,7 +9,7 @@
  *   // prices = { BTCUSDT: { price: 98500, change: 1.23, high: 99000, low: 97000, volume: 12345 }, ... }
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const WS_BASE = 'wss://stream.binance.com:9443/ws'
 // For testnet: 'wss://testnet.binance.vision/ws'
