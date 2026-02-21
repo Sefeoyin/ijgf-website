@@ -605,7 +605,7 @@ async function checkChallengeRules(accountId, userId) {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-async function updateAccountBalance(accountId, newBalance, account) {
+async function updateAccountBalance(accountId, newBalance) {
   const equity = Math.max(0, newBalance)
   await supabase
     .from('demo_accounts')

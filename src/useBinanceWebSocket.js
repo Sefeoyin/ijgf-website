@@ -30,85 +30,81 @@ export function useBinanceWebSocket(symbols = []) {
     symbolsRef.current = symbols
   }, [symbols])
 
-  const connect = useCallback(() => {
-    // Clean up any existing connection
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-
-    if (symbols.length === 0) return
-
-    // Build combined stream URL
-    // Each symbol gets a miniTicker stream for efficient updates
-    const streams = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
-    const url = `${WS_BASE}/${streams}`
-
-    try {
-      const ws = new WebSocket(url)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        setIsConnected(true)
-        reconnectCount.current = 0
-      }
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-
-          // miniTicker event fields:
-          // s = symbol, c = close price, o = open price, h = high, l = low, v = volume, q = quote volume
-          if (data.e === '24hrMiniTicker') {
-            const symbol = data.s
-            const closePrice = parseFloat(data.c)
-            const openPrice = parseFloat(data.o)
-            const changePercent = openPrice > 0
-              ? ((closePrice - openPrice) / openPrice) * 100
-              : 0
-
-            setPrices(prev => ({
-              ...prev,
-              [symbol]: {
-                price: closePrice,
-                change: changePercent,
-                high: parseFloat(data.h),
-                low: parseFloat(data.l),
-                volume: parseFloat(data.v),
-                quoteVolume: parseFloat(data.q),
-                lastUpdate: Date.now(),
-              }
-            }))
-          }
-        } catch {
-          // Ignore malformed messages
-        }
-      }
-
-      ws.onclose = (event) => {
-        setIsConnected(false)
-        wsRef.current = null
-
-        // Auto-reconnect unless we explicitly closed
-        if (!event.wasClean && reconnectCount.current < MAX_RECONNECT_ATTEMPTS) {
-          reconnectCount.current += 1
-          const delay = RECONNECT_DELAY_MS * reconnectCount.current
-          reconnectTimer.current = setTimeout(connect, delay)
-        }
-      }
-
-      ws.onerror = () => {
-        // onclose will fire after onerror, so reconnect logic is handled there
-        ws.close()
-      }
-    } catch (err) {
-      console.error('WebSocket connection error:', err)
-    }
-  }, [symbols])
-
   // Connect on mount / when symbols change
   useEffect(() => {
-    connect()
+    const doConnect = () => {
+      // Clean up any existing connection
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+
+      if (symbols.length === 0) return
+
+      // Build combined stream URL
+      const streams = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
+      const url = `${WS_BASE}/${streams}`
+
+      try {
+        const ws = new WebSocket(url)
+        wsRef.current = ws
+
+        ws.onopen = () => {
+          setIsConnected(true)
+          reconnectCount.current = 0
+        }
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+
+            if (data.e === '24hrMiniTicker') {
+              const sym = data.s
+              const closePrice = parseFloat(data.c)
+              const openPrice = parseFloat(data.o)
+              const changePercent = openPrice > 0
+                ? ((closePrice - openPrice) / openPrice) * 100
+                : 0
+
+              setPrices(prev => ({
+                ...prev,
+                [sym]: {
+                  price: closePrice,
+                  change: changePercent,
+                  high: parseFloat(data.h),
+                  low: parseFloat(data.l),
+                  volume: parseFloat(data.v),
+                  quoteVolume: parseFloat(data.q),
+                  lastUpdate: Date.now(),
+                }
+              }))
+            }
+          } catch {
+            // Ignore malformed messages
+          }
+        }
+
+        ws.onclose = (event) => {
+          setIsConnected(false)
+          wsRef.current = null
+
+          // Auto-reconnect unless we explicitly closed
+          if (!event.wasClean && reconnectCount.current < MAX_RECONNECT_ATTEMPTS) {
+            reconnectCount.current += 1
+            const delay = RECONNECT_DELAY_MS * reconnectCount.current
+            reconnectTimer.current = setTimeout(doConnect, delay)
+          }
+        }
+
+        ws.onerror = () => {
+          ws.close()
+        }
+      } catch (err) {
+        console.error('WebSocket connection error:', err)
+      }
+    }
+
+    doConnect()
 
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
@@ -117,7 +113,7 @@ export function useBinanceWebSocket(symbols = []) {
         wsRef.current = null
       }
     }
-  }, [connect])
+  }, [symbols])
 
   // Build a simple price map (symbol → price number) for trading service
   const priceMap = {}

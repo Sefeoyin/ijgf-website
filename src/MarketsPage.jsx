@@ -9,7 +9,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [price, setPrice] = useState('')
   const [stopPrice, setStopPrice] = useState('')
   const [size, setSize] = useState('')
-  const [leverage, setLeverage] = useState(10)
+  const [leverage] = useState(10)
   const [tpPrice, setTpPrice] = useState('')
   const [slPrice, setSlPrice] = useState('')
   const [tpEnabled, setTpEnabled] = useState(false)
@@ -30,7 +30,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     currentPrice, currentPriceData, isConnected,
     bids, asks,
     equity, totalUnrealizedPNL,
-    profitTargetProgress, drawdownUsed, drawdownPercent,
+    drawdownUsed, drawdownPercent,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
