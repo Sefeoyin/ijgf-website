@@ -37,7 +37,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     drawdownUsed, drawdownPercent,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
-    isLoading, error: tradingError,
   } = trading
 
   // Use simulated order book when WS order book isn't connected
