@@ -258,7 +258,8 @@ export function useBinanceOrderBook(symbol, depth = 10) {
 
       ws.onerror = () => { ws.close() }
     } catch {
-      if (mounted) setMode('simulated')
+      // Defer setState out of the synchronous effect body
+      setTimeout(() => { if (mounted) setMode('simulated') }, 0)
     }
 
     return () => {
