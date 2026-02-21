@@ -18,6 +18,7 @@ function Dashboard() {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
   const [chartExpanded, setChartExpanded] = useState(false)
+  const [userId, setUserId] = useState(null)
 
   useEffect(() => { checkUserAndLoadProfile() }, [])
 
@@ -25,6 +26,7 @@ function Dashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
+      setUserId(user.id)
       const { data: profile, error } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
       if (error) console.error('Error loading profile:', error)
@@ -209,7 +211,7 @@ function Dashboard() {
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard' && <DashboardOverview />}
-          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} />}
+          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
         </div>
       </div>

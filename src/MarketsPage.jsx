@@ -1,97 +1,58 @@
 import { useState, useEffect, useRef } from 'react'
+import { useDemoTrading } from './hooks/useDemoTrading'
 import './MarketsPage.css'
 
-function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
+function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
-  const [marketPrice, setMarketPrice] = useState(0)
-  const [priceChange, setPriceChange] = useState(0)
-  const [priceChangePercent, setPriceChangePercent] = useState(0)
-  const [high24h, setHigh24h] = useState(0)
   const [orderType, setOrderType] = useState('Limit')
   const [price, setPrice] = useState('')
+  const [stopPrice, setStopPrice] = useState('')
   const [size, setSize] = useState('')
-  const [leverage] = useState(10)
+  const [leverage, setLeverage] = useState(10)
+  const [tpPrice, setTpPrice] = useState('')
+  const [slPrice, setSlPrice] = useState('')
   const [tpEnabled, setTpEnabled] = useState(false)
   const [slEnabled, setSlEnabled] = useState(false)
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
-  const [accountBalance] = useState(10000)
-  const [marginBalance] = useState(10000)
-  const [unrealizedPNL] = useState(0)
-  const [positions] = useState([])
-  const [isLoadingPrice, setIsLoadingPrice] = useState(true)
   const [mobileChartView, setMobileChartView] = useState(false)
+  const [orderSubmitting, setOrderSubmitting] = useState(false)
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
   const mobileTvWidgetRef = useRef(null)
 
+  // ---- Trading hook ----
+  const trading = useDemoTrading(userId, selectedPair)
+
+  const {
+    account, positions, openOrders, recentTrades,
+    currentPrice, currentPriceData, isConnected,
+    bids, asks,
+    equity, totalUnrealizedPNL,
+    profitTargetProgress, drawdownUsed, drawdownPercent,
+    notifications, dismissNotification,
+    submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
+  } = trading
+
   const AVAILABLE_PAIRS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
     'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-    'MATICUSDT', 'LTCUSDT', 'BCHUSDT', 'ATOMUSDT', 'NEARUSDT'
+    'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
   ]
 
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
 
-  // Fetch live price from CoinGecko
+  // Reset inputs when pair changes
   useEffect(() => {
-    const coinGeckoMap = {
-      'BTCUSDT': 'bitcoin',
-      'ETHUSDT': 'ethereum',
-      'SOLUSDT': 'solana',
-      'BNBUSDT': 'binancecoin',
-      'DOGEUSDT': 'dogecoin',
-      'XRPUSDT': 'ripple',
-      'ADAUSDT': 'cardano',
-      'AVAXUSDT': 'avalanche-2',
-      'DOTUSDT': 'polkadot',
-      'LINKUSDT': 'chainlink',
-      'MATICUSDT': 'matic-network',
-      'LTCUSDT': 'litecoin',
-      'BCHUSDT': 'bitcoin-cash',
-      'ATOMUSDT': 'cosmos',
-      'NEARUSDT': 'near',
-    }
-
-    // Reset immediately when pair changes
-    setMarketPrice(0)
-    setPriceChange(0)
-    setPriceChangePercent(0)
-    setHigh24h(0)
     setPrice('')
-    setIsLoadingPrice(true)
-
-    let cancelled = false
-
-    const fetchPrice = async () => {
-      try {
-        const coinId = coinGeckoMap[selectedPair] || 'bitcoin'
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`
-        )
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
-        if (cancelled) return
-        if (data.market_data) {
-          setMarketPrice(data.market_data.current_price?.usd || 0)
-          setPriceChange(data.market_data.price_change_24h || 0)
-          setPriceChangePercent(data.market_data.price_change_percentage_24h || 0)
-          setHigh24h(data.market_data.high_24h?.usd || 0)
-        }
-      } catch (err) {
-        console.error('Price fetch error:', err)
-      } finally {
-        if (!cancelled) setIsLoadingPrice(false)
-      }
-    }
-
-    fetchPrice()
-    const interval = setInterval(fetchPrice, 15000)
-    return () => { cancelled = true; clearInterval(interval) }
+    setStopPrice('')
+    setSize('')
+    setTpPrice('')
+    setSlPrice('')
   }, [selectedPair])
 
-  // TradingView chart
+  // ---- TradingView chart (desktop) ----
   useEffect(() => {
     if (!chartContainerRef.current) return
     chartContainerRef.current.innerHTML = ''
@@ -136,15 +97,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
 
     return () => {
       try {
-        if (tvWidgetRef.current && typeof tvWidgetRef.current.remove === 'function') {
-          tvWidgetRef.current.remove()
-        }
-      } catch { /* TradingView cleanup can throw during unmount */ }
+        if (tvWidgetRef.current?.remove) tvWidgetRef.current.remove()
+      } catch { /* */ }
       tvWidgetRef.current = null
     }
   }, [selectedPair])
 
-  // Mobile chart — initialize TradingView when mobile chart overlay opens
+  // ---- TradingView chart (mobile) ----
   useEffect(() => {
     if (!mobileChartView || !mobileChartRef.current) return
     mobileChartRef.current.innerHTML = ''
@@ -177,16 +136,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
     }
 
     return () => {
-      try {
-        if (mobileTvWidgetRef.current && typeof mobileTvWidgetRef.current.remove === 'function') {
-          mobileTvWidgetRef.current.remove()
-        }
-      } catch { /* ignore */ }
+      try { mobileTvWidgetRef.current?.remove?.() } catch { /* */ }
       mobileTvWidgetRef.current = null
     }
   }, [mobileChartView, selectedPair])
 
-  const formatPrice = (num) => {
+  // ---- Price formatting ----
+  const fmt = (num) => {
     if (!num || num === 0) return '0.00'
     if (num < 1) return num.toFixed(6)
     if (num < 100) return num.toFixed(2)
@@ -195,31 +151,94 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
 
   const getBaseAsset = () => selectedPair.replace('USDT', '')
 
-  // Price step: BTC=$10, ETH=$1, others=$0.01
   const priceStep = selectedPair === 'BTCUSDT' ? 10 : selectedPair === 'ETHUSDT' ? 1 : 0.01
 
-  // Adjust price — uses live market price as base when field is empty
   const adjustPrice = (dir) => {
-    const base = price === '' ? marketPrice : parseFloat(price.replace(/,/g, '')) || marketPrice
+    const base = price === '' ? currentPrice : parseFloat(price.replace(/,/g, '')) || currentPrice
     const next = dir === 'up' ? base + priceStep : Math.max(0, base - priceStep)
-    setPrice(formatPrice(next))
+    setPrice(fmt(next))
   }
 
-  // Adjust size in $10 USDT steps
   const adjustSize = (dir) => {
     const base = size === '' ? 0 : Number(size)
     const next = dir === 'up' ? base + 10 : Math.max(0, base - 10)
     setSize(String(next))
   }
 
-  // Clicking an order book row fills the price input
-  const handleObClick = (obPrice) => {
-    setPrice(formatPrice(obPrice))
+  const handleSizePercent = (pct) => {
+    if (!account) return
+    const availableBalance = account.current_balance
+    const amount = (availableBalance * pct / 100) * leverage
+    setSize(amount.toFixed(2))
   }
+
+  // ---- Submit order ----
+  const handleOrder = async (side) => {
+    if (orderSubmitting) return
+    const sizeVal = parseFloat(size)
+    if (!sizeVal || sizeVal <= 0) return
+
+    setOrderSubmitting(true)
+    try {
+      if (orderType === 'Market') {
+        await submitMarketOrder({
+          symbol: selectedPair,
+          side,
+          sizeUsdt: sizeVal,
+          leverage,
+          takeProfit: tpEnabled ? tpPrice : null,
+          stopLoss: slEnabled ? slPrice : null,
+        })
+      } else {
+        const orderPrice = parseFloat(price.replace(/,/g, ''))
+        if (!orderPrice) return
+
+        await submitLimitOrder({
+          symbol: selectedPair,
+          side,
+          orderType: orderType === 'Stop Limit' ? 'STOP_LIMIT' : 'LIMIT',
+          price: orderPrice,
+          stopPrice: orderType === 'Stop Limit' ? parseFloat(stopPrice) : null,
+          sizeUsdt: sizeVal,
+          leverage,
+          takeProfit: tpEnabled ? tpPrice : null,
+          stopLoss: slEnabled ? slPrice : null,
+        })
+      }
+      // Reset size after successful order
+      setSize('')
+    } catch {
+      // Error already shown via notification
+    } finally {
+      setOrderSubmitting(false)
+    }
+  }
+
+  const handleObClick = (obPrice) => setPrice(fmt(obPrice))
+
+  const priceChangePercent = currentPriceData.change || 0
+  const high24h = currentPriceData.high || 0
 
   return (
     <div className="binance-markets-page">
-      {/* Mobile pair info bar — shown only on mobile, above the trading grid */}
+      {/* Notifications */}
+      <div className="trade-notifications">
+        {notifications.map(n => (
+          <div key={n.id} className={`trade-notification ${n.type}`}>
+            <span>{n.message}</span>
+            <button onClick={() => dismissNotification(n.id)}>×</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Connection status */}
+      {!isConnected && (
+        <div className="ws-status disconnected">
+          <span className="ws-dot"></span> Reconnecting to price feed...
+        </div>
+      )}
+
+      {/* Mobile pair info bar */}
       <div className="mobile-pair-info-bar">
         <div className="mobile-pair-top">
           <div className="mobile-pair-name" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
@@ -232,7 +251,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
           <span className={`mobile-pair-change ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
             {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
           </span>
-          {/* Mobile chart icon */}
           <button className="mobile-chart-btn" onClick={() => setMobileChartView(true)} title="Chart">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="8" y1="6" x2="8" y2="18"/>
@@ -244,7 +262,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
         </div>
         <div className="mobile-funding-row">
           <span className="funding-label">Funding (8h) / Countdown</span>
-          <span className="funding-value">-0.00149% / 00:58:29</span>
+          <span className="funding-value">0.0100% / —</span>
         </div>
       </div>
 
@@ -252,8 +270,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
 
         {/* LEFT: Chart */}
         <div className={`binance-chart-section ${chartExpanded ? 'chart-expanded' : ''}`}>
-
-          {/* Pair Header */}
           <div className="binance-pair-header">
             <div className="pair-info">
               <div className="pair-name-row" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
@@ -265,36 +281,29 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
               </div>
               <div className="pair-price-data">
                 <span className={`main-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                  {isLoadingPrice ? '—' : formatPrice(marketPrice)}
+                  {currentPrice ? fmt(currentPrice) : '—'}
                 </span>
                 <span className={`price-change-amount ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-                  {priceChange >= 0 ? '+' : ''}{formatPrice(priceChange)}
-                  &nbsp;({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+                  {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
                 </span>
               </div>
             </div>
 
-            {/* Stats spaced across header */}
             <div className="pair-24h-stats">
               <div className="stat-col">
                 <span className="stat-label">Mark</span>
-                <span className="stat-value">{formatPrice(marketPrice)}</span>
-              </div>
-              <div className="stat-col">
-                <span className="stat-label">Index</span>
-                <span className="stat-value">{formatPrice(marketPrice)}</span>
-              </div>
-              <div className="stat-col">
-                <span className="stat-label">Funding / 8h</span>
-                <span className="stat-value funding-rate">0.0100%</span>
+                <span className="stat-value">{fmt(currentPrice)}</span>
               </div>
               <div className="stat-col">
                 <span className="stat-label">24h High</span>
-                <span className="stat-value positive">{formatPrice(high24h)}</span>
+                <span className="stat-value positive">{fmt(high24h)}</span>
+              </div>
+              <div className="stat-col">
+                <span className="stat-label">24h Vol</span>
+                <span className="stat-value">{currentPriceData.volume ? `${(currentPriceData.volume / 1000).toFixed(1)}K` : '—'}</span>
               </div>
             </div>
 
-            {/* Expand button — right side of pair header */}
             {!chartExpanded && (
               <button className="chart-expand-btn-header" onClick={() => setChartExpanded(true)} title="Expand Chart">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -304,28 +313,19 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
             )}
           </div>
 
-          {/* TradingView Chart */}
           <div className="binance-chart-area">
-            <div
-              id="tv_chart_container"
-              ref={chartContainerRef}
-              style={{ width: '100%', height: '100%' }}
-            />
+            <div id="tv_chart_container" ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
           </div>
         </div>
 
-        {/* MIDDLE: Order Book */}
+        {/* MIDDLE: Order Book — now using live data */}
         <div className="binance-orderbook-column">
           <div className="orderbook-header">
             <span>Order Book</span>
-            <div className="orderbook-view-btns">
-              <button className="ob-view-btn active">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                  <rect x="1" y="1" width="6" height="14" opacity="0.5"/>
-                  <rect x="9" y="1" width="6" height="14"/>
-                </svg>
-              </button>
-            </div>
+            <span className={`ob-status ${isConnected ? 'live' : ''}`}>
+              <span className="live-dot"></span>
+              {isConnected ? 'Live' : '...'}
+            </span>
           </div>
 
           <div className="orderbook-table-headers">
@@ -334,26 +334,25 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
             <span className="text-right">Total</span>
           </div>
 
-          {/* Sell orders — 8 fixed rows, no scroll */}
+          {/* Sell orders (asks) */}
           <div className="ob-sells">
-            {[...Array(8)].map((_, i) => {
-              const obPrice = marketPrice + (8 - i) * 12
-              const sz = (((i * 1.3 + 0.7) % 3.5) + 0.1).toFixed(3)
-              const total = (Number(sz) * marketPrice).toFixed(0)
-              return (
-                <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(obPrice)}>
-                  <span className="ob-price negative">{formatPrice(obPrice)}</span>
-                  <span className="ob-size">{sz}</span>
-                  <span className="ob-sum">{Number(total).toLocaleString()}</span>
-                </div>
-              )
-            })}
+            {(asks.length > 0 ? asks.slice(0, 8) : [...Array(8)].map((_, i) => ({
+              price: currentPrice + (8 - i) * 12,
+              qty: ((i * 1.3 + 0.7) % 3.5 + 0.1),
+              total: 0,
+            }))).reverse().map((row, i) => (
+              <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
+                <span className="ob-price negative">{fmt(row.price)}</span>
+                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
+                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+              </div>
+            ))}
           </div>
 
           {/* Mid Price */}
           <div className="ob-current-price">
             <span className={`price-big ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-              {formatPrice(marketPrice)}
+              {fmt(currentPrice)}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 {priceChangePercent >= 0
                   ? <path d="M7 14l5-5 5 5z"/>
@@ -361,23 +360,22 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
                 }
               </svg>
             </span>
-            <span className="price-usd">${formatPrice(marketPrice)}</span>
+            <span className="price-usd">${fmt(currentPrice)}</span>
           </div>
 
-          {/* Buy orders — 8 fixed rows, no scroll */}
+          {/* Buy orders (bids) */}
           <div className="ob-buys">
-            {[...Array(8)].map((_, i) => {
-              const obPrice = marketPrice - (i + 1) * 12
-              const sz = (((i * 0.9 + 1.1) % 3.5) + 0.1).toFixed(3)
-              const total = (Number(sz) * marketPrice).toFixed(0)
-              return (
-                <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(obPrice)}>
-                  <span className="ob-price positive">{formatPrice(obPrice)}</span>
-                  <span className="ob-size">{sz}</span>
-                  <span className="ob-sum">{Number(total).toLocaleString()}</span>
-                </div>
-              )
-            })}
+            {(bids.length > 0 ? bids.slice(0, 8) : [...Array(8)].map((_, i) => ({
+              price: currentPrice - (i + 1) * 12,
+              qty: ((i * 0.9 + 1.1) % 3.5 + 0.1),
+              total: 0,
+            }))).map((row, i) => (
+              <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
+                <span className="ob-price positive">{fmt(row.price)}</span>
+                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
+                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -402,9 +400,28 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
 
           <div className="avbl-row">
             <span>Avbl</span>
-            <span className="avbl-value">{accountBalance.toLocaleString()} USDT</span>
+            <span className="avbl-value">{account ? account.current_balance.toLocaleString() : '—'} USDT</span>
           </div>
 
+          {/* Stop price (for Stop Limit) */}
+          {orderType === 'Stop Limit' && (
+            <div className="entry-input-group">
+              <label>Stop Price</label>
+              <div className="input-row">
+                <div className="input-with-unit">
+                  <input
+                    type="text"
+                    placeholder="Stop price"
+                    value={stopPrice}
+                    onChange={(e) => setStopPrice(e.target.value)}
+                  />
+                  <span className="input-unit-inside">USDT</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Limit price */}
           {orderType !== 'Market' && (
             <div className="entry-input-group">
               <label>Price</label>
@@ -413,7 +430,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
                 <div className="input-with-unit">
                   <input
                     type="text"
-                    placeholder={formatPrice(marketPrice)}
+                    placeholder={fmt(currentPrice)}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                   />
@@ -440,12 +457,15 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
               <button className="input-adj-btn" onClick={() => adjustSize('up')}>+</button>
             </div>
             <div className="size-pct-btns">
-              {['25%', '50%', '75%', '100%'].map(pct => (
-                <button key={pct} className="pct-btn">{pct}</button>
+              {[25, 50, 75, 100].map(pct => (
+                <button key={pct} className="pct-btn" onClick={() => handleSizePercent(pct)}>
+                  {pct}%
+                </button>
               ))}
             </div>
           </div>
 
+          {/* TP/SL */}
           <div className="tp-sl-row">
             <label className="checkbox-row">
               <input type="checkbox" checked={tpEnabled} onChange={e => setTpEnabled(e.target.checked)} />
@@ -457,6 +477,24 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
             </label>
           </div>
 
+          {tpEnabled && (
+            <div className="entry-input-group compact">
+              <div className="input-with-unit">
+                <input type="text" placeholder="TP price" value={tpPrice} onChange={e => setTpPrice(e.target.value)} />
+                <span className="input-unit-inside">USDT</span>
+              </div>
+            </div>
+          )}
+
+          {slEnabled && (
+            <div className="entry-input-group compact">
+              <div className="input-with-unit">
+                <input type="text" placeholder="SL price" value={slPrice} onChange={e => setSlPrice(e.target.value)} />
+                <span className="input-unit-inside">USDT</span>
+              </div>
+            </div>
+          )}
+
           <p className="tp-sl-notice">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="#f59e0b">
               <path d="M8 1L1 14h14L8 1zm0 3l5.5 9H2.5L8 4zm-1 3v3h2V7H7zm0 4v2h2v-2H7z"/>
@@ -464,21 +502,35 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
             TP &amp; SL required by IJGF rules
           </p>
 
-          {/* Buy/Long + Sell/Short — both always visible, side by side like Binance */}
+          {/* Buy/Long + Sell/Short */}
           <div className="order-buttons-row">
-            <button className="order-submit-btn buy-long-btn">Buy/Long</button>
-            <button className="order-submit-btn sell-short-btn">Sell/Short</button>
+            <button
+              className="order-submit-btn buy-long-btn"
+              onClick={() => handleOrder('BUY')}
+              disabled={orderSubmitting || !account || account.status !== 'active'}
+            >
+              {orderSubmitting ? '...' : 'Buy/Long'}
+            </button>
+            <button
+              className="order-submit-btn sell-short-btn"
+              onClick={() => handleOrder('SELL')}
+              disabled={orderSubmitting || !account || account.status !== 'active'}
+            >
+              {orderSubmitting ? '...' : 'Sell/Short'}
+            </button>
           </div>
 
+          {/* Risk metrics — now live */}
           <div className="risk-metrics-panel">
             <div className="risk-metric-row">
               <span className="rm-label">
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="#22c55e">
-                  <circle cx="8" cy="8" r="6"/>
-                </svg>
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="#22c55e"><circle cx="8" cy="8" r="6"/></svg>
                 Profit Target
               </span>
-              <span className="rm-value">$0 / $1,000</span>
+              <span className="rm-value">
+                ${account ? (account.current_balance - account.initial_balance).toFixed(0) : '0'}
+                {' / '}${account?.profit_target?.toFixed(0) || '1,000'}
+              </span>
             </div>
             <div className="risk-metric-row">
               <span className="rm-label">
@@ -487,23 +539,37 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
                 </svg>
                 Daily Loss
               </span>
-              <span className="rm-value">$0 / $400</span>
+              <span className="rm-value">$0 / ${account?.max_daily_loss?.toFixed(0) || '400'}</span>
             </div>
             <div className="risk-metric-row">
               <span className="rm-label">
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="#ef4444">
-                  <circle cx="8" cy="8" r="6"/>
-                </svg>
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="#ef4444"><circle cx="8" cy="8" r="6"/></svg>
                 Max Drawdown
               </span>
-              <span className="rm-value">$0 / $600</span>
+              <span className="rm-value">
+                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '600'}
+              </span>
             </div>
+            {drawdownPercent > 50 && (
+              <div className="drawdown-warning">
+                ⚠️ {drawdownPercent.toFixed(0)}% of max drawdown used
+              </div>
+            )}
           </div>
 
           <div className="order-summary">
-            <div className="summary-row"><span>Margin Required</span><span>—</span></div>
-            <div className="summary-row"><span>Taker Fee (0.04%)</span><span>—</span></div>
-            <div className="summary-row"><span>Est. Liquidation</span><span>—</span></div>
+            <div className="summary-row">
+              <span>Margin Required</span>
+              <span>{size ? `$${(parseFloat(size) / leverage).toFixed(2)}` : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span>Taker Fee (0.04%)</span>
+              <span>{size ? `$${(parseFloat(size) * 0.0004).toFixed(2)}` : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span>Est. Liquidation</span>
+              <span>—</span>
+            </div>
           </div>
         </div>
       </div>
@@ -512,101 +578,190 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
       <div className="binance-bottom-section">
         <div className="positions-panel">
           <div className="positions-tabs">
-            {['Positions(0)', 'Open Orders(0)', 'Order History', 'Trade History', 'Transactions'].map(tab => (
+            {[
+              { key: 'positions', label: `Positions(${positions.length})` },
+              { key: 'orders', label: `Open Orders(${openOrders.length})` },
+              { key: 'orderHistory', label: 'Order History' },
+              { key: 'tradeHistory', label: 'Trade History' },
+            ].map(tab => (
               <button
-                key={tab}
-                className={`pos-tab ${activePositionsTab === tab ? 'active' : ''}`}
-                onClick={() => setActivePositionsTab(tab)}
+                key={tab.key}
+                className={`pos-tab ${activePositionsTab === tab.key ? 'active' : ''}`}
+                onClick={() => setActivePositionsTab(tab.key)}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
-            <label className="hide-symbols">
-              <input type="checkbox" />
-              <span>Hide Other Symbols</span>
-            </label>
           </div>
 
-          <div className="positions-table-headers">
-            <span>Symbol</span>
-            <span>Size</span>
-            <span>Entry Price</span>
-            <span>Break Even</span>
-            <span>Mark Price</span>
-            <span>Liq. Price</span>
-            <span>Margin</span>
-            <span>PNL (ROI%)</span>
-          </div>
+          {/* Positions tab */}
+          {activePositionsTab === 'positions' && (
+            <>
+              <div className="positions-table-headers">
+                <span>Symbol</span>
+                <span>Size</span>
+                <span>Entry Price</span>
+                <span>Mark Price</span>
+                <span>Liq. Price</span>
+                <span>Margin</span>
+                <span>PNL (ROI%)</span>
+                <span>Action</span>
+              </div>
+              {positions.length === 0 ? (
+                <div className="empty-positions">
+                  <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
+                    <rect x="10" y="10" width="18" height="18" rx="2"/>
+                    <rect x="36" y="10" width="18" height="18" rx="2"/>
+                    <rect x="36" y="36" width="18" height="18" rx="2"/>
+                    <rect x="10" y="36" width="18" height="18" rx="2"/>
+                  </svg>
+                  <p>No open positions</p>
+                </div>
+              ) : (
+                positions.map(pos => (
+                  <div key={pos.id} className="position-row">
+                    <span className={pos.side === 'LONG' ? 'positive' : 'negative'}>
+                      {pos.symbol} <small>{pos.side} {pos.leverage}x</small>
+                    </span>
+                    <span>{pos.quantity.toFixed(4)}</span>
+                    <span>{fmt(pos.entry_price)}</span>
+                    <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
+                    <span>{fmt(pos.liquidation_price)}</span>
+                    <span>${pos.margin.toFixed(2)}</span>
+                    <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
+                      {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
+                      <small> ({pos.roi?.toFixed(1)}%)</small>
+                    </span>
+                    <span>
+                      <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>
+                        Close
+                      </button>
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
+          )}
 
-          {positions.length === 0 && (
-            <div className="empty-positions">
-              <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
-                <rect x="10" y="10" width="18" height="18" rx="2"/>
-                <rect x="36" y="10" width="18" height="18" rx="2"/>
-                <rect x="36" y="36" width="18" height="18" rx="2"/>
-                <rect x="10" y="36" width="18" height="18" rx="2"/>
-              </svg>
-              <p>No open positions</p>
-            </div>
+          {/* Open Orders tab */}
+          {activePositionsTab === 'orders' && (
+            <>
+              <div className="positions-table-headers">
+                <span>Symbol</span>
+                <span>Type</span>
+                <span>Side</span>
+                <span>Price</span>
+                <span>Qty</span>
+                <span>Status</span>
+                <span>Action</span>
+              </div>
+              {openOrders.length === 0 ? (
+                <div className="empty-positions"><p>No open orders</p></div>
+              ) : (
+                openOrders.map(order => (
+                  <div key={order.id} className="position-row">
+                    <span>{order.symbol}</span>
+                    <span>{order.order_type}</span>
+                    <span className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</span>
+                    <span>{fmt(order.price)}</span>
+                    <span>{order.quantity.toFixed(4)}</span>
+                    <span>{order.status}</span>
+                    <span>
+                      <button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>
+                        Cancel
+                      </button>
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+
+          {/* Trade History tab */}
+          {(activePositionsTab === 'tradeHistory' || activePositionsTab === 'orderHistory') && (
+            <>
+              <div className="positions-table-headers">
+                <span>Time</span>
+                <span>Symbol</span>
+                <span>Side</span>
+                <span>Price</span>
+                <span>Qty</span>
+                <span>Fee</span>
+                <span>PNL</span>
+              </div>
+              {recentTrades.length === 0 ? (
+                <div className="empty-positions"><p>No trade history yet</p></div>
+              ) : (
+                recentTrades.map(trade => (
+                  <div key={trade.id} className="position-row">
+                    <span>{new Date(trade.executed_at).toLocaleString()}</span>
+                    <span>{trade.symbol}</span>
+                    <span className={trade.side === 'BUY' ? 'positive' : 'negative'}>{trade.side}</span>
+                    <span>{fmt(trade.price)}</span>
+                    <span>{trade.quantity.toFixed(4)}</span>
+                    <span>${trade.fee.toFixed(2)}</span>
+                    <span className={trade.realized_pnl >= 0 ? 'positive' : 'negative'}>
+                      {trade.realized_pnl != null ? `${trade.realized_pnl >= 0 ? '+' : ''}$${trade.realized_pnl.toFixed(2)}` : '—'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
           )}
         </div>
 
+        {/* Account panel */}
         <div className="account-panel">
           <div className="account-header"><span>Account</span></div>
           <div className="account-stats">
             <div className="account-row">
-              <span>Margin Ratio</span>
-              <span className="positive">—</span>
+              <span>Balance</span>
+              <span>{account ? account.current_balance.toLocaleString() : '—'} USDT</span>
             </div>
             <div className="account-row">
-              <span>Margin Balance</span>
-              <span>{marginBalance.toLocaleString()} USDT</span>
+              <span>Equity</span>
+              <span>{equity.toFixed(2)} USDT</span>
             </div>
             <div className="account-row">
               <span>Unrealized PNL</span>
-              <span className={unrealizedPNL >= 0 ? 'positive' : 'negative'}>
-                {unrealizedPNL.toFixed(2)} USDT
+              <span className={totalUnrealizedPNL >= 0 ? 'positive' : 'negative'}>
+                {totalUnrealizedPNL.toFixed(2)} USDT
               </span>
             </div>
-          </div>
-          <div className="account-actions">
-            <button>Transfer</button>
-            <button>Buy Crypto</button>
+            <div className="account-row">
+              <span>Challenge</span>
+              <span className={account?.status === 'active' ? 'positive' : account?.status === 'passed' ? 'positive' : 'negative'}>
+                {account?.status?.toUpperCase() || '—'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile full-screen chart page */}
+      {/* Mobile full-screen chart */}
       {mobileChartView && (
-        <div className="mobile-chart-overlay" ref={(el) => { if (el) { window.scrollTo(0, 1); document.body.style.overflow = 'hidden'; } }}>
+        <div className="mobile-chart-overlay" ref={() => { document.body.style.overflow = 'hidden' }}>
           <div className="mobile-chart-header">
-            <button className="mobile-chart-back" onClick={() => { setMobileChartView(false); document.body.style.overflow = ''; }}>
+            <button className="mobile-chart-back" onClick={() => { setMobileChartView(false); document.body.style.overflow = '' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
             </button>
-            <div className="mobile-chart-pair" onClick={() => setShowPairDropdown(prev => !prev)} style={{ cursor: 'pointer' }}>
+            <div className="mobile-chart-pair">
               <span className="pair-symbol">{selectedPair}</span>
               <span className="pair-type">Perp</span>
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ marginLeft: 4, opacity: 0.5 }}>
-                <path d="M2 4l4 4 4-4"/>
-              </svg>
             </div>
             <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-              {formatPrice(marketPrice)}
+              {fmt(currentPrice)}
             </span>
           </div>
           <div className="mobile-chart-body">
-            <div
-              id="tv_chart_container_mobile"
-              ref={mobileChartRef}
-              style={{ width: '100%', height: '100%' }}
-            />
+            <div id="tv_chart_container_mobile" ref={mobileChartRef} style={{ width: '100%', height: '100%' }} />
           </div>
         </div>
       )}
 
-      {/* Page-level pair dropdown — fixed overlay, works on all views */}
+      {/* Pair dropdown */}
       {showPairDropdown && (
         <div className="pair-dropdown-overlay" onClick={() => setShowPairDropdown(false)}>
           <div className="pair-dropdown" onClick={(ev) => ev.stopPropagation()}>
@@ -617,6 +772,11 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {} }) {
                 onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
               >
                 {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                {trading.prices[pair] && (
+                  <span className={`pair-dropdown-price ${(trading.prices[pair].change || 0) >= 0 ? 'positive' : 'negative'}`}>
+                    ${fmt(trading.prices[pair].price)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
