@@ -633,3 +633,468 @@
     max-width: none;
   }
 }
+
+/* ============================================================
+   Phase 3B v2: Leverage Modal + TP/SL PNL Display
+   APPEND this to MarketsPage.css
+   ============================================================ */
+
+/* --- TP/SL Expected PNL Row --- */
+.tp-sl-pnl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.tp-sl-pnl-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.tp-sl-pnl-values {
+  display: flex;
+  gap: 8px;
+}
+
+.tp-sl-pnl-tag {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.tp-sl-pnl-tag.long {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+}
+
+.tp-sl-pnl-tag.short {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* --- Leverage Modal --- */
+.leverage-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.leverage-modal {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.leverage-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.leverage-modal-header h3 {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.leverage-modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.leverage-modal-close:hover {
+  color: #fff;
+}
+
+.leverage-modal-sub {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  margin: 0 0 20px 0;
+}
+
+.leverage-slider-section {
+  margin-bottom: 16px;
+}
+
+.leverage-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.leverage-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f0b90b;
+  cursor: pointer;
+  border: 2px solid #1a1a2e;
+  box-shadow: 0 0 8px rgba(240, 185, 11, 0.3);
+}
+
+.leverage-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f0b90b;
+  cursor: pointer;
+  border: 2px solid #1a1a2e;
+}
+
+.leverage-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.leverage-number-input {
+  width: 70px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #f0b90b;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px;
+  outline: none;
+}
+
+.leverage-number-input:focus {
+  border-color: #f0b90b;
+}
+
+/* Hide number input spinners */
+.leverage-number-input::-webkit-outer-spin-button,
+.leverage-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.leverage-number-input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.leverage-x {
+  color: #f0b90b;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.leverage-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.leverage-preset-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.leverage-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.leverage-preset-btn.active {
+  background: rgba(240, 185, 11, 0.15);
+  border-color: #f0b90b;
+  color: #f0b90b;
+}
+
+.leverage-warning {
+  color: rgba(245, 158, 11, 0.8);
+  font-size: 11px;
+  margin: 0 0 16px 0;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.leverage-confirm-btn {
+  width: 100%;
+  padding: 12px;
+  background: #f0b90b;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.leverage-confirm-btn:hover {
+  background: #d4a30a;
+}
+
+/* Make leverage-display button look clickable */
+.leverage-display {
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+}
+
+.leverage-display:hover {
+  background: rgba(240, 185, 11, 0.2) !important;
+  border-color: #f0b90b !important;
+  color: #f0b90b !important;
+}
+
+/* --- Trade Notifications --- */
+.trade-notifications {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+}
+
+.trade-notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideInRight 0.3s ease;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.trade-notification.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.trade-notification.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.trade-notification.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.trade-notification.info {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.trade-notification button {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.trade-notification button:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- WebSocket Status --- */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.ws-status.disconnected {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.ws-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* --- Order Book Status --- */
+.ob-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ob-status.live { color: #22c55e; }
+.ob-status.simulated { color: #f59e0b; }
+
+.ob-status .live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* --- Position rows --- */
+.position-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.position-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.position-row small {
+  display: block;
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.close-pos-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.close-pos-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+/* --- Drawdown warning --- */
+.drawdown-warning {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  text-align: center;
+}
+
+/* --- Compact input group --- */
+.entry-input-group.compact {
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.entry-input-group.compact .input-with-unit {
+  max-width: 100%;
+}
+
+/* --- Pair dropdown price --- */
+.pair-dropdown-price {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* --- Order button disabled --- */
+.order-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .position-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .position-row span:nth-child(n+5) {
+    display: none;
+  }
+
+  .trade-notifications {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .leverage-modal {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .tp-sl-pnl-values {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

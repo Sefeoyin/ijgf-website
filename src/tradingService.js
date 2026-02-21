@@ -3,11 +3,6 @@
  *
  * All demo-trading logic in one service module.
  * Works directly with Supabase (RLS protects per-user data).
- *
- * Why client-side instead of Edge Functions for MVP:
- *  - Faster iteration, no deploy step for function changes
- *  - RLS already restricts data to the logged-in user
- *  - Edge Functions can be added later for sensitive ops (real funded accounts)
  */
 
 import { supabase } from './supabase'
@@ -25,19 +20,17 @@ const CHALLENGE_CONFIGS = {
   '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 4000, maxDrawdown: 6000 },
 }
 
-// Max leverage per asset class
 const MAX_LEVERAGE = {
   BTCUSDT: 10, ETHUSDT: 10,
-  DEFAULT: 5, // altcoins
+  DEFAULT: 5,
 }
+
+export { MAX_LEVERAGE }
 
 // ---------------------------------------------------------------------------
 // Account helpers
 // ---------------------------------------------------------------------------
-
-/** Get or create the user's active demo account */
 export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
-  // Try to fetch existing active account
   const { data: existing, error: fetchErr } = await supabase
     .from('demo_accounts')
     .select('*')
@@ -49,7 +42,6 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
   if (fetchErr) throw fetchErr
   if (existing) return existing
 
-  // Create new account
   const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
   const { data: account, error: insertErr } = await supabase
     .from('demo_accounts')
@@ -71,7 +63,6 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
   return account
 }
 
-/** Fetch full account state: account + open positions + open orders */
 export async function getAccountState(userId) {
   const account = await getOrCreateDemoAccount(userId)
 
@@ -110,25 +101,22 @@ export async function getAccountState(userId) {
 export async function placeMarketOrder({
   userId,
   symbol,
-  side, // 'BUY' or 'SELL'
+  side,
   sizeUsdt,
   leverage,
   currentPrice,
   takeProfit = null,
   stopLoss = null,
 }) {
-  // 1. Validate inputs
   if (!currentPrice || currentPrice <= 0) throw new Error('Invalid price')
   if (!sizeUsdt || sizeUsdt <= 0) throw new Error('Invalid size')
 
   const maxLev = MAX_LEVERAGE[symbol] ?? MAX_LEVERAGE.DEFAULT
   if (leverage > maxLev) throw new Error(`Max leverage for ${symbol} is ${maxLev}x`)
 
-  // 2. Get account
   const account = await getOrCreateDemoAccount(userId)
   if (account.status !== 'active') throw new Error(`Challenge is ${account.status}`)
 
-  // 3. Calculate quantities
   const quantity = sizeUsdt / currentPrice
   const margin = sizeUsdt / leverage
   const fee = sizeUsdt * FEE_RATE
@@ -137,7 +125,6 @@ export async function placeMarketOrder({
     throw new Error('Insufficient balance')
   }
 
-  // 4. Check if there's an existing open position for this symbol
   const { data: existingPos } = await supabase
     .from('demo_positions')
     .select('*')
@@ -148,7 +135,6 @@ export async function placeMarketOrder({
 
   const positionSide = side === 'BUY' ? 'LONG' : 'SHORT'
 
-  // If there's an opposite position, close it first
   if (existingPos && existingPos.side !== positionSide) {
     await closePosition({
       userId,
@@ -156,19 +142,16 @@ export async function placeMarketOrder({
       currentPrice,
       reason: 'reversed',
     })
-    // Re-fetch account after close
     const refreshed = await getOrCreateDemoAccount(userId)
     if (margin + fee > refreshed.current_balance) {
       throw new Error('Insufficient balance after closing opposite position')
     }
   }
 
-  // 5. Calculate liquidation price
   const liqPrice = positionSide === 'LONG'
-    ? currentPrice * (1 - 1 / leverage * 0.95) // 95% of margin lost
+    ? currentPrice * (1 - 1 / leverage * 0.95)
     : currentPrice * (1 + 1 / leverage * 0.95)
 
-  // 6. Insert position
   const { data: position, error: posErr } = await supabase
     .from('demo_positions')
     .insert({
@@ -189,7 +172,6 @@ export async function placeMarketOrder({
 
   if (posErr) throw posErr
 
-  // 7. Insert trade log
   const { error: tradeErr } = await supabase
     .from('demo_trades')
     .insert({
@@ -209,24 +191,22 @@ export async function placeMarketOrder({
 
   if (tradeErr) throw tradeErr
 
-  // 8. Deduct margin + fee from balance
   const newBalance = account.current_balance - margin - fee
-  await updateAccountBalance(account.id, newBalance, account)
+  await updateAccountBalance(account.id, newBalance)
 
-  // 9. Check challenge rules
   await checkChallengeRules(account.id, userId)
 
   return { position, fee, margin }
 }
 
 // ---------------------------------------------------------------------------
-// Place a limit / stop-limit order (pending — fill checked client-side)
+// Place a limit / stop-limit order
 // ---------------------------------------------------------------------------
 export async function placeLimitOrder({
   userId,
   symbol,
   side,
-  orderType, // 'LIMIT' or 'STOP_LIMIT'
+  orderType,
   price,
   stopPrice = null,
   sizeUsdt,
@@ -294,9 +274,8 @@ export async function closePosition({
   userId,
   positionId,
   currentPrice,
-  reason = 'manual', // 'manual' | 'tp' | 'sl' | 'liquidation' | 'reversed'
+  reason = 'manual',
 }) {
-  // 1. Fetch position
   const { data: pos, error: fetchErr } = await supabase
     .from('demo_positions')
     .select('*')
@@ -307,14 +286,12 @@ export async function closePosition({
 
   if (fetchErr || !pos) throw new Error('Position not found or already closed')
 
-  // 2. Calculate PNL
   const pnl = pos.side === 'LONG'
     ? (currentPrice - pos.entry_price) * pos.quantity
     : (pos.entry_price - currentPrice) * pos.quantity
 
   const fee = currentPrice * pos.quantity * FEE_RATE
 
-  // 3. Close position
   const { error: closeErr } = await supabase
     .from('demo_positions')
     .update({
@@ -326,7 +303,6 @@ export async function closePosition({
 
   if (closeErr) throw closeErr
 
-  // 4. Log the closing trade
   const closeSide = pos.side === 'LONG' ? 'SELL' : 'BUY'
   await supabase.from('demo_trades').insert({
     demo_account_id: pos.demo_account_id,
@@ -344,11 +320,9 @@ export async function closePosition({
     is_close: true,
   })
 
-  // 5. Update balance: return margin + PNL - fee
   const account = await getOrCreateDemoAccount(userId)
   const newBalance = account.current_balance + pos.margin + pnl - fee
 
-  // Update win/loss stats
   const isWin = pnl > 0
   await supabase
     .from('demo_accounts')
@@ -361,17 +335,15 @@ export async function closePosition({
     })
     .eq('id', account.id)
 
-  // 6. Check challenge rules
   await checkChallengeRules(account.id, userId)
 
   return { pnl, fee, newBalance: Math.max(0, newBalance) }
 }
 
 // ---------------------------------------------------------------------------
-// Check pending orders against current prices (call on each price update)
+// Check pending orders against current prices
 // ---------------------------------------------------------------------------
 export async function checkPendingOrders(userId, priceMap) {
-  // priceMap = { 'BTCUSDT': 98500, 'ETHUSDT': 3200, ... }
   const { data: orders } = await supabase
     .from('demo_orders')
     .select('*')
@@ -389,13 +361,10 @@ export async function checkPendingOrders(userId, priceMap) {
     let shouldFill = false
 
     if (order.order_type === 'LIMIT') {
-      // Buy limit fills when price <= order price
-      // Sell limit fills when price >= order price
       shouldFill = order.side === 'BUY'
         ? currentPrice <= order.price
         : currentPrice >= order.price
     } else if (order.order_type === 'STOP_LIMIT' && order.stop_price) {
-      // Stop triggered when price crosses stop, then limit checked
       const stopTriggered = order.side === 'BUY'
         ? currentPrice >= order.stop_price
         : currentPrice <= order.stop_price
@@ -409,7 +378,6 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Mark order as filled
         await supabase
           .from('demo_orders')
           .update({
@@ -419,13 +387,12 @@ export async function checkPendingOrders(userId, priceMap) {
           })
           .eq('id', order.id)
 
-        // Execute as market order at the limit price
-        const sizeUsdt = order.price * order.quantity
+        const fillSizeUsdt = order.price * order.quantity
         await placeMarketOrder({
           userId,
           symbol: order.symbol,
           side: order.side,
-          sizeUsdt,
+          sizeUsdt: fillSizeUsdt,
           leverage: order.leverage,
           currentPrice: order.price,
           takeProfit: order.take_profit,
@@ -443,7 +410,7 @@ export async function checkPendingOrders(userId, priceMap) {
 }
 
 // ---------------------------------------------------------------------------
-// Check TP/SL on open positions (call on each price update)
+// Check TP/SL on open positions
 // ---------------------------------------------------------------------------
 export async function checkPositionTPSL(userId, priceMap) {
   const { data: positions } = await supabase
@@ -469,10 +436,10 @@ export async function checkPositionTPSL(userId, priceMap) {
       closeReason = 'liquidation'
     }
 
-    // Check take profit
+    // Check take profit (FIXED: SHORT TP was incorrectly set to 'sl')
     if (!closeReason && pos.take_profit) {
       if (pos.side === 'LONG' && currentPrice >= pos.take_profit) closeReason = 'tp'
-      if (pos.side === 'SHORT' && currentPrice <= pos.take_profit) closeReason = 'sl'
+      if (pos.side === 'SHORT' && currentPrice <= pos.take_profit) closeReason = 'tp'
     }
 
     // Check stop loss
@@ -500,7 +467,7 @@ export async function checkPositionTPSL(userId, priceMap) {
 }
 
 // ---------------------------------------------------------------------------
-// Update unrealized PNL for display (doesn't write to DB, returns computed)
+// Compute unrealized PNL (pure function, no DB)
 // ---------------------------------------------------------------------------
 export function computeUnrealizedPNL(positions, priceMap) {
   return positions.map(pos => {
@@ -509,7 +476,6 @@ export function computeUnrealizedPNL(positions, priceMap) {
       ? (currentPrice - pos.entry_price) * pos.quantity
       : (pos.entry_price - currentPrice) * pos.quantity
     const roi = (pnl / pos.margin) * 100
-
     return { ...pos, unrealized_pnl: pnl, roi }
   })
 }
@@ -528,7 +494,6 @@ async function checkChallengeRules(accountId, userId) {
 
   const totalDrawdown = account.initial_balance - account.current_balance
 
-  // ---- Max drawdown check ----
   if (totalDrawdown >= account.max_total_drawdown) {
     await supabase.from('challenge_violations').insert({
       demo_account_id: accountId,
@@ -538,17 +503,13 @@ async function checkChallengeRules(accountId, userId) {
       balance_at_violation: account.current_balance,
       violation_amount: totalDrawdown,
     })
-
     await supabase
       .from('demo_accounts')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
       .eq('id', accountId)
-
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // ---- Daily loss check ----
-  // Get today's starting balance
   const { data: todaySnap } = await supabase
     .from('challenge_progress')
     .select('starting_balance')
@@ -568,108 +529,75 @@ async function checkChallengeRules(accountId, userId) {
       balance_at_violation: account.current_balance,
       violation_amount: dailyLoss,
     })
-
     await supabase
       .from('demo_accounts')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
       .eq('id', accountId)
-
     return { failed: true, reason: 'DAILY_LOSS' }
   }
 
-  // ---- Profit target check ----
   const totalProfit = account.current_balance - account.initial_balance
   if (totalProfit >= account.profit_target) {
     await supabase
       .from('demo_accounts')
       .update({ status: 'passed', updated_at: new Date().toISOString() })
       .eq('id', accountId)
-
     return { passed: true }
   }
 
-  // ---- Update high water mark ----
   if (account.current_balance > account.high_water_mark) {
     await supabase
       .from('demo_accounts')
-      .update({
-        high_water_mark: account.current_balance,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ high_water_mark: account.current_balance, updated_at: new Date().toISOString() })
       .eq('id', accountId)
   }
 
   return { status: 'active' }
 }
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 async function updateAccountBalance(accountId, newBalance) {
   const equity = Math.max(0, newBalance)
   await supabase
     .from('demo_accounts')
-    .update({
-      current_balance: equity,
-      equity,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ current_balance: equity, equity, updated_at: new Date().toISOString() })
     .eq('id', accountId)
 }
 
-// ---------------------------------------------------------------------------
-// Get challenge progress history
-// ---------------------------------------------------------------------------
 export async function getChallengeProgress(userId) {
   const { data, error } = await supabase
     .from('challenge_progress')
     .select('*')
     .eq('user_id', userId)
     .order('snapshot_date', { ascending: true })
-
   if (error) throw error
   return data || []
 }
 
-// ---------------------------------------------------------------------------
-// Get violations
-// ---------------------------------------------------------------------------
 export async function getViolations(userId) {
   const { data, error } = await supabase
     .from('challenge_violations')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-
   if (error) throw error
   return data || []
 }
 
-// ---------------------------------------------------------------------------
-// Reset demo account (start over)
-// ---------------------------------------------------------------------------
 export async function resetDemoAccount(userId, challengeType = '10k') {
-  // Close all open positions at entry price (no PNL)
   await supabase
     .from('demo_positions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })
     .eq('user_id', userId)
     .eq('status', 'open')
-
-  // Cancel all open orders
   await supabase
     .from('demo_orders')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('user_id', userId)
     .eq('status', 'open')
-
-  // Delete the old account
   await supabase
     .from('demo_accounts')
     .delete()
     .eq('user_id', userId)
     .eq('challenge_type', challengeType)
-
-  // Create fresh account
   return getOrCreateDemoAccount(userId, challengeType)
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
+import { MAX_LEVERAGE } from './tradingService'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
@@ -10,7 +11,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [price, setPrice] = useState('')
   const [stopPrice, setStopPrice] = useState('')
   const [size, setSize] = useState('')
-  const [leverage] = useState(10)
+  const [leverage, setLeverage] = useState(10)
+  const [showLeverageModal, setShowLeverageModal] = useState(false)
+  const [leverageInput, setLeverageInput] = useState('10')
   const [tpPrice, setTpPrice] = useState('')
   const [slPrice, setSlPrice] = useState('')
   const [tpEnabled, setTpEnabled] = useState(false)
@@ -28,7 +31,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
   const {
     account, positions, openOrders, recentTrades,
-    currentPrice, currentPriceData, isConnected, priceMode,
+    currentPrice, currentPriceData, hasPrices, priceMode,
     bids: liveBids, asks: liveAsks, obMode,
     equity, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
@@ -52,6 +55,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
 
+  // Max leverage for selected pair
+  const maxLeverage = MAX_LEVERAGE[selectedPair] ?? MAX_LEVERAGE.DEFAULT
+
   // Reset inputs when pair changes
   useEffect(() => {
     setPrice('')
@@ -59,6 +65,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     setSize('')
     setTpPrice('')
     setSlPrice('')
+    // Cap leverage to max for new pair
+    setLeverage(prev => Math.min(prev, MAX_LEVERAGE[selectedPair] ?? MAX_LEVERAGE.DEFAULT))
   }, [selectedPair])
 
   // ---- TradingView chart (desktop) ----
@@ -105,9 +113,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     }
 
     return () => {
-      try {
-        if (tvWidgetRef.current?.remove) tvWidgetRef.current.remove()
-      } catch { /* */ }
+      try { if (tvWidgetRef.current?.remove) tvWidgetRef.current.remove() } catch { /* */ }
       tvWidgetRef.current = null
     }
   }, [selectedPair])
@@ -153,7 +159,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // ---- Price formatting ----
   const fmt = (num) => {
     if (!num || num === 0) return '0.00'
-    if (num < 1) return num.toFixed(6)
+    if (num < 0.01) return num.toFixed(6)
+    if (num < 1) return num.toFixed(4)
     if (num < 100) return num.toFixed(2)
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
@@ -181,10 +188,61 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     setSize(amount.toFixed(2))
   }
 
+  // ---- TP/SL Expected PNL Calculations (Binance/Bybit style) ----
+  const getEntryPrice = () => {
+    if (orderType === 'Market') return currentPrice
+    const p = parseFloat(price.replace(/,/g, ''))
+    return p > 0 ? p : currentPrice
+  }
+
+  const sizeVal = parseFloat(size) || 0
+  const entryPriceVal = getEntryPrice()
+  const qtyEstimate = entryPriceVal > 0 ? sizeVal / entryPriceVal : 0
+
+  // Expected TP profit
+  const tpPriceVal = parseFloat(tpPrice) || 0
+  const tpPnl = useMemo(() => {
+    if (!tpPriceVal || !entryPriceVal || !qtyEstimate) return null
+    // For Buy/Long: (tp - entry) * qty
+    // For Sell/Short: (entry - tp) * qty
+    // We show both since user hasn't clicked Buy or Sell yet
+    const longPnl = (tpPriceVal - entryPriceVal) * qtyEstimate
+    const shortPnl = (entryPriceVal - tpPriceVal) * qtyEstimate
+    return { longPnl, shortPnl }
+  }, [tpPriceVal, entryPriceVal, qtyEstimate])
+
+  // Expected SL loss
+  const slPriceVal = parseFloat(slPrice) || 0
+  const slPnl = useMemo(() => {
+    if (!slPriceVal || !entryPriceVal || !qtyEstimate) return null
+    const longPnl = (slPriceVal - entryPriceVal) * qtyEstimate
+    const shortPnl = (entryPriceVal - slPriceVal) * qtyEstimate
+    return { longPnl, shortPnl }
+  }, [slPriceVal, entryPriceVal, qtyEstimate])
+
+  // Estimated liquidation price
+  const estLiqLong = entryPriceVal > 0 ? entryPriceVal * (1 - 1 / leverage * 0.95) : 0
+  const estLiqShort = entryPriceVal > 0 ? entryPriceVal * (1 + 1 / leverage * 0.95) : 0
+
+  // ---- Leverage modal ----
+  const openLeverageModal = () => {
+    setLeverageInput(String(leverage))
+    setShowLeverageModal(true)
+  }
+
+  const confirmLeverage = () => {
+    const val = parseInt(leverageInput)
+    if (val >= 1 && val <= maxLeverage) {
+      setLeverage(val)
+    }
+    setShowLeverageModal(false)
+  }
+
+  const leveragePresets = [1, 2, 3, 5, 10].filter(v => v <= maxLeverage)
+
   // ---- Submit order ----
   const handleOrder = async (side) => {
     if (orderSubmitting) return
-    const sizeVal = parseFloat(size)
     if (!sizeVal || sizeVal <= 0) return
 
     setOrderSubmitting(true)
@@ -200,7 +258,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         })
       } else {
         const orderPrice = parseFloat(price.replace(/,/g, ''))
-        if (!orderPrice) return
+        if (!orderPrice) { setOrderSubmitting(false); return }
 
         await submitLimitOrder({
           symbol: selectedPair,
@@ -214,10 +272,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           stopLoss: slEnabled ? slPrice : null,
         })
       }
-      // Reset size after successful order
       setSize('')
     } catch {
-      // Error already shown via notification
+      // Error shown via notification
     } finally {
       setOrderSubmitting(false)
     }
@@ -227,6 +284,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
   const priceChangePercent = currentPriceData.change || 0
   const high24h = currentPriceData.high || 0
+
+  // Format PNL with color
+  const fmtPnl = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null
+    const sign = val >= 0 ? '+' : ''
+    return { text: `${sign}$${val.toFixed(2)}`, cls: val >= 0 ? 'positive' : 'negative' }
+  }
 
   return (
     <div className="binance-markets-page">
@@ -240,8 +304,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         ))}
       </div>
 
-      {/* Connection status — only show if neither WS nor polling is working */}
-      {!isConnected && priceMode === 'connecting' && (
+      {/* Connection status — only show if no prices at all */}
+      {!hasPrices && priceMode === 'connecting' && (
         <div className="ws-status disconnected">
           <span className="ws-dot"></span> Connecting to price feed...
         </div>
@@ -327,7 +391,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           </div>
         </div>
 
-        {/* MIDDLE: Order Book — now using live data */}
+        {/* MIDDLE: Order Book */}
         <div className="binance-orderbook-column">
           <div className="orderbook-header">
             <span>Order Book</span>
@@ -382,9 +446,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
         {/* RIGHT: Order Entry */}
         <div className="binance-order-entry">
+          {/* Leverage bar — clickable to open modal */}
           <div className="order-entry-header">
             <button className="isolated-btn">Isolated</button>
-            <button className="leverage-display">{leverage}x</button>
+            <button className="leverage-display" onClick={openLeverageModal}>{leverage}x</button>
           </div>
 
           <div className="order-type-selector">
@@ -410,12 +475,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
               <label>Stop Price</label>
               <div className="input-row">
                 <div className="input-with-unit">
-                  <input
-                    type="text"
-                    placeholder="Stop price"
-                    value={stopPrice}
-                    onChange={(e) => setStopPrice(e.target.value)}
-                  />
+                  <input type="text" placeholder="Stop price" value={stopPrice} onChange={(e) => setStopPrice(e.target.value)} />
                   <span className="input-unit-inside">USDT</span>
                 </div>
               </div>
@@ -429,12 +489,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
               <div className="input-row">
                 <button className="input-adj-btn" onClick={() => adjustPrice('down')}>−</button>
                 <div className="input-with-unit">
-                  <input
-                    type="text"
-                    placeholder={fmt(currentPrice)}
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                  />
+                  <input type="text" placeholder={fmt(currentPrice)} value={price} onChange={(e) => setPrice(e.target.value)} />
                   <span className="input-unit-inside">{getBaseAsset()}</span>
                 </div>
                 <button className="input-adj-btn" onClick={() => adjustPrice('up')}>+</button>
@@ -447,12 +502,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             <div className="input-row">
               <button className="input-adj-btn" onClick={() => adjustSize('down')}>−</button>
               <div className="input-with-unit">
-                <input
-                  type="text"
-                  placeholder="0.00"
-                  value={size}
-                  onChange={(e) => setSize(e.target.value)}
-                />
+                <input type="text" placeholder="0.00" value={size} onChange={(e) => setSize(e.target.value)} />
                 <span className="input-unit-inside">USDT</span>
               </div>
               <button className="input-adj-btn" onClick={() => adjustSize('up')}>+</button>
@@ -466,7 +516,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </div>
           </div>
 
-          {/* TP/SL */}
+          {/* TP/SL with expected PNL */}
           <div className="tp-sl-row">
             <label className="checkbox-row">
               <input type="checkbox" checked={tpEnabled} onChange={e => setTpEnabled(e.target.checked)} />
@@ -484,6 +534,20 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <input type="text" placeholder="TP price" value={tpPrice} onChange={e => setTpPrice(e.target.value)} />
                 <span className="input-unit-inside">USDT</span>
               </div>
+              {/* Expected TP profit display */}
+              {tpPnl && sizeVal > 0 && (
+                <div className="tp-sl-pnl-row">
+                  <span className="tp-sl-pnl-label">Expected Profit:</span>
+                  <span className="tp-sl-pnl-values">
+                    <span className="tp-sl-pnl-tag long">
+                      Long {fmtPnl(tpPnl.longPnl)?.text}
+                    </span>
+                    <span className="tp-sl-pnl-tag short">
+                      Short {fmtPnl(tpPnl.shortPnl)?.text}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -493,6 +557,20 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <input type="text" placeholder="SL price" value={slPrice} onChange={e => setSlPrice(e.target.value)} />
                 <span className="input-unit-inside">USDT</span>
               </div>
+              {/* Expected SL loss display */}
+              {slPnl && sizeVal > 0 && (
+                <div className="tp-sl-pnl-row">
+                  <span className="tp-sl-pnl-label">Expected Loss:</span>
+                  <span className="tp-sl-pnl-values">
+                    <span className="tp-sl-pnl-tag long">
+                      Long {fmtPnl(slPnl.longPnl)?.text}
+                    </span>
+                    <span className="tp-sl-pnl-tag short">
+                      Short {fmtPnl(slPnl.shortPnl)?.text}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -521,7 +599,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </button>
           </div>
 
-          {/* Risk metrics — now live */}
+          {/* Risk metrics */}
           <div className="risk-metrics-panel">
             <div className="risk-metric-row">
               <span className="rm-label">
@@ -561,15 +639,19 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           <div className="order-summary">
             <div className="summary-row">
               <span>Margin Required</span>
-              <span>{size ? `$${(parseFloat(size) / leverage).toFixed(2)}` : '—'}</span>
+              <span>{sizeVal ? `$${(sizeVal / leverage).toFixed(2)}` : '—'}</span>
             </div>
             <div className="summary-row">
               <span>Taker Fee (0.04%)</span>
-              <span>{size ? `$${(parseFloat(size) * 0.0004).toFixed(2)}` : '—'}</span>
+              <span>{sizeVal ? `$${(sizeVal * 0.0004).toFixed(2)}` : '—'}</span>
             </div>
             <div className="summary-row">
-              <span>Est. Liquidation</span>
-              <span>—</span>
+              <span>Est. Liq. (Long)</span>
+              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span>Est. Liq. (Short)</span>
+              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqShort)}` : '—'}</span>
             </div>
           </div>
         </div>
@@ -701,7 +783,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <span>{fmt(trade.price)}</span>
                     <span>{trade.quantity.toFixed(4)}</span>
                     <span>${trade.fee.toFixed(2)}</span>
-                    <span className={trade.realized_pnl >= 0 ? 'positive' : 'negative'}>
+                    <span className={(trade.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}>
                       {trade.realized_pnl != null ? `${trade.realized_pnl >= 0 ? '+' : ''}$${trade.realized_pnl.toFixed(2)}` : '—'}
                     </span>
                   </div>
@@ -780,6 +862,62 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 )}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Leverage Modal */}
+      {showLeverageModal && (
+        <div className="leverage-modal-overlay" onClick={() => setShowLeverageModal(false)}>
+          <div className="leverage-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="leverage-modal-header">
+              <h3>Adjust Leverage</h3>
+              <button className="leverage-modal-close" onClick={() => setShowLeverageModal(false)}>×</button>
+            </div>
+            <p className="leverage-modal-sub">Max leverage for {getBaseAsset()}: {maxLeverage}x</p>
+
+            <div className="leverage-slider-section">
+              <input
+                type="range"
+                min="1"
+                max={maxLeverage}
+                step="1"
+                value={leverageInput}
+                onChange={(e) => setLeverageInput(e.target.value)}
+                className="leverage-slider"
+              />
+              <div className="leverage-input-row">
+                <input
+                  type="number"
+                  min="1"
+                  max={maxLeverage}
+                  value={leverageInput}
+                  onChange={(e) => setLeverageInput(e.target.value)}
+                  className="leverage-number-input"
+                />
+                <span className="leverage-x">x</span>
+              </div>
+            </div>
+
+            <div className="leverage-presets">
+              {leveragePresets.map(v => (
+                <button
+                  key={v}
+                  className={`leverage-preset-btn ${parseInt(leverageInput) === v ? 'active' : ''}`}
+                  onClick={() => setLeverageInput(String(v))}
+                >
+                  {v}x
+                </button>
+              ))}
+            </div>
+
+            <p className="leverage-warning">
+              ⚠️ Higher leverage increases both profit potential and liquidation risk.
+            </p>
+
+            <button className="leverage-confirm-btn" onClick={confirmLeverage}>
+              Confirm
+            </button>
           </div>
         </div>
       )}
