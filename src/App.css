@@ -10661,7 +10661,7 @@ body[data-theme="day"] .footer-text {
 
 /* Desktop: Increase widget heights so markets shows 3-4 tokens */
 .equity-chart-widget {
-  height: 380px !important;
+  height: 420px !important;
 }
 .markets-widget {
   height: 420px !important;
