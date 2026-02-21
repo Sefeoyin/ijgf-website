@@ -462,40 +462,52 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </div>
           )}
 
-          {/* Leverage bar — clickable to open modal */}
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
+          {/* Row 1: Isolated + Leverage */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
             <button className="isolated-btn">Isolated</button>
             <button className="leverage-display" onClick={openLeverageModal}>{leverage}x</button>
           </div>
 
-          {/* Order type tabs — forced visible with inline styles */}
+          {/* Row 2: Order Type Tabs — Limit / Market / Stop Limit */}
           <div style={{
             display: 'flex',
             border: '1px solid #2b3139',
             borderRadius: '6px',
             overflow: 'hidden',
             marginBottom: '8px',
+            minHeight: '32px',
+            flexShrink: 0,
           }}>
-            {['Limit', 'Market', 'Stop Limit'].map(t => (
-              <button
-                key={t}
-                style={{
-                  flex: 1,
-                  background: orderType === t ? 'rgba(124,58,237,0.15)' : 'transparent',
-                  border: 'none',
-                  borderRight: t !== 'Stop Limit' ? '1px solid #2b3139' : 'none',
-                  color: orderType === t ? '#a78bfa' : '#848e9c',
-                  fontSize: '12px',
-                  fontWeight: orderType === t ? '600' : '400',
-                  padding: '8px 4px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => setOrderType(t)}
-              >
-                {t}
-              </button>
-            ))}
+            <button
+              onClick={() => setOrderType('Limit')}
+              style={{
+                flex: 1, padding: '7px 4px', cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: '12px', fontWeight: orderType === 'Limit' ? '600' : '400',
+                background: orderType === 'Limit' ? 'rgba(124,58,237,0.15)' : 'transparent',
+                color: orderType === 'Limit' ? '#a78bfa' : '#848e9c',
+                border: 'none', borderRight: '1px solid #2b3139', textAlign: 'center',
+              }}
+            >Limit</button>
+            <button
+              onClick={() => setOrderType('Market')}
+              style={{
+                flex: 1, padding: '7px 4px', cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: '12px', fontWeight: orderType === 'Market' ? '600' : '400',
+                background: orderType === 'Market' ? 'rgba(124,58,237,0.15)' : 'transparent',
+                color: orderType === 'Market' ? '#a78bfa' : '#848e9c',
+                border: 'none', borderRight: '1px solid #2b3139', textAlign: 'center',
+              }}
+            >Market</button>
+            <button
+              onClick={() => setOrderType('Stop Limit')}
+              style={{
+                flex: 1, padding: '7px 4px', cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: '12px', fontWeight: orderType === 'Stop Limit' ? '600' : '400',
+                background: orderType === 'Stop Limit' ? 'rgba(124,58,237,0.15)' : 'transparent',
+                color: orderType === 'Stop Limit' ? '#a78bfa' : '#848e9c',
+                border: 'none', textAlign: 'center',
+              }}
+            >Stop Limit</button>
           </div>
 
           <div className="avbl-row">

@@ -90,8 +90,25 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     (sum, p) => sum + (p.unrealized_pnl || 0), 0
   )
 
+  // Total margin locked in open positions
+  const totalMarginInUse = positions.reduce(
+    (sum, p) => sum + (p.margin || 0), 0
+  )
+
+  // Wallet balance (shown as "Balance" in UI) — this is what Supabase stores
+  const walletBalance = account ? account.current_balance : 0
+
+  // Equity = balance + unrealized PNL (standard futures definition)
+  // This is the "real" account value shown as "Equity"
   const equity = account
     ? account.current_balance + totalUnrealizedPNL
+    : 0
+
+  // For CHALLENGE RULES: actual account value = balance + margin + unrealized PNL
+  // Margin is not lost — it returns when position closes
+  // This is what we use to measure drawdown and profit target
+  const accountValue = account
+    ? account.current_balance + totalMarginInUse + totalUnrealizedPNL
     : 0
 
   // --------------- Notifications helper ---------------
@@ -280,21 +297,21 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     }
   }, [refreshState, addNotification])
 
-  // --------------- Derived stats (ALL use EQUITY, not raw balance) ---------------
+  // --------------- Derived stats (use accountValue for challenge metrics) ---------------
   const winRate = account && account.total_trades > 0
     ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
     : '0.0'
 
-  // Equity-based profit: how far toward target INCLUDING open positions
-  const equityProfit = account ? equity - account.initial_balance : 0
+  // Profit toward target: accountValue vs initial (includes unrealized PNL but NOT margin as loss)
+  const equityProfit = account ? accountValue - account.initial_balance : 0
 
   const profitTargetProgress = account
     ? Math.min(100, Math.max(0, (equityProfit / account.profit_target) * 100))
     : 0
 
-  // Drawdown based on equity, not raw balance
+  // Drawdown: only count ACTUAL losses, not margin locked in positions
   const drawdownUsed = account
-    ? Math.max(0, account.initial_balance - equity)
+    ? Math.max(0, account.initial_balance - accountValue)
     : 0
 
   const drawdownPercent = account && account.max_total_drawdown > 0
@@ -327,8 +344,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
 
     // Derived
     equity,
+    accountValue,
     equityProfit,
     totalUnrealizedPNL,
+    totalMarginInUse,
     winRate,
     profitTargetProgress,
     drawdownUsed,
