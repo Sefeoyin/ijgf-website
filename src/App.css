@@ -9279,11 +9279,18 @@ body[data-theme="day"] .dash-header {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.15s;
+  margin-top: auto;
+  width: 100%;
 }
 
 .btn-start-challenge:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
+}
+
+/* Bottom spacing for dashboard so last elements don't sit on page edge */
+.dashboard-overview {
+  padding-bottom: 2rem !important;
 }
 
 /* ---- History widget ---- */
