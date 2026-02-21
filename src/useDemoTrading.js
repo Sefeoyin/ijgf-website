@@ -95,9 +95,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     (sum, p) => sum + (p.margin || 0), 0
   )
 
-  // Wallet balance (shown as "Balance" in UI) — this is what Supabase stores
-  const walletBalance = account ? account.current_balance : 0
-
   // Equity = balance + unrealized PNL (standard futures definition)
   // This is the "real" account value shown as "Equity"
   const equity = account
