@@ -5,6 +5,9 @@ import ProfilePage from './ProfilePage'
 import LoadingAnimation from './LoadingAnimation'
 import DashboardOverview from './DashboardOverview'
 import MarketsPage from './MarketsPage'
+import AnalyticsPage from './AnalyticsPage'
+import TradeHistoryPage from './TradeHistoryPage'
+import RulesObjectivesPage from './RulesObjectivesPage'
 import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
@@ -63,9 +66,9 @@ function Dashboard() {
   const menuItems = [
     { id: 'dashboard', icon: 'grid',       label: 'Dashboard',          disabled: false },
     { id: 'market',    icon: 'chart',      label: 'Market',             disabled: false },
-    { id: 'analytics', icon: 'trending',   label: 'Analytics',          disabled: true  },
-    { id: 'history',   icon: 'clock',      label: 'Trade History',      disabled: true  },
-    { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: true  },
+    { id: 'analytics', icon: 'trending',   label: 'Analytics',          disabled: false },
+    { id: 'history',   icon: 'clock',      label: 'Trade History',      disabled: false },
+    { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: false },
     { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: true  },
     { id: 'profile',   icon: 'user',       label: 'Profile',            disabled: false },
     { id: 'support',   icon: 'headphones', label: 'Support',            disabled: true  },
@@ -212,6 +215,9 @@ function Dashboard() {
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard' && <DashboardOverview userId={userId} />}
           {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
+          {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
+          {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
+          {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
         </div>
       </div>
