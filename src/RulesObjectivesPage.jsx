@@ -105,7 +105,9 @@ export default function RulesObjectivesPage({ userId }) {
   // estimate progress %
   const progressPct = Math.min(100, Math.max(0, (currentProfit / profitTarget) * 100))
   const challengeId = account?.id ? `CH-${String(account.id).slice(0,4).toUpperCase()}` : 'CH-—'
-  const accountSize = account ? `$${(initial/1000).toFixed(0)}K` : '—'
+  const daysActive  = account?.created_at
+    ? Math.floor((new Date() - new Date(account.created_at)) / 86400000)
+    : null
 
   // ── rules data ────────────────────────────────────────────────────────
   const icons = {
@@ -361,7 +363,7 @@ export default function RulesObjectivesPage({ userId }) {
           { label: 'Challenge Progress', value: `${progressPct.toFixed(0)}%`, sub: 'Objectives completed', icon: '↗', color: '#e2e8f0' },
           { label: 'Profit Target', value: `+${profitTargetPct.toFixed(0)}%`, sub: 'Required to pass', icon: '📈', color: '#4ade80' },
           { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', color: currentProfit >= 0 ? '#4ade80' : '#f87171' },
-          { label: 'Days Active', value: account?.created_at ? `${Math.floor((Date.now() - new Date(account.created_at)) / 86400000)} days` : '—', sub: 'Since challenge start', icon: '◷', color: '#e2e8f0' },
+          { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', color: '#e2e8f0' },
         ].map((card, i) => (
           <div key={i} className="rules-stat-card">
             <div className="rules-stat-header">
@@ -386,7 +388,7 @@ export default function RulesObjectivesPage({ userId }) {
           </div>
           <div className="rules-challenge-meta">
             <span>Start Date: {account.created_at ? new Date(account.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
-            <span>Days Active: {account.created_at ? Math.floor((Date.now() - new Date(account.created_at)) / 86400000) : '—'} days</span>
+            <span>Days Active: {daysActive != null ? daysActive : '—'} days</span>
           </div>
           <ProgressBar value={progressPct} max={100} color="#8b5cf6" />
           <div className="rules-challenge-pct">{progressPct.toFixed(0)}% Completed</div>
