@@ -11144,17 +11144,20 @@ body[data-theme="day"] .footer-text {
   border: 1px solid var(--dash-border, rgba(255,255,255,0.07));
   border-radius: 12px;
   padding: 12px 16px;
+  flex-wrap: wrap;
 }
 .history-search-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
+  min-width: 0;
   max-width: 400px;
   color: rgba(255,255,255,0.35);
 }
 .history-search {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   outline: none;
@@ -11174,6 +11177,7 @@ body[data-theme="day"] .footer-text {
 .history-toolbar-right {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 .history-filter-btn,
 .history-export-btn {
@@ -11188,10 +11192,37 @@ body[data-theme="day"] .footer-text {
   border: 1px solid rgba(255,255,255,0.1);
   background: transparent;
   color: rgba(255,255,255,0.65);
+  white-space: nowrap;
 }
 .history-filter-btn:hover { border-color: rgba(139,92,246,0.4); color: #fff; }
 .history-filter-btn.active { border-color: #7c3aed; color: #a78bfa; background: rgba(124,58,237,0.1); }
 .history-export-btn:hover { border-color: rgba(139,92,246,0.4); color: #fff; }
+
+/* Mobile: stack search above buttons */
+@media (max-width: 520px) {
+  .history-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .history-search-wrap {
+    max-width: 100%;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .history-toolbar-right {
+    display: flex;
+    width: 100%;
+  }
+  .history-filter-btn,
+  .history-export-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
 
 /* filter row */
 .history-filter-row {
@@ -11895,11 +11926,12 @@ body[data-theme="day"] .footer-text {
 .support-table-wrap {
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .light-theme .support-table-wrap { border-color: rgba(0,0,0,0.08); }
 
-.support-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.support-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 580px; }
 .support-table thead { background: rgba(255,255,255,0.03); }
 .light-theme .support-table thead { background: rgba(0,0,0,0.03); }
 .support-table th {
@@ -11916,6 +11948,7 @@ body[data-theme="day"] .footer-text {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   color: rgba(255,255,255,0.85);
+  white-space: nowrap;
 }
 .light-theme .support-table td {
   border-color: rgba(0,0,0,0.05);
