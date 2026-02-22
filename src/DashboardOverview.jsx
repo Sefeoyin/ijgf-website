@@ -17,15 +17,25 @@ function DashboardOverview({ userId }) {
   // Real account data from Supabase
   const [account, setAccount] = useState(null)
   const [accountLoading, setAccountLoading] = useState(true)
+  const [accountPositions, setAccountPositions] = useState([])
+
+  // Margin locked in open positions (not lost — will return when closed)
+  const totalMarginInUse = accountPositions.reduce((sum, p) => sum + (p.margin || 0), 0)
+
+  // True account value = available cash + margin locked in positions
+  const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
+
+  // Realized PNL only (from closed trades) — excludes margin distortion
+  const realizedPNL = realTrades.reduce((sum, t) => sum + (t.realized_pnl || 0), 0)
 
   // Derived stats from real account data
   const stats = {
     activeChallenges: account?.status === 'active' ? 1 : 0,
-    totalPNL: account ? (account.current_balance - account.initial_balance) : 0,
+    totalPNL: realizedPNL,
     winRate: account?.total_trades > 0
       ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
       : 0,
-    currentEquity: account?.current_balance ?? 0,
+    currentEquity: trueAccountValue,
   }
 
   // Load account + trades from Supabase
@@ -37,6 +47,7 @@ function DashboardOverview({ userId }) {
         const state = await getAccountState(userId)
         setAccount(state.account)
         setRealTrades(state.recentTrades)
+        setAccountPositions(state.positions || [])
       } catch (err) {
         console.error('DashboardOverview: failed to load account', err)
       } finally {
@@ -673,7 +684,7 @@ function DashboardOverview({ userId }) {
               <div className="challenge-metrics">
                 <div className="challenge-metric">
                   <span className="metric-label">Balance</span>
-                  <span className="metric-value">{formatCurrency(account.current_balance)}</span>
+                  <span className="metric-value">{formatCurrency(trueAccountValue)}</span>
                 </div>
                 <div className="challenge-metric">
                   <span className="metric-label">Profit Target</span>
@@ -687,12 +698,12 @@ function DashboardOverview({ userId }) {
               <div className="challenge-progress">
                 <div className="progress-label">
                   <span>Profit Progress</span>
-                  <span>{Math.max(0, ((account.current_balance - account.initial_balance) / account.profit_target * 100)).toFixed(1)}%</span>
+                  <span>{Math.max(0, ((trueAccountValue - account.initial_balance) / account.profit_target * 100)).toFixed(1)}%</span>
                 </div>
                 <div className="progress-bar-track">
                   <div
                     className="progress-bar-fill"
-                    style={{ width: `${Math.min(100, Math.max(0, (account.current_balance - account.initial_balance) / account.profit_target * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, (trueAccountValue - account.initial_balance) / account.profit_target * 100))}%` }}
                   />
                 </div>
               </div>
