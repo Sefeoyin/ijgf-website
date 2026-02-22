@@ -11050,6 +11050,8 @@ body[data-theme="day"] .footer-text {
 }
 .analytics-equity-badge.green { background: rgba(74,222,128,0.15); color: #4ade80; }
 .analytics-equity-badge.red   { background: rgba(248,113,113,0.15); color: #f87171; }
+body[data-theme="day"] .analytics-equity-badge.green { background: rgba(22,163,74,0.1); color: #16a34a; }
+body[data-theme="day"] .analytics-equity-badge.red   { background: rgba(220,38,38,0.1); color: #dc2626; }
 
 .analytics-range-btns {
   display: flex;
@@ -11721,6 +11723,20 @@ body[data-theme="day"] .rules-detail-list li { color: #2d2d44; }
 body[data-theme="day"] .rules-example p { color: #5a5a7a; }
 body[data-theme="day"] .rules-accordion-summary { color: #5a5a7a; }
 
+/* Rules challenge card inner text — day theme */
+body[data-theme="day"] .rules-challenge-id { color: #1a1a2e; }
+body[data-theme="day"] .rules-challenge-size { color: #5a5a7a; }
+body[data-theme="day"] .rules-challenge-size span { color: #7c3aed; }
+body[data-theme="day"] .rules-challenge-meta { color: #5a5a7a; }
+body[data-theme="day"] .rules-challenge-pct { color: #5a5a7a; }
+body[data-theme="day"] .rules-metric-title { color: #2d2d44; }
+body[data-theme="day"] .rules-metric-label { color: #5a5a7a; }
+body[data-theme="day"] .rules-metric-val { color: #1a1a2e; }
+body[data-theme="day"] .rules-metric-val.green { color: #16a34a; }
+body[data-theme="day"] .rules-metric-val.red { color: #dc2626; }
+body[data-theme="day"] .rules-progress-track { background: rgba(0,0,0,0.06); }
+body[data-theme="day"] .rules-challenge-status.active { background: rgba(22,163,74,0.1); color: #16a34a; }
+
 /* responsive */
 @media (max-width: 1100px) {
   .rules-stat-grid { grid-template-columns: repeat(3, 1fr); }
@@ -11817,9 +11833,25 @@ body[data-theme="day"] .support-card-sub { color: #5a5a7a; }
   font-size: 0.78rem; color: rgba(255,255,255,0.55);
   margin-top: 0.2rem; cursor: pointer;
   text-decoration: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
 }
-.support-card-link:hover { color: #8b5cf6; }
-body[data-theme="day"] .support-card-link { color: #5a5a7a; }
+button.support-card-link {
+  background: #7c3aed;
+  color: #fff;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  transition: background 0.2s, transform 0.15s;
+}
+button.support-card-link:hover { background: #6d28d9; transform: translateY(-1px); color: #fff; }
+body[data-theme="day"] .support-card-link:not(button) { color: #5a5a7a; }
+body[data-theme="day"] button.support-card-link { background: #7c3aed; color: #fff; }
+body[data-theme="day"] button.support-card-link:hover { background: #6d28d9; }
 .support-card-status { display: flex; align-items: center; gap: 6px; margin-top: 0.2rem; }
 .support-status-dot  {
   width: 8px; height: 8px; border-radius: 50%;
@@ -12689,7 +12721,10 @@ body[data-theme="day"] .analytics-stat-card {
   box-shadow: 0 1px 4px rgba(124, 58, 237, 0.06);
 }
 body[data-theme="day"] .analytics-stat-label { color: #5a5a7a; }
-body[data-theme="day"] .analytics-stat-value { color: #1a1a2e !important; }
+body[data-theme="day"] .analytics-stat-value { color: #1a1a2e; }
+body[data-theme="day"] .analytics-stat-value.stat-green { color: #16a34a; }
+body[data-theme="day"] .analytics-stat-value.stat-red { color: #dc2626; }
+body[data-theme="day"] .analytics-stat-value.stat-default { color: #1a1a2e; }
 body[data-theme="day"] .analytics-stat-sub { color: #6b6b8a; }
 
 body[data-theme="day"] .analytics-chart-card {
@@ -12711,7 +12746,10 @@ body[data-theme="day"] .analytics-summary-card {
   box-shadow: 0 1px 4px rgba(124, 58, 237, 0.06);
 }
 body[data-theme="day"] .analytics-summary-label { color: #5a5a7a; }
-body[data-theme="day"] .analytics-summary-val { color: #1a1a2e !important; }
+body[data-theme="day"] .analytics-summary-val { color: #1a1a2e; }
+body[data-theme="day"] .analytics-summary-val.stat-green { color: #16a34a; }
+body[data-theme="day"] .analytics-summary-val.stat-red { color: #dc2626; }
+body[data-theme="day"] .analytics-summary-val.stat-default { color: #1a1a2e; }
 
 /* ── Trade History Page (day) ─────────────────────────────────────────────── */
 body[data-theme="day"] .history-page { color: #1a1a2e; }
@@ -12797,7 +12835,7 @@ body[data-theme="day"] .rules-stat-card {
   box-shadow: 0 1px 4px rgba(124, 58, 237, 0.06);
 }
 body[data-theme="day"] .rules-stat-label { color: #5a5a7a; }
-body[data-theme="day"] .rules-stat-value { color: #1a1a2e !important; }
+body[data-theme="day"] .rules-stat-value { color: #1a1a2e; }
 body[data-theme="day"] .rules-stat-sub { color: #6b6b8a; }
 
 body[data-theme="day"] .rules-challenge-card {
@@ -13012,3 +13050,34 @@ body[data-theme="day"] .ai-pill-ideas { color: #7c3aed; }
 body[data-theme="day"] .dash-content::-webkit-scrollbar-track { background: #faf9ff; }
 body[data-theme="day"] .dash-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.15); }
 body[data-theme="day"] .dash-content::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.25); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RULES STAT COLOR CLASSES (both themes)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rules-color-purple { color: #8b5cf6; }
+.rules-color-green  { color: #4ade80; }
+.rules-color-red    { color: #f87171; }
+.rules-color-default { color: #e2e8f0; }
+
+body[data-theme="day"] .rules-color-purple  { color: #7c3aed; }
+body[data-theme="day"] .rules-color-green   { color: #16a34a; }
+body[data-theme="day"] .rules-color-red     { color: #dc2626; }
+body[data-theme="day"] .rules-color-default { color: #1a1a2e; }
+
+/* Rules stat value day override — must not override color classes */
+body[data-theme="day"] .rules-stat-value { color: #1a1a2e; }
+body[data-theme="day"] .rules-stat-value.rules-color-purple { color: #7c3aed; }
+body[data-theme="day"] .rules-stat-value.rules-color-green { color: #16a34a; }
+body[data-theme="day"] .rules-stat-value.rules-color-red { color: #dc2626; }
+body[data-theme="day"] .rules-stat-value.rules-color-default { color: #1a1a2e; }
+
+/* Rules stat icon wrap day override */
+body[data-theme="day"] .rules-stat-icon-wrap { color: #1a1a2e; }
+body[data-theme="day"] .rules-stat-icon-wrap.rules-color-purple { color: #7c3aed; }
+body[data-theme="day"] .rules-stat-icon-wrap.rules-color-green { color: #16a34a; }
+body[data-theme="day"] .rules-stat-icon-wrap.rules-color-red { color: #dc2626; }
+body[data-theme="day"] .rules-stat-icon-wrap.rules-color-default { color: #1a1a2e; }
+
+/* Rules status chip day override */
+body[data-theme="day"] .rules-status-chip.ok { color: #16a34a; background: rgba(22,163,74,0.08); }
+body[data-theme="day"] .rules-status-chip.breach { color: #dc2626; background: rgba(220,38,38,0.08); }

@@ -359,18 +359,18 @@ export default function RulesObjectivesPage({ userId }) {
       {/* ── Stat cards row ───────────────────────────────────────────────── */}
       <div className="rules-stat-grid">
         {[
-          { label: 'Active Challenges', value: account ? '1' : '0', sub: 'Currently in progress', icon: '◎', color: '#8b5cf6' },
-          { label: 'Challenge Progress', value: `${progressPct.toFixed(0)}%`, sub: 'Objectives completed', icon: '↗', color: '#e2e8f0' },
-          { label: 'Profit Target', value: `+${profitTargetPct.toFixed(0)}%`, sub: 'Required to pass', icon: '📈', color: '#4ade80' },
-          { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', color: currentProfit >= 0 ? '#4ade80' : '#f87171' },
-          { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', color: '#e2e8f0' },
+          { label: 'Active Challenges', value: account ? '1' : '0', sub: 'Currently in progress', icon: '◎', colorClass: 'rules-color-purple' },
+          { label: 'Challenge Progress', value: `${progressPct.toFixed(0)}%`, sub: 'Objectives completed', icon: '↗', colorClass: 'rules-color-default' },
+          { label: 'Profit Target', value: `+${profitTargetPct.toFixed(0)}%`, sub: 'Required to pass', icon: '📈', colorClass: 'rules-color-green' },
+          { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', colorClass: currentProfit >= 0 ? 'rules-color-green' : 'rules-color-red' },
+          { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', colorClass: 'rules-color-default' },
         ].map((card, i) => (
           <div key={i} className="rules-stat-card">
             <div className="rules-stat-header">
-              <span className="rules-stat-icon-wrap" style={{ color: card.color }}>{card.icon}</span>
+              <span className={`rules-stat-icon-wrap ${card.colorClass}`}>{card.icon}</span>
               <span className="rules-stat-label">{card.label}</span>
             </div>
-            <div className="rules-stat-value" style={{ color: card.color }}>{card.value}</div>
+            <div className={`rules-stat-value ${card.colorClass}`}>{card.value}</div>
             <div className="rules-stat-sub">{card.sub}</div>
           </div>
         ))}

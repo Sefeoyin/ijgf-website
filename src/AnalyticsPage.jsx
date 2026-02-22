@@ -367,16 +367,16 @@ export default function AnalyticsPage({ userId }) {
       <div className="analytics-summary-row">
         {[
           { label: 'Total Trades',   val: stats.totalTrades ?? 0,                          color: undefined },
-          { label: 'Winning Trades', val: trades.filter(t => t.realized_pnl > 0).length,   color: '#4ade80' },
-          { label: 'Losing Trades',  val: trades.filter(t => t.realized_pnl < 0).length,   color: '#f87171' },
-          { label: 'Gross Profit',   val: `$${fmt(stats.grossProfit)}`,                     color: '#4ade80' },
-          { label: 'Gross Loss',     val: `-$${fmt(stats.grossLoss)}`,                      color: '#f87171' },
+          { label: 'Winning Trades', val: trades.filter(t => t.realized_pnl > 0).length,   colorClass: 'stat-green' },
+          { label: 'Losing Trades',  val: trades.filter(t => t.realized_pnl < 0).length,   colorClass: 'stat-red' },
+          { label: 'Gross Profit',   val: `$${fmt(stats.grossProfit)}`,                     colorClass: 'stat-green' },
+          { label: 'Gross Loss',     val: `-$${fmt(stats.grossLoss)}`,                      colorClass: 'stat-red' },
           { label: 'Net PNL',        val: fmtUsd(stats.totalPnl),
-            color: (stats.totalPnl ?? 0) >= 0 ? '#4ade80' : '#f87171' },
+            colorClass: (stats.totalPnl ?? 0) > 0 ? 'stat-green' : (stats.totalPnl ?? 0) < 0 ? 'stat-red' : 'stat-default' },
         ].map((item, i) => (
           <div key={i} className="analytics-summary-card">
             <div className="analytics-summary-label">{item.label}</div>
-            <div className="analytics-summary-val" style={{ color: item.color }}>{item.val}</div>
+            <div className={`analytics-summary-val ${item.colorClass}`}>{item.val}</div>
           </div>
         ))}
       </div>
