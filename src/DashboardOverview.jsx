@@ -19,25 +19,6 @@ function DashboardOverview({ userId }) {
   const [accountLoading, setAccountLoading] = useState(true)
   const [accountPositions, setAccountPositions] = useState([])
 
-  // Margin locked in open positions (not lost — will return when closed)
-  const totalMarginInUse = accountPositions.reduce((sum, p) => sum + (p.margin || 0), 0)
-
-  // True account value = available cash + margin locked in positions
-  const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
-
-  // Realized PNL only (from closed trades) — excludes margin distortion
-  const realizedPNL = realTrades.reduce((sum, t) => sum + (t.realized_pnl || 0), 0)
-
-  // Derived stats from real account data
-  const stats = {
-    activeChallenges: account?.status === 'active' ? 1 : 0,
-    totalPNL: realizedPNL,
-    winRate: account?.total_trades > 0
-      ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
-      : 0,
-    currentEquity: trueAccountValue,
-  }
-
   // Load account + trades from Supabase
   useEffect(() => {
     if (!userId) return
@@ -83,6 +64,25 @@ function DashboardOverview({ userId }) {
   ])
 
   const [realTrades, setRealTrades] = useState([])
+
+  // Margin locked in open positions (not lost — will return when closed)
+  const totalMarginInUse = accountPositions.reduce((sum, p) => sum + (p.margin || 0), 0)
+
+  // True account value = available cash + margin locked in positions
+  const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
+
+  // Realized PNL only (from closed trades) — excludes margin distortion
+  const realizedPNL = realTrades.reduce((sum, t) => sum + (t.realized_pnl || 0), 0)
+
+  // Derived stats from real account data
+  const stats = {
+    activeChallenges: account?.status === 'active' ? 1 : 0,
+    totalPNL: realizedPNL,
+    winRate: account?.total_trades > 0
+      ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
+      : 0,
+    currentEquity: trueAccountValue,
+  }
 
   // Filter markets based on search query and favorites filter
   const filteredMarkets = markets.filter(market => {
