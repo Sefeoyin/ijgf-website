@@ -6375,6 +6375,7 @@ body[data-theme="day"] .footer {
   
   .active-challenges-widget,
   .history-widget {
+
     min-height: 280px;
   }
 }
