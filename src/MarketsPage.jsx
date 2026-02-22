@@ -688,10 +688,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
               <span>Margin Required</span>
               <span>{sizeVal ? `$${(sizeVal / leverage).toFixed(2)}` : '—'}</span>
             </div>
-            <div className="summary-row">
-              <span>Taker Fee (0.04%)</span>
-              <span>{sizeVal ? `$${(sizeVal * 0.0004).toFixed(2)}` : '—'}</span>
-            </div>
+
             <div className="summary-row">
               <span>Est. Liq. (Long)</span>
               <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
@@ -726,127 +723,115 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Positions tab */}
           {activePositionsTab === 'positions' && (
-            <div className="positions-table-scroll">
-              <table className="positions-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Size</th>
-                    <th>Entry Price</th>
-                    <th>Mark Price</th>
-                    <th>Liq. Price</th>
-                    <th>Margin</th>
-                    <th>PNL (ROI%)</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.length === 0 ? (
-                    <tr><td colSpan="8"><div className="empty-positions">
-                      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
-                        <rect x="10" y="10" width="18" height="18" rx="2"/>
-                        <rect x="36" y="10" width="18" height="18" rx="2"/>
-                        <rect x="36" y="36" width="18" height="18" rx="2"/>
-                        <rect x="10" y="36" width="18" height="18" rx="2"/>
-                      </svg>
-                      <p>No open positions</p>
-                    </div></td></tr>
-                  ) : (
-                    positions.map(pos => (
-                      <tr key={pos.id}>
-                        <td className={pos.side === 'LONG' ? 'positive' : 'negative'}>
-                          {pos.symbol}<br/><small>{pos.side} {pos.leverage}x</small>
-                        </td>
-                        <td>{pos.quantity.toFixed(4)}</td>
-                        <td>{fmt(pos.entry_price)}</td>
-                        <td>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</td>
-                        <td>{fmt(pos.liquidation_price)}</td>
-                        <td>${pos.margin.toFixed(2)}</td>
-                        <td className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
-                          {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
-                          <br/><small>({pos.roi?.toFixed(1)}%)</small>
-                        </td>
-                        <td><button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>Close</button></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="positions-table-headers">
+                <span>Symbol</span>
+                <span>Size</span>
+                <span>Entry Price</span>
+                <span>Mark Price</span>
+                <span>Liq. Price</span>
+                <span>Margin</span>
+                <span>PNL (ROI%)</span>
+                <span>Action</span>
+              </div>
+              {positions.length === 0 ? (
+                <div className="empty-positions">
+                  <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
+                    <rect x="10" y="10" width="18" height="18" rx="2"/>
+                    <rect x="36" y="10" width="18" height="18" rx="2"/>
+                    <rect x="36" y="36" width="18" height="18" rx="2"/>
+                    <rect x="10" y="36" width="18" height="18" rx="2"/>
+                  </svg>
+                  <p>No open positions</p>
+                </div>
+              ) : (
+                positions.map(pos => (
+                  <div key={pos.id} className="position-row">
+                    <span className={pos.side === 'LONG' ? 'positive' : 'negative'}>
+                      {pos.symbol} <small>{pos.side} {pos.leverage}x</small>
+                    </span>
+                    <span>{pos.quantity.toFixed(4)}</span>
+                    <span>{fmt(pos.entry_price)}</span>
+                    <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
+                    <span>{fmt(pos.liquidation_price)}</span>
+                    <span>${pos.margin.toFixed(2)}</span>
+                    <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
+                      {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
+                      <small> ({pos.roi?.toFixed(1)}%)</small>
+                    </span>
+                    <span>
+                      <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>
+                        Close
+                      </button>
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
           )}
 
           {/* Open Orders tab */}
           {activePositionsTab === 'orders' && (
-            <div className="positions-table-scroll">
-              <table className="positions-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Type</th>
-                    <th>Side</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {openOrders.length === 0 ? (
-                    <tr><td colSpan="7"><div className="empty-positions"><p>No open orders</p></div></td></tr>
-                  ) : (
-                    openOrders.map(order => (
-                      <tr key={order.id}>
-                        <td>{order.symbol}</td>
-                        <td>{order.order_type}</td>
-                        <td className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</td>
-                        <td>{fmt(order.price)}</td>
-                        <td>{order.quantity.toFixed(4)}</td>
-                        <td>{order.status}</td>
-                        <td><button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>Cancel</button></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="positions-table-headers">
+                <span>Symbol</span>
+                <span>Type</span>
+                <span>Side</span>
+                <span>Price</span>
+                <span>Qty</span>
+                <span>Status</span>
+                <span>Action</span>
+              </div>
+              {openOrders.length === 0 ? (
+                <div className="empty-positions"><p>No open orders</p></div>
+              ) : (
+                openOrders.map(order => (
+                  <div key={order.id} className="position-row">
+                    <span>{order.symbol}</span>
+                    <span>{order.order_type}</span>
+                    <span className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</span>
+                    <span>{fmt(order.price)}</span>
+                    <span>{order.quantity.toFixed(4)}</span>
+                    <span>{order.status}</span>
+                    <span>
+                      <button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>
+                        Cancel
+                      </button>
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
           )}
 
           {/* Trade History tab */}
           {(activePositionsTab === 'tradeHistory' || activePositionsTab === 'orderHistory') && (
-            <div className="positions-table-scroll">
-              <table className="positions-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Symbol</th>
-                    <th>Side</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Fee</th>
-                    <th>PNL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentTrades.length === 0 ? (
-                    <tr><td colSpan="7"><div className="empty-positions"><p>No trade history yet</p></div></td></tr>
-                  ) : (
-                    recentTrades.map(trade => (
-                      <tr key={trade.id}>
-                        <td>{new Date(trade.executed_at).toLocaleString()}</td>
-                        <td>{trade.symbol}</td>
-                        <td className={trade.side === 'BUY' ? 'positive' : 'negative'}>{trade.side}</td>
-                        <td>{fmt(trade.price)}</td>
-                        <td>{trade.quantity.toFixed(4)}</td>
-                        <td>${trade.fee.toFixed(2)}</td>
-                        <td className={(trade.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}>
-                          {trade.realized_pnl != null ? `${trade.realized_pnl >= 0 ? '+' : ''}$${trade.realized_pnl.toFixed(2)}` : '—'}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="positions-table-headers">
+                <span>Time</span>
+                <span>Symbol</span>
+                <span>Side</span>
+                <span>Price</span>
+                <span>Qty</span>
+                <span>PNL</span>
+              </div>
+              {recentTrades.length === 0 ? (
+                <div className="empty-positions"><p>No trade history yet</p></div>
+              ) : (
+                recentTrades.map(trade => (
+                  <div key={trade.id} className="position-row">
+                    <span>{new Date(trade.executed_at).toLocaleString()}</span>
+                    <span>{trade.symbol}</span>
+                    <span className={trade.side === 'BUY' ? 'positive' : 'negative'}>{trade.side}</span>
+                    <span>{fmt(trade.price)}</span>
+                    <span>{trade.quantity.toFixed(4)}</span>
+                    <span className={(trade.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}>
+                      {trade.realized_pnl != null ? `${trade.realized_pnl >= 0 ? '+' : ''}$${trade.realized_pnl.toFixed(2)}` : '—'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </>
           )}
         </div>
 

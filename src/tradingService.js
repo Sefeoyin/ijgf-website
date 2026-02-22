@@ -5,7 +5,7 @@
 
 import { supabase } from './supabase'
 
-const FEE_RATE = 0.0004
+// No trading fees — revenue comes from challenge fees
 
 const CHALLENGE_CONFIGS = {
   '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 200,  maxDrawdown: 300  },
@@ -129,10 +129,10 @@ export async function placeMarketOrder({
 
   const quantity = sizeUsdt / currentPrice
   const margin = sizeUsdt / leverage
-  const fee = sizeUsdt * FEE_RATE
+  const fee = 0
 
-  if (margin + fee > account.current_balance) {
-    throw new Error(`Insufficient balance. Need $${(margin + fee).toFixed(2)}, have $${account.current_balance.toFixed(2)}`)
+  if (margin > account.current_balance) {
+    throw new Error(`Insufficient balance. Need $${margin.toFixed(2)}, have $${account.current_balance.toFixed(2)}`)
   }
 
   // Check for existing opposite position
@@ -150,7 +150,7 @@ export async function placeMarketOrder({
     console.log('[Trading] Closing opposite position:', existingPos.id)
     await closePosition({ userId, positionId: existingPos.id, currentPrice, reason: 'reversed' })
     const refreshed = await getOrCreateDemoAccount(userId)
-    if (margin + fee > refreshed.current_balance) {
+    if (margin > refreshed.current_balance) {
       throw new Error('Insufficient balance after closing opposite position')
     }
   }
@@ -202,7 +202,7 @@ export async function placeMarketOrder({
   if (tradeErr) console.error('[Trading] Trade log error:', tradeErr)
 
   // Update balance
-  const newBalance = account.current_balance - margin - fee
+  const newBalance = account.current_balance - margin
   await updateAccountBalance(account.id, newBalance)
 
   // Challenge rules (non-blocking)
@@ -299,7 +299,7 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
     ? (currentPrice - pos.entry_price) * pos.quantity
     : (pos.entry_price - currentPrice) * pos.quantity
 
-  const fee = currentPrice * pos.quantity * FEE_RATE
+  const fee = 0
 
   const { error: closeErr } = await supabase
     .from('demo_positions')
@@ -337,7 +337,7 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
 
   // Update balance
   const account = await getOrCreateDemoAccount(userId)
-  const newBalance = account.current_balance + pos.margin + pnl - fee
+  const newBalance = account.current_balance + pos.margin + pnl
   const isWin = pnl > 0
 
   await supabase
@@ -499,21 +499,7 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  // Fetch open positions so we can add back locked margin.
-  // current_balance is reduced by margin when a position opens — that margin
-  // is NOT a loss, it returns when the position closes. We must include it
-  // in the effective balance to avoid false "failed" status.
-  const { data: openPos } = await supabase
-    .from('demo_positions')
-    .select('margin, unrealized_pnl')
-    .eq('demo_account_id', accountId)
-    .eq('status', 'open')
-
-  const totalMarginInUse = (openPos || []).reduce((s, p) => s + (p.margin || 0), 0)
-  // Effective balance = cash on hand + margin locked in positions
-  // (we deliberately exclude unrealized PNL so a losing trade still counts against drawdown)
-  const effectiveBalance = account.current_balance + totalMarginInUse
-  const totalDrawdown = account.initial_balance - effectiveBalance
+  const totalDrawdown = account.initial_balance - account.current_balance
 
   // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
@@ -534,7 +520,7 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // Daily loss — compare today's starting balance against effective balance (cash + locked margin)
+  // Daily loss
   let dayStart = account.initial_balance
   try {
     const { data: todaySnap } = await supabase
@@ -546,7 +532,7 @@ async function checkChallengeRules(accountId, userId) {
     if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
   } catch { /* use initial_balance */ }
 
-  const dailyLoss = dayStart - effectiveBalance
+  const dailyLoss = dayStart - account.current_balance
   if (dailyLoss >= account.max_daily_loss) {
     try {
       await supabase.from('challenge_violations').insert({
