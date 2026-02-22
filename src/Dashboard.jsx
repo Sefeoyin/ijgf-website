@@ -8,6 +8,8 @@ import MarketsPage from './MarketsPage'
 import AnalyticsPage from './AnalyticsPage'
 import TradeHistoryPage from './TradeHistoryPage'
 import RulesObjectivesPage from './RulesObjectivesPage'
+import SupportPage from './SupportPage'
+import SettingsPage from './SettingsPage'
 import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
@@ -71,8 +73,8 @@ function Dashboard() {
     { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: false },
     { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: true  },
     { id: 'profile',   icon: 'user',       label: 'Profile',            disabled: false },
-    { id: 'support',   icon: 'headphones', label: 'Support',            disabled: true  },
-    { id: 'settings',  icon: 'settings',   label: 'Settings',           disabled: true  },
+    { id: 'support',   icon: 'headphones', label: 'Support',            disabled: false },
+    { id: 'settings',  icon: 'settings',   label: 'Settings',           disabled: false },
   ]
 
   const renderIcon = (name) => {
@@ -219,6 +221,8 @@ function Dashboard() {
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
+          {activeTab === 'support'   && <SupportPage userId={userId} />}
+          {activeTab === 'settings'  && <SettingsPage />}
         </div>
       </div>
     </div>
