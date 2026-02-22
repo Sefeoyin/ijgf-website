@@ -10,6 +10,7 @@ import TradeHistoryPage from './TradeHistoryPage'
 import RulesObjectivesPage from './RulesObjectivesPage'
 import SupportPage from './SupportPage'
 import SettingsPage from './SettingsPage'
+import AIAssistantPage from './AIAssistantPage'
 import { ThemeContext } from './ThemeContext'
 
 function Dashboard() {
@@ -71,7 +72,7 @@ function Dashboard() {
     { id: 'analytics', icon: 'trending',   label: 'Analytics',          disabled: false },
     { id: 'history',   icon: 'clock',      label: 'Trade History',      disabled: false },
     { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: false },
-    { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: true  },
+    { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: false },
     { id: 'profile',   icon: 'user',       label: 'Profile',            disabled: false },
     { id: 'support',   icon: 'headphones', label: 'Support',            disabled: false },
     { id: 'settings',  icon: 'settings',   label: 'Settings',           disabled: false },
@@ -220,6 +221,7 @@ function Dashboard() {
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
+          {activeTab === 'ai'        && <AIAssistantPage userName={userName} subscribed={false} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
           {activeTab === 'support'   && <SupportPage userId={userId} />}
           {activeTab === 'settings'  && <SettingsPage />}
