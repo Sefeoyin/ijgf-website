@@ -221,7 +221,7 @@ function Dashboard() {
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
-          {activeTab === 'ai'        && <AIAssistantPage userName={userName} subscribed={false} />}
+          {activeTab === 'ai'        && <AIAssistantPage userName={userName} subscribed={false} userId={userId} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
           {activeTab === 'support'   && <SupportPage userId={userId} />}
           {activeTab === 'settings'  && <SettingsPage />}
