@@ -374,12 +374,8 @@
 .hide-symbols input[type="checkbox"] { accent-color: #7C3AED; cursor: pointer; }
 
 .binance-bottom-section .positions-table-headers {
-  display: grid;
-  grid-template-columns: 105px 75px 100px 100px 100px 90px 110px 70px;
-  min-width: 750px;
-  padding: 5px 12px;
-  border-bottom: 1px solid #1e2329;
-  flex-shrink: 0;
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  padding: 5px 12px; border-bottom: 1px solid #1e2329; flex-shrink: 0;
 }
 .binance-bottom-section .positions-table-headers span { color: #848e9c; font-size: 10px; }
 
@@ -789,8 +785,7 @@
 /* --- Position rows --- */
 .position-row {
   display: grid;
-  grid-template-columns: 105px 75px 100px 100px 100px 90px 110px 70px;
-  min-width: 750px;
+  grid-template-columns: repeat(8, 1fr);
   align-items: center;
   padding: 10px 12px;
   font-size: 12px;
@@ -874,18 +869,9 @@
   cursor: not-allowed;
 }
 
-/* --- Scroll wrapper for positions/orders/history table --- */
-.positions-table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  flex: 1;
-}
-
 /* --- Responsive --- */
 @media (max-width: 768px) {
-  /* position-row keeps fixed column widths — scroll wrapper handles overflow on mobile */
-
-  .trade-notifications {
+    .trade-notifications {
     right: 10px;
     left: 10px;
     max-width: none;
@@ -901,3 +887,55 @@
     gap: 4px;
   }
 }
+
+/* ============================================================
+   POSITIONS TABLE — real <table> for guaranteed alignment
+   ============================================================ */
+.positions-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+.positions-table {
+  width: 100%;
+  min-width: 750px;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.positions-table th {
+  color: #848e9c;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: left;
+  padding: 6px 12px;
+  border-bottom: 1px solid #1e2329;
+  white-space: nowrap;
+  background: #0b0e11;
+  position: sticky;
+  top: 0;
+}
+
+.positions-table td {
+  padding: 10px 12px;
+  color: #eaecef;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.positions-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.positions-table td small {
+  display: block;
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.positions-table td.positive { color: #0ecb81; }
+.positions-table td.negative { color: #f6465d; }
