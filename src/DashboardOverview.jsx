@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getAccountState } from './tradingService'
 
 function DashboardOverview({ userId }) {
-  const [timeRange, setTimeRange] = useState('1H')
+  const [timeRange, setTimeRange] = useState('1D')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -326,14 +326,14 @@ function DashboardOverview({ userId }) {
     return { path, fillPath, equity: finalEquity, change, dates: [] }
   }, [account])
 
-  const hoursMap = { '1H': 1, '3H': 3, '5H': 5, '1D': 24, '1W': 168, '1M': 720 }
+  const hoursMap = { '1D': 24, '1W': 168, '1M': 720, '3M': 2160, '6M': 4320, '1Y': 8760 }
   const dateLabels = {
-    '1H': ['12:00','12:15','12:30','12:45','1:00'],
-    '3H': ['10:00','11:00','12:00','1:00','2:00'],
-    '5H': ['9:00','10:30','12:00','1:30','3:00'],
-    '1D': ['9am','12pm','3pm','6pm','9pm'],
-    '1W': ['Mon','Tue','Wed','Thu','Fri'],
-    '1M': ['Week 1','Week 2','Week 3','Week 4'],
+    '1D': ['6am', '9am', '12pm', '3pm', '6pm'],
+    '1W': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    '1M': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    '3M': ['Jan', 'Feb', 'Mar'],
+    '6M': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    '1Y': ['Q1', 'Q2', 'Q3', 'Q4'],
   }
 
   const builtChart = buildChartFromTrades(realTrades, hoursMap[timeRange] || 24)
@@ -457,7 +457,7 @@ function DashboardOverview({ userId }) {
           </div>
 
           <div className="time-range-selector">
-            {['1H', '3H', '5H', '1D', '1W', '1M'].map((range) => (
+            {['1D', '1W', '1M', '3M', '6M', '1Y'].map((range) => (
               <button
                 key={range}
                 className={`time-range-btn ${timeRange === range ? 'active' : ''}`}
