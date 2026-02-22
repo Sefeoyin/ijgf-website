@@ -375,11 +375,11 @@
 
 .binance-bottom-section .positions-table-headers {
   display: grid;
-  grid-template-columns: 130px 80px 100px 100px 100px 90px 110px 70px;
+  grid-template-columns: 105px 75px 100px 100px 100px 90px 110px 70px;
+  min-width: 750px;
   padding: 5px 12px;
   border-bottom: 1px solid #1e2329;
   flex-shrink: 0;
-  min-width: 780px;
 }
 .binance-bottom-section .positions-table-headers span { color: #848e9c; font-size: 10px; }
 
@@ -404,13 +404,6 @@
   color: #eaecef; font-size: 11px; padding: 5px; cursor: pointer; transition: all 0.15s;
 }
 .account-actions button:hover { border-color: #7C3AED; color: #a78bfa; }
-
-/* --- Positions table scroll wrapper --- */
-.positions-table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  flex: 1;
-}
 
 /* ── Kill any mobile-tab elements injected by old JSX ── */
 .mobile-trading-tabs { display: none !important; }
@@ -796,13 +789,13 @@
 /* --- Position rows --- */
 .position-row {
   display: grid;
-  grid-template-columns: 130px 80px 100px 100px 100px 90px 110px 70px;
+  grid-template-columns: 105px 75px 100px 100px 100px 90px 110px 70px;
+  min-width: 750px;
   align-items: center;
   padding: 10px 12px;
   font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background 0.15s;
-  min-width: 780px;
 }
 
 .position-row:hover {
@@ -881,9 +874,16 @@
   cursor: not-allowed;
 }
 
+/* --- Scroll wrapper for positions/orders/history table --- */
+.positions-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
-  /* position-row keeps its explicit column widths — scroll wrapper handles overflow */
+  /* position-row keeps fixed column widths — scroll wrapper handles overflow on mobile */
 
   .trade-notifications {
     right: 10px;
