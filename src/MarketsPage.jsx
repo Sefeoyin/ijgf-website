@@ -726,7 +726,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Positions tab */}
           {activePositionsTab === 'positions' && (
-            <>
+            <div className="positions-table-scroll">
               <div className="positions-table-headers">
                 <span>Symbol</span>
                 <span>Size</span>
@@ -770,12 +770,12 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+            </div>
           )}
 
           {/* Open Orders tab */}
           {activePositionsTab === 'orders' && (
-            <>
+            <div className="positions-table-scroll">
               <div className="positions-table-headers">
                 <span>Symbol</span>
                 <span>Type</span>
@@ -804,12 +804,12 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+            </div>
           )}
 
           {/* Trade History tab */}
           {(activePositionsTab === 'tradeHistory' || activePositionsTab === 'orderHistory') && (
-            <>
+            <div className="positions-table-scroll">
               <div className="positions-table-headers">
                 <span>Time</span>
                 <span>Symbol</span>
@@ -836,7 +836,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+            </div>
           )}
         </div>
 

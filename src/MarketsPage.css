@@ -401,6 +401,19 @@
 }
 .account-actions button:hover { border-color: #7C3AED; color: #a78bfa; }
 
+/* --- Positions table scroll wrapper (mobile) --- */
+.positions-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+/* Keep headers + rows the same min-width so they always align */
+.binance-bottom-section .positions-table-headers,
+.position-row {
+  min-width: 700px;
+}
+
 /* ── Kill any mobile-tab elements injected by old JSX ── */
 .mobile-trading-tabs { display: none !important; }
 
@@ -419,10 +432,32 @@
   .binance-order-entry { grid-column: 2; height: 70vh; padding: 8px; }
   .binance-bottom-section { grid-template-columns: 1fr; }
   .account-panel { display: none; }
+
+  /* positions table: let the scroll wrapper handle overflow,
+     no need to hide or shrink columns */
+  .position-row {
+    font-size: 11px;
+  }
+
+  .trade-notifications {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .leverage-modal {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .tp-sl-pnl-values {
+    flex-direction: column;
+    gap: 4px;
+  }
 }
+
 /* ============================================================
    Phase 3B v2: Leverage Modal + TP/SL PNL Display
-   APPEND this to MarketsPage.css
    ============================================================ */
 
 /* --- TP/SL Expected PNL Row --- */
@@ -871,22 +906,14 @@
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
-  /* Positions / orders / history table: scroll horizontally, never squish */
-  .positions-panel {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .positions-table-headers,
   .position-row {
-    /* Fixed minimum width so all 8 columns stay visible via horizontal scroll */
-    min-width: 680px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
     font-size: 11px;
   }
 
-  /* Remove the old "hide columns 5+" rule — scroll instead */
   .position-row span:nth-child(n+5) {
-    display: unset;
+    display: none;
   }
 
   .trade-notifications {
