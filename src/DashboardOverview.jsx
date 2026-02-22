@@ -366,7 +366,7 @@ function DashboardOverview({ userId }) {
     // TODO: Navigate to detailed trading view or show modal
   }
 
-  const currentChart = chartData[timeRange]
+  // currentChart is built above from real trade data
 
   return (
     <div className="dashboard-overview">
