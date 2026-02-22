@@ -11689,3 +11689,27 @@ body[data-theme="day"] .footer-text {
   .rules-page { padding: 12px; gap: 12px; }
   .rules-accordion-body { padding-left: 18px; }
 }
+
+/* ── Inline SVG chart helpers ───────────────────────────────────────────── */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.3);
+}
+.chart-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  bottom: calc(100% - 10px);
+  background: #1a1a2e;
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+.chart-tooltip-date { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+.chart-tooltip-val  { font-size: 13px; font-weight: 600; }
