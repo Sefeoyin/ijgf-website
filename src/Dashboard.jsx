@@ -210,7 +210,7 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard' && <DashboardOverview />}
+          {activeTab === 'dashboard' && <DashboardOverview userId={userId} />}
           {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
         </div>

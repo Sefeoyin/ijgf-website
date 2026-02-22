@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getAccountState } from './tradingService'
 
-function DashboardOverview() {
+function DashboardOverview({ userId }) {
   const [timeRange, setTimeRange] = useState('1H')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
@@ -13,14 +14,37 @@ function DashboardOverview() {
   const [notifications, setNotifications] = useState([]) // { id, message, type: 'success' | 'info' }
   const [showMarketsModal, setShowMarketsModal] = useState(false)
   
-  // Stats reset to zero for new users
-  const [stats] = useState({
-    activeChallenges: 0,
-    totalPNL: 0,
-    winRate: 0,
-    currentEquity: 0,
-    daysActive: 0
-  })
+  // Real account data from Supabase
+  const [account, setAccount] = useState(null)
+  const [accountLoading, setAccountLoading] = useState(true)
+
+  // Derived stats from real account data
+  const stats = {
+    activeChallenges: account?.status === 'active' ? 1 : 0,
+    totalPNL: account ? (account.current_balance - account.initial_balance) : 0,
+    winRate: account?.total_trades > 0
+      ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
+      : 0,
+    currentEquity: account?.current_balance ?? 0,
+  }
+
+  // Load account + trades from Supabase
+  useEffect(() => {
+    if (!userId) return
+    const load = async () => {
+      try {
+        setAccountLoading(true)
+        const state = await getAccountState(userId)
+        setAccount(state.account)
+        setRealTrades(state.recentTrades)
+      } catch (err) {
+        console.error('DashboardOverview: failed to load account', err)
+      } finally {
+        setAccountLoading(false)
+      }
+    }
+    load()
+  }, [userId])
 
   // Real-time market data from CoinGecko - Expanded list
   const [markets, setMarkets] = useState([
@@ -47,8 +71,7 @@ function DashboardOverview() {
     { symbol: 'OPUSDT', name: 'Optimism', price: 0, change: 0, favorite: false }
   ])
 
-  // No trades for new users
-  const [recentTrades] = useState([])
+  const [realTrades, setRealTrades] = useState([])
 
   // Filter markets based on search query and favorites filter
   const filteredMarkets = markets.filter(market => {
@@ -250,51 +273,60 @@ function DashboardOverview() {
     return () => clearInterval(interval)
   }, []) // Empty dependency array is intentional - we only want to set up the interval once
 
-  // Chart data based on time range - empty for new users
-  const chartData = {
-    '1H': {
-      path: 'M 50 170 L 750 170', // Flat line at zero
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['12:00', '12:15', '12:30', '12:45', '1:00'],
-      equity: 0,
-      change: 0
-    },
-    '3H': {
-      path: 'M 50 170 L 750 170',
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['10:00', '11:00', '12:00', '1:00', '2:00'],
-      equity: 0,
-      change: 0
-    },
-    '5H': {
-      path: 'M 50 170 L 750 170',
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['9:00', '10:30', '12:00', '1:30', '3:00'],
-      equity: 0,
-      change: 0
-    },
-    '1D': {
-      path: 'M 50 170 L 750 170',
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['9am', '12pm', '3pm', '6pm', '9pm'],
-      equity: 0,
-      change: 0
-    },
-    '1W': {
-      path: 'M 50 170 L 750 170',
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-      equity: 0,
-      change: 0
-    },
-    '1M': {
-      path: 'M 50 170 L 750 170',
-      fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z',
-      dates: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
-      equity: 0,
-      change: 0
+  // Build equity chart from real trade history
+  const buildChartFromTrades = useCallback((trades, hoursBack) => {
+    const initial = account?.initial_balance ?? 10000
+    const now = Date.now()
+    const cutoff = now - hoursBack * 60 * 60 * 1000
+
+    // Filter trades within window, oldest first
+    const filtered = [...trades]
+      .filter(t => t.realized_pnl != null && new Date(t.executed_at).getTime() >= cutoff)
+      .sort((a, b) => new Date(a.executed_at) - new Date(b.executed_at))
+
+    if (filtered.length === 0) {
+      return { path: 'M 50 170 L 750 170', fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z', equity: initial, change: 0, dates: [] }
     }
+
+    // Build cumulative equity points
+    let running = initial
+    const points = [{ x: 50, y: 170, equity: initial }]
+    filtered.forEach((t, i) => {
+      running += (t.realized_pnl || 0)
+      const x = 50 + ((i + 1) / filtered.length) * 700
+      points.push({ x, equity: running })
+    })
+    points[points.length - 1].x = 750
+
+    // Normalize to SVG y-axis (170 = bottom, 10 = top)
+    const equities = points.map(p => p.equity)
+    const minE = Math.min(...equities)
+    const maxE = Math.max(...equities)
+    const range = maxE - minE || 1
+    const normalize = (e) => 170 - ((e - minE) / range) * 160
+
+    const normalized = points.map(p => ({ x: p.x, y: normalize(p.equity), equity: p.equity }))
+    const path = normalized.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+    const fillPath = path + ` L ${normalized[normalized.length-1].x.toFixed(1)} 170 L 50 170 Z`
+
+    const finalEquity = running
+    const change = ((finalEquity - initial) / initial) * 100
+
+    return { path, fillPath, equity: finalEquity, change, dates: [] }
+  }, [account])
+
+  const hoursMap = { '1H': 1, '3H': 3, '5H': 5, '1D': 24, '1W': 168, '1M': 720 }
+  const dateLabels = {
+    '1H': ['12:00','12:15','12:30','12:45','1:00'],
+    '3H': ['10:00','11:00','12:00','1:00','2:00'],
+    '5H': ['9:00','10:30','12:00','1:30','3:00'],
+    '1D': ['9am','12pm','3pm','6pm','9pm'],
+    '1W': ['Mon','Tue','Wed','Thu','Fri'],
+    '1M': ['Week 1','Week 2','Week 3','Week 4'],
   }
+
+  const builtChart = buildChartFromTrades(realTrades, hoursMap[timeRange] || 24)
+  const currentChart = { ...builtChart, dates: dateLabels[timeRange] }
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -630,16 +662,53 @@ function DashboardOverview() {
         {/* Active Challenges - Bottom Left */}
         <div className="active-challenges-widget">
           <h3>Active Challenges</h3>
-          <div className="challenge-card empty-state">
-            <div className="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
-              </svg>
+          {accountLoading ? (
+            <div className="challenge-card empty-state"><p className="empty-subtext">Loading...</p></div>
+          ) : account && account.status === 'active' ? (
+            <div className="challenge-card active-challenge">
+              <div className="challenge-info-row">
+                <span className="challenge-badge">{account.challenge_type?.toUpperCase()} Challenge</span>
+                <span className="challenge-status active">● Active</span>
+              </div>
+              <div className="challenge-metrics">
+                <div className="challenge-metric">
+                  <span className="metric-label">Balance</span>
+                  <span className="metric-value">{formatCurrency(account.current_balance)}</span>
+                </div>
+                <div className="challenge-metric">
+                  <span className="metric-label">Profit Target</span>
+                  <span className="metric-value">{formatCurrency(account.profit_target)}</span>
+                </div>
+                <div className="challenge-metric">
+                  <span className="metric-label">Max Drawdown</span>
+                  <span className="metric-value">{formatCurrency(account.max_total_drawdown)}</span>
+                </div>
+              </div>
+              <div className="challenge-progress">
+                <div className="progress-label">
+                  <span>Profit Progress</span>
+                  <span>{Math.max(0, ((account.current_balance - account.initial_balance) / account.profit_target * 100)).toFixed(1)}%</span>
+                </div>
+                <div className="progress-bar-track">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, (account.current_balance - account.initial_balance) / account.profit_target * 100))}%` }}
+                  />
+                </div>
+              </div>
             </div>
-            <p className="empty-text">No active challenges</p>
-            <p className="empty-subtext">Start a challenge to begin trading</p>
-          </div>
+          ) : (
+            <div className="challenge-card empty-state">
+              <div className="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
+              <p className="empty-text">{account ? `Challenge ${account.status}` : 'No active challenges'}</p>
+              <p className="empty-subtext">Start a challenge to begin trading</p>
+            </div>
+          )}
           <button className="btn-start-challenge">Start New Challenge</button>
         </div>
 
@@ -658,7 +727,7 @@ function DashboardOverview() {
               <div>Leverage</div>
               <div>PNL</div>
             </div>
-            {recentTrades.length === 0 ? (
+            {realTrades.length === 0 ? (
               <div className="empty-history">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <circle cx="12" cy="12" r="10"/>
@@ -668,15 +737,17 @@ function DashboardOverview() {
                 <span>Your trades will appear here</span>
               </div>
             ) : (
-              recentTrades.map((trade, index) => (
-                <div key={index} className="table-row">
-                  <div>{trade.id}</div>
-                  <div>{trade.date}</div>
+              realTrades.slice(0, 10).map((trade) => (
+                <div key={trade.id} className="table-row">
+                  <div title={trade.id}>{trade.id.slice(0, 8)}…</div>
+                  <div>{new Date(trade.executed_at).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
                   <div>{trade.symbol}</div>
                   <div className={`trade-side ${trade.side.toLowerCase()}`}>{trade.side}</div>
-                  <div>{trade.leverage}</div>
-                  <div className={trade.pnl >= 0 ? 'positive' : 'negative'}>
-                    {trade.pnl >= 0 ? '+' : ''}${Math.abs(trade.pnl).toFixed(2)} ({formatPercent(trade.change)})
+                  <div>{trade.leverage}x</div>
+                  <div className={(trade.realized_pnl ?? 0) >= 0 ? 'positive' : 'negative'}>
+                    {trade.realized_pnl != null
+                      ? `${trade.realized_pnl >= 0 ? '+' : ''}$${Math.abs(trade.realized_pnl).toFixed(2)}`
+                      : '—'}
                   </div>
                 </div>
               ))
