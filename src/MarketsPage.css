@@ -374,8 +374,12 @@
 .hide-symbols input[type="checkbox"] { accent-color: #7C3AED; cursor: pointer; }
 
 .binance-bottom-section .positions-table-headers {
-  display: grid; grid-template-columns: repeat(8, 1fr);
-  padding: 5px 12px; border-bottom: 1px solid #1e2329; flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 130px 80px 100px 100px 100px 90px 110px 70px;
+  padding: 5px 12px;
+  border-bottom: 1px solid #1e2329;
+  flex-shrink: 0;
+  min-width: 780px;
 }
 .binance-bottom-section .positions-table-headers span { color: #848e9c; font-size: 10px; }
 
@@ -401,17 +405,11 @@
 }
 .account-actions button:hover { border-color: #7C3AED; color: #a78bfa; }
 
-/* --- Positions table scroll wrapper (mobile) --- */
+/* --- Positions table scroll wrapper --- */
 .positions-table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   flex: 1;
-}
-
-/* Keep headers + rows the same min-width so they always align */
-.binance-bottom-section .positions-table-headers,
-.position-row {
-  min-width: 700px;
 }
 
 /* ── Kill any mobile-tab elements injected by old JSX ── */
@@ -432,32 +430,10 @@
   .binance-order-entry { grid-column: 2; height: 70vh; padding: 8px; }
   .binance-bottom-section { grid-template-columns: 1fr; }
   .account-panel { display: none; }
-
-  /* positions table: let the scroll wrapper handle overflow,
-     no need to hide or shrink columns */
-  .position-row {
-    font-size: 11px;
-  }
-
-  .trade-notifications {
-    right: 10px;
-    left: 10px;
-    max-width: none;
-  }
-
-  .leverage-modal {
-    width: 95%;
-    padding: 20px;
-  }
-
-  .tp-sl-pnl-values {
-    flex-direction: column;
-    gap: 4px;
-  }
 }
-
 /* ============================================================
    Phase 3B v2: Leverage Modal + TP/SL PNL Display
+   APPEND this to MarketsPage.css
    ============================================================ */
 
 /* --- TP/SL Expected PNL Row --- */
@@ -820,12 +796,13 @@
 /* --- Position rows --- */
 .position-row {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: 130px 80px 100px 100px 100px 90px 110px 70px;
   align-items: center;
   padding: 10px 12px;
   font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background 0.15s;
+  min-width: 780px;
 }
 
 .position-row:hover {
@@ -906,15 +883,7 @@
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
-  .position-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    font-size: 11px;
-  }
-
-  .position-row span:nth-child(n+5) {
-    display: none;
-  }
+  /* position-row keeps its explicit column widths — scroll wrapper handles overflow */
 
   .trade-notifications {
     right: 10px;
