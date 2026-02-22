@@ -5438,7 +5438,7 @@ body[data-theme="day"] .footer {
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
-  height: 320px;
+  min-height: 320px;
 }
 
 .active-challenges-widget h3 {
@@ -6375,7 +6375,7 @@ body[data-theme="day"] .footer {
   
   .active-challenges-widget,
   .history-widget {
-    height: 320px;
+
     min-height: 280px;
   }
 }
@@ -8881,7 +8881,7 @@ body[data-theme="day"] .dash-header {
 
 .active-challenges-widget,
 .history-widget {
-  height: 320px;
+  min-height: 320px;
 }
 
 .widget-header {
