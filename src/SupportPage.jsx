@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { supabase } from './supabase'
 
 const CATEGORIES = [
   'Challenge Rules',
@@ -18,7 +17,7 @@ const MOCK_TICKETS = [
 
 const STATUS_COLOR = { Pending: '#f59e0b', Open: '#4ade80', Resolved: 'rgba(255,255,255,0.4)', Closed: 'rgba(255,255,255,0.3)' }
 
-export default function SupportPage({ userId }) {
+export default function SupportPage() {
   const [subject,     setSubject]     = useState('')
   const [category,    setCategory]    = useState('')
   const [description, setDescription] = useState('')

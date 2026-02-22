@@ -222,7 +222,6 @@ export default function AnalyticsPage({ userId }) {
     }
     load()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   const stats = useMemo(() => {
