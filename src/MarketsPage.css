@@ -871,14 +871,22 @@
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
+  /* Positions / orders / history table: scroll horizontally, never squish */
+  .positions-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .positions-table-headers,
   .position-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
+    /* Fixed minimum width so all 8 columns stay visible via horizontal scroll */
+    min-width: 680px;
     font-size: 11px;
   }
 
+  /* Remove the old "hide columns 5+" rule — scroll instead */
   .position-row span:nth-child(n+5) {
-    display: none;
+    display: unset;
   }
 
   .trade-notifications {

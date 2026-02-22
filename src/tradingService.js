@@ -499,7 +499,21 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  const totalDrawdown = account.initial_balance - account.current_balance
+  // Fetch open positions so we can add back locked margin.
+  // current_balance is reduced by margin when a position opens — that margin
+  // is NOT a loss, it returns when the position closes. We must include it
+  // in the effective balance to avoid false "failed" status.
+  const { data: openPos } = await supabase
+    .from('demo_positions')
+    .select('margin, unrealized_pnl')
+    .eq('demo_account_id', accountId)
+    .eq('status', 'open')
+
+  const totalMarginInUse = (openPos || []).reduce((s, p) => s + (p.margin || 0), 0)
+  // Effective balance = cash on hand + margin locked in positions
+  // (we deliberately exclude unrealized PNL so a losing trade still counts against drawdown)
+  const effectiveBalance = account.current_balance + totalMarginInUse
+  const totalDrawdown = account.initial_balance - effectiveBalance
 
   // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
@@ -520,7 +534,7 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // Daily loss
+  // Daily loss — compare today's starting balance against effective balance (cash + locked margin)
   let dayStart = account.initial_balance
   try {
     const { data: todaySnap } = await supabase
@@ -532,7 +546,7 @@ async function checkChallengeRules(accountId, userId) {
     if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
   } catch { /* use initial_balance */ }
 
-  const dailyLoss = dayStart - account.current_balance
+  const dailyLoss = dayStart - effectiveBalance
   if (dailyLoss >= account.max_daily_loss) {
     try {
       await supabase.from('challenge_violations').insert({
