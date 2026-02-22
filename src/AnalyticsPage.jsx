@@ -91,14 +91,14 @@ function EquityChart({ data, initialBalance }) {
 
         {yTicks.map((v, i) => (
           <text key={i} x={PAD.left - 6} y={yScale(v) + 4}
-            fill="rgba(255,255,255,0.35)" fontSize="10" textAnchor="end">
+            className="chart-axis-text" fontSize="10" textAnchor="end">
             {v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
           </text>
         ))}
 
         {xLabelIdxs.map(i => (
           <text key={i} x={xScale(i)} y={H - 4}
-            fill="rgba(255,255,255,0.35)" fontSize="10" textAnchor="middle">
+            className="chart-axis-text" fontSize="10" textAnchor="middle">
             {data[i].date}
           </text>
         ))}
@@ -297,15 +297,15 @@ export default function AnalyticsPage({ userId }) {
   const statCards = [
     { label: 'Total PNL',          sub: 'Net performance',
       value: fmtPct(stats.totalPnlPct),
-      color: (stats.totalPnl ?? 0) >= 0 ? '#4ade80' : '#f87171' },
+      colorClass: (stats.totalPnl ?? 0) > 0 ? 'stat-green' : (stats.totalPnl ?? 0) < 0 ? 'stat-red' : 'stat-default' },
     { label: 'Win Rate',           sub: 'Winning trades vs total',
-      value: `${fmt(stats.winRate, 1)}%`,         color: '#e2e8f0' },
+      value: `${fmt(stats.winRate, 1)}%`,         colorClass: 'stat-default' },
     { label: 'Avg Win / Avg Loss', sub: 'Average profit vs loss',
-      value: `$${fmt(stats.avgWin, 0)} / $${fmt(stats.avgLoss, 0)}`, color: '#e2e8f0' },
+      value: `$${fmt(stats.avgWin, 0)} / $${fmt(stats.avgLoss, 0)}`, colorClass: 'stat-default' },
     { label: 'Risk / Reward',      sub: 'Average risk per trade',
-      value: `1 : ${stats.rr}`,                   color: '#e2e8f0' },
+      value: `1 : ${stats.rr}`,                   colorClass: 'stat-default' },
     { label: 'Profit Factor',      sub: 'Gross profit ÷ gross loss',
-      value: `${stats.profitFactor}`,              color: '#e2e8f0' },
+      value: `${stats.profitFactor}`,              colorClass: 'stat-default' },
   ]
 
   return (
@@ -317,7 +317,7 @@ export default function AnalyticsPage({ userId }) {
             <div className="analytics-stat-header">
               <span className="analytics-stat-label">{card.label}</span>
             </div>
-            <div className="analytics-stat-value" style={{ color: card.color }}>{card.value}</div>
+            <div className={`analytics-stat-value ${card.colorClass}`}>{card.value}</div>
             <div className="analytics-stat-sub">{card.sub}</div>
           </div>
         ))}

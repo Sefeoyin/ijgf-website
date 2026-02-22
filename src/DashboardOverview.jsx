@@ -407,7 +407,7 @@ function DashboardOverview({ userId }) {
             </div>
             <span className="stats-label">Total PNL</span>
           </div>
-          <div className="stats-value">{formatCurrency(stats.totalPNL)}</div>
+          <div className={`stats-value ${stats.totalPNL > 0 ? 'pnl-positive' : stats.totalPNL < 0 ? 'pnl-negative' : 'pnl-neutral'}`}>{formatCurrency(stats.totalPNL)}</div>
           <div className="stats-subtitle">All time performance</div>
         </div>
 

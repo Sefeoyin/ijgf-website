@@ -12858,9 +12858,28 @@ body[data-theme="day"] .dash-page-title { color: #1a1a2e; }
 /* ── Content area (day) ───────────────────────────────────────────────────── */
 body[data-theme="day"] .dash-content { background: #faf9ff; }
 
-/* ── Global day overrides for generic dash elements ───────────────────────── */
+/* ── Global PNL color classes (both themes) ───────────────────────────────── */
+.pnl-positive { color: #22c55e; }
+.pnl-negative { color: #ef4444; }
+.pnl-neutral  { color: var(--text-primary); }
+
 body[data-theme="day"] .pnl-positive { color: #16a34a; }
 body[data-theme="day"] .pnl-negative { color: #dc2626; }
+body[data-theme="day"] .pnl-neutral  { color: #1a1a2e; }
+
+/* Analytics stat value color classes */
+.stat-green   { color: #4ade80; }
+.stat-red     { color: #f87171; }
+.stat-default { color: #e2e8f0; }
+
+body[data-theme="day"] .stat-green   { color: #16a34a; }
+body[data-theme="day"] .stat-red     { color: #dc2626; }
+body[data-theme="day"] .stat-default { color: #1a1a2e; }
+
+/* Chart SVG axis text */
+.chart-axis-text { fill: rgba(255,255,255,0.35); }
+body[data-theme="day"] .chart-axis-text { fill: rgba(0,0,0,0.4); }
+
 body[data-theme="day"] .history-side-badge.long { background: rgba(22,163,74,0.1); color: #16a34a; }
 body[data-theme="day"] .history-side-badge.short { background: rgba(220,38,38,0.1); color: #dc2626; }
 
@@ -12869,3 +12888,127 @@ body[data-theme="day"] .view-all-btn,
 body[data-theme="day"] .widget-link {
   color: var(--accent-primary);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTIVE CHALLENGES WIDGET — day theme overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+body[data-theme="day"] .challenge-card.active-challenge {
+  background: #f0ecff;
+  border-color: rgba(124, 58, 237, 0.2);
+}
+body[data-theme="day"] .challenge-badge {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+body[data-theme="day"] .metric-label {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .metric-value {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .progress-label {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .progress-bar-track {
+  background: rgba(0, 0, 0, 0.08);
+}
+body[data-theme="day"] .challenge-card.empty-state {
+  background: #f8f5ff;
+  border-color: rgba(124, 58, 237, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HISTORY WIDGET (overview) — day theme overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+body[data-theme="day"] .table-row {
+  color: #1a1a2e;
+  border-bottom-color: rgba(124, 58, 237, 0.04);
+}
+body[data-theme="day"] .table-row:hover {
+  background: rgba(124, 58, 237, 0.04);
+}
+body[data-theme="day"] .table-header {
+  color: #5a5a7a;
+  border-bottom-color: rgba(124, 58, 237, 0.08);
+}
+
+/* ensure positive/negative colors stay strong in both themes */
+body[data-theme="day"] .table-row .positive,
+body[data-theme="day"] .positive { color: #16a34a; }
+body[data-theme="day"] .table-row .negative,
+body[data-theme="day"] .negative { color: #dc2626; }
+body[data-theme="day"] .trade-side.buy { color: #16a34a; }
+body[data-theme="day"] .trade-side.sell { color: #dc2626; }
+
+/* markets widget positive/negative in day theme */
+body[data-theme="day"] .market-change.positive {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+body[data-theme="day"] .market-change.negative {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+body[data-theme="day"] .equity-change.positive { color: #16a34a; }
+body[data-theme="day"] .equity-change.negative { color: #dc2626; }
+
+/* change badge in markets modal */
+body[data-theme="day"] .change-badge.positive {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+body[data-theme="day"] .change-badge.negative {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REMAINING HARDCODED DARK-MODE COLORS — day overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* Rules page */
+body[data-theme="day"] .rules-challenge-size { color: #5a5a7a; }
+body[data-theme="day"] .rules-metric-label { color: #5a5a7a; }
+body[data-theme="day"] .rules-stat-label { color: #5a5a7a; }
+body[data-theme="day"] .rules-stat-sub { color: #6b6b8a; }
+body[data-theme="day"] .rules-challenge-name { color: #1a1a2e; }
+
+/* History page extra */
+body[data-theme="day"] .history-id { color: #5a5a7a; }
+body[data-theme="day"] .history-date { color: #5a5a7a; }
+body[data-theme="day"] .history-count { color: #5a5a7a; }
+body[data-theme="day"] .history-symbol { color: #1a1a2e; }
+body[data-theme="day"] .history-empty { color: #5a5a7a; }
+
+/* Settings extra */
+body[data-theme="day"] .settings-row-text { color: #5a5a7a; }
+body[data-theme="day"] .settings-toggle.off { background: rgba(0,0,0,0.12); }
+body[data-theme="day"] .settings-btn-secondary:hover { background: rgba(124, 58, 237, 0.06); }
+body[data-theme="day"] .settings-plan-badge { color: #5a5a7a; }
+body[data-theme="day"] .settings-select { color: #1a1a2e; }
+
+/* Support extra */
+body[data-theme="day"] .support-section-title { color: #1a1a2e; }
+
+/* AI page extra */
+body[data-theme="day"] .ai-textarea { color: #1a1a2e; }
+body[data-theme="day"] .ai-textarea::placeholder { color: rgba(0,0,0,0.35); }
+body[data-theme="day"] .ai-upsell-title,
+body[data-theme="day"] .ai-greeting { color: #1a1a2e; }
+body[data-theme="day"] .ai-upsell-sub,
+body[data-theme="day"] .ai-greeting-sub { color: #5a5a7a; }
+body[data-theme="day"] .ai-free-note { color: #5a5a7a; }
+body[data-theme="day"] .ai-free-note strong { color: #7c3aed; }
+body[data-theme="day"] .ai-usage-pill { color: #5a5a7a; background: rgba(124,58,237,0.06); border-color: rgba(124,58,237,0.12); }
+body[data-theme="day"] .ai-tool-btn { color: #5a5a7a; }
+body[data-theme="day"] .ai-tool-btn:hover { color: #1a1a2e; background: #ede9fe; }
+body[data-theme="day"] .ai-logo-icon { background: rgba(124,58,237,0.08); color: #7c3aed; }
+body[data-theme="day"] .ai-suggested-label { color: #5a5a7a; }
+body[data-theme="day"] .ai-disclaimer { color: rgba(0,0,0,0.35); }
+body[data-theme="day"] .ai-pill-btn { color: #5a5a7a; border-color: rgba(124,58,237,0.12); }
+body[data-theme="day"] .ai-pill-btn:hover { border-color: rgba(124,58,237,0.3); color: #1a1a2e; }
+body[data-theme="day"] .ai-pill-ideas { color: #7c3aed; }
+
+/* Scrollbar day theme */
+body[data-theme="day"] .dash-content::-webkit-scrollbar-track { background: #faf9ff; }
+body[data-theme="day"] .dash-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.15); }
+body[data-theme="day"] .dash-content::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.25); }
