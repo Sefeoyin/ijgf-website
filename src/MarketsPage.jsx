@@ -4,6 +4,36 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE } from './tradingService'
 import './MarketsPage.css'
 
+// Separate component so useEffect cleanup runs reliably on unmount
+function MobileChartOverlay({ selectedPair, currentPrice, priceChangePercent, fmt, mobileChartRef, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  return (
+    <div className="mobile-chart-overlay">
+      <div className="mobile-chart-header">
+        <button className="mobile-chart-back" onClick={onClose}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div className="mobile-chart-pair">
+          <span className="pair-symbol">{selectedPair}</span>
+          <span className="pair-type">Perp</span>
+        </div>
+        <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+          {fmt(currentPrice)}
+        </span>
+      </div>
+      <div className="mobile-chart-body">
+        <div id="tv_chart_container_mobile" ref={mobileChartRef} style={{ width: '100%', height: '100%' }} />
+      </div>
+    </div>
+  )
+}
+
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
@@ -21,6 +51,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   const [mobileChartView, setMobileChartView] = useState(false)
   const [orderSubmitting, setOrderSubmitting] = useState(false)
+  const [orderError, setOrderError] = useState('')
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
@@ -244,6 +275,19 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const handleOrder = async (side) => {
     if (orderSubmitting) return
     if (!sizeVal || sizeVal <= 0) return
+
+    // IJGF trading rules: Take Profit and Stop Loss are mandatory on all orders
+    if (!tpEnabled || !tpPrice || parseFloat(tpPrice) <= 0) {
+      setOrderError('Take Profit is required by IJGF trading rules.')
+      setTimeout(() => setOrderError(''), 4000)
+      return
+    }
+    if (!slEnabled || !slPrice || parseFloat(slPrice) <= 0) {
+      setOrderError('Stop Loss is required by IJGF trading rules.')
+      setTimeout(() => setOrderError(''), 4000)
+      return
+    }
+    setOrderError('')
 
     setOrderSubmitting(true)
     try {
@@ -627,6 +671,27 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             TP &amp; SL required by IJGF rules
           </p>
 
+          {/* TP/SL validation error */}
+          {orderError && (
+            <div style={{
+              padding: '8px 10px',
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.35)',
+              borderRadius: '6px',
+              color: '#ef4444',
+              fontSize: '11px',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="#ef4444">
+                <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
+              </svg>
+              {orderError}
+            </div>
+          )}
+
           {/* Buy/Long + Sell/Short */}
           <div className="order-buttons-row">
             <button
@@ -865,25 +930,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
       {/* Mobile full-screen chart */}
       {mobileChartView && (
-        <div className="mobile-chart-overlay" ref={() => { document.body.style.overflow = 'hidden' }}>
-          <div className="mobile-chart-header">
-            <button className="mobile-chart-back" onClick={() => { setMobileChartView(false); document.body.style.overflow = '' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-            </button>
-            <div className="mobile-chart-pair">
-              <span className="pair-symbol">{selectedPair}</span>
-              <span className="pair-type">Perp</span>
-            </div>
-            <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-              {fmt(currentPrice)}
-            </span>
-          </div>
-          <div className="mobile-chart-body">
-            <div id="tv_chart_container_mobile" ref={mobileChartRef} style={{ width: '100%', height: '100%' }} />
-          </div>
-        </div>
+        <MobileChartOverlay
+          selectedPair={selectedPair}
+          currentPrice={currentPrice}
+          priceChangePercent={priceChangePercent}
+          fmt={fmt}
+          mobileChartRef={mobileChartRef}
+          onClose={() => setMobileChartView(false)}
+        />
       )}
 
       {/* Pair dropdown */}

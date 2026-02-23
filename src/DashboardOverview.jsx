@@ -470,13 +470,20 @@ function DashboardOverview({ userId }) {
 
           {/* Chart with Y-axis and X-axis labels */}
           <div className="chart-container">
-            {/* Y-axis labels */}
+            {/* Y-axis labels — computed from actual equity range */}
             <div className="chart-y-axis">
-              <span>$25,000</span>
-              <span>$20,000</span>
-              <span>$15,000</span>
-              <span>$10,000</span>
-              <span>$5,000</span>
+              {(() => {
+                const initial = account?.initial_balance ?? 10000
+                const equityVal = currentChart.equity || initial
+                const minY = Math.min(initial * 0.85, equityVal * 0.95)
+                const maxY = Math.max(initial * 1.15, equityVal * 1.05)
+                const step = (maxY - minY) / 4
+                return [4, 3, 2, 1, 0].map(i => {
+                  const val = minY + step * i
+                  const label = val >= 1000 ? `$${(val / 1000).toFixed(1)}k` : `$${Math.round(val)}`
+                  return <span key={i}>{label}</span>
+                })
+              })()}
             </div>
             
             {/* Chart SVG */}

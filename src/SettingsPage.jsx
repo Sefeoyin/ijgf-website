@@ -123,56 +123,63 @@ export default function SettingsPage() {
       {/* ── Billing & Subscription ───────────────────────────────── */}
       <div className="settings-section-title">Billing &amp; Subscription</div>
 
-      <div className="settings-card">
-        <SettingsRow label="Current Plan">
-          <span className="settings-plan-badge">AI Assistant ($25/month)</span>
-        </SettingsRow>
+      {/* Blurred out — AI Assistant not yet available */}
+      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden' }}>
+        {/* Unavailable overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '10px', borderRadius: '12px',
+          border: '1px solid rgba(124,58,237,0.15)',
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: 500 }}>
+            AI Assistant — Coming Soon
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', textAlign: 'center', maxWidth: 260, lineHeight: 1.5 }}>
+            Billing will be available when the AI Assistant launches.
+          </span>
+        </div>
 
-        <div className="settings-card-divider" />
+        {/* Blurred content underneath */}
+        <div style={{ filter: 'blur(3px)', pointerEvents: 'none', userSelect: 'none' }}>
+          <div className="settings-card">
+            <SettingsRow label="Current Plan">
+              <span className="settings-plan-badge">AI Assistant ($25/month)</span>
+            </SettingsRow>
 
-        <SettingsRow label="Billing Cycle">
-          <span className="settings-row-text">Monthly</span>
-        </SettingsRow>
+            <div className="settings-card-divider" />
 
-        <div className="settings-card-divider" />
+            <SettingsRow label="Billing Cycle">
+              <span className="settings-row-text">Monthly</span>
+            </SettingsRow>
 
-        <SettingsRow label="Payment Method">
-          <div className="settings-payment-row">
-            <span className="settings-row-text">****5680</span>
-            <svg width="30" height="20" viewBox="0 0 38 24" aria-label="Mastercard">
-              <circle cx="15" cy="12" r="11" fill="#eb001b"/>
-              <circle cx="23" cy="12" r="11" fill="#f79e1b"/>
-              <path d="M19 5.7a11 11 0 0 1 0 12.6A11 11 0 0 1 19 5.7z" fill="#ff5f00"/>
-            </svg>
+            <div className="settings-card-divider" />
+
+            <SettingsRow label="Payment Method">
+              <div className="settings-payment-row">
+                <span className="settings-row-text">****5680</span>
+                <svg width="30" height="20" viewBox="0 0 38 24" aria-label="Mastercard">
+                  <circle cx="15" cy="12" r="11" fill="#eb001b"/>
+                  <circle cx="23" cy="12" r="11" fill="#f79e1b"/>
+                  <path d="M19 5.7a11 11 0 0 1 0 12.6A11 11 0 0 1 19 5.7z" fill="#ff5f00"/>
+                </svg>
+              </div>
+            </SettingsRow>
           </div>
-        </SettingsRow>
-      </div>
 
-      <div className="settings-billing-actions">
-        <button className="settings-btn-primary" onClick={() => alert('Update payment method coming soon')}>
-          Update Payment Method
-        </button>
-        <button
-          className="settings-btn-secondary"
-          onClick={() => setShowCancel(true)}
-        >
-          Cancel Subscription
-        </button>
-      </div>
-
-      {showCancel && (
-        <div className="settings-confirm-banner">
-          <span>Are you sure you want to cancel your AI Assistant subscription?</span>
-          <div className="settings-confirm-actions">
-            <button className="settings-btn-danger-sm" onClick={() => { alert('Subscription cancelled'); setShowCancel(false) }}>
-              Yes, Cancel
-            </button>
-            <button className="settings-btn-ghost-sm" onClick={() => setShowCancel(false)}>
-              Keep Subscription
-            </button>
+          <div className="settings-billing-actions">
+            <button className="settings-btn-primary">Update Payment Method</button>
+            <button className="settings-btn-secondary">Cancel Subscription</button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ── Danger Zone ──────────────────────────────────────────── */}
       <div className="settings-danger-title">Danger Zone</div>

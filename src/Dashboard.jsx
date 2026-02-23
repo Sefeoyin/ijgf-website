@@ -72,7 +72,7 @@ function Dashboard() {
     { id: 'analytics', icon: 'trending',   label: 'Analytics',          disabled: false },
     { id: 'history',   icon: 'clock',      label: 'Trade History',      disabled: false },
     { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: false },
-    { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: false },
+    { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: true },
     { id: 'profile',   icon: 'user',       label: 'Profile',            disabled: false },
     { id: 'support',   icon: 'headphones', label: 'Support',            disabled: false },
     { id: 'settings',  icon: 'settings',   label: 'Settings',           disabled: false },
@@ -221,7 +221,21 @@ function Dashboard() {
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
-          {activeTab === 'ai'        && <AIAssistantPage userName={userName} subscribed={false} userId={userId} />}
+          {activeTab === 'ai'        && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              height: '100%', minHeight: '60vh', gap: '16px', color: 'rgba(255,255,255,0.5)',
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.3">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                <path d="M9 8h.01M12 8h.01M15 8h.01M9 12h6"/>
+              </svg>
+              <p style={{ fontSize: '1rem', fontWeight: 500 }}>AI Assistant — Coming Soon</p>
+              <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
+                Your AI trading coach is in development. It will analyze your trades, flag risk patterns, and give personalized strategy feedback.
+              </p>
+            </div>
+          )}
           {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
           {activeTab === 'support'   && <SupportPage userId={userId} />}
           {activeTab === 'settings'  && <SettingsPage />}
