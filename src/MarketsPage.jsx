@@ -7,6 +7,7 @@ import './MarketsPage.css'
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
+  const [pairSearch, setPairSearch] = useState('')
   const [orderType, setOrderType] = useState('Limit')
   const [price, setPrice] = useState('')
   const [stopPrice, setStopPrice] = useState('')
@@ -21,6 +22,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   const [mobileChartView, setMobileChartView] = useState(false)
   const [orderSubmitting, setOrderSubmitting] = useState(false)
+  const [availablePairs, setAvailablePairs] = useState([])
+  const [pairsLoading, setPairsLoading] = useState(true)
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
@@ -47,11 +50,72 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const bids = obMode === 'ws' ? liveBids : simOb.bids
   const asks = obMode === 'ws' ? liveAsks : simOb.asks
 
-  const AVAILABLE_PAIRS = [
+  // Fallback list used while API loads or if fetch fails
+  const FALLBACK_PAIRS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
     'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
     'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+    'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
+    'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PYTHUSDT', 'JUPUSDT',
+    'TONUSDT', 'PEPEUSDT', 'SHIBUSDT', 'WIFUSDT', 'BONKUSDT',
+    'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT',
+    'GMXUSDT', 'GRTUSDT', 'DYDXUSDT', 'AXSUSDT', 'SANDUSDT',
+    'MANAUSDT', 'GALAUSDT', 'IMXUSDT', 'RUNEUSDT', 'FETUSDT',
+    'RENDERUSDT', 'TAOUSDT', 'PENDLEUSDT', 'STRKUSDT', 'ORDIUSDT',
+    'FLOKIUSDT', 'POPCATUSDT', 'KASUSDT', 'LDOUSDT', 'FTMUSDT',
+    'HBARUSDT', 'ICPUSDT', 'FILUSDT', 'ETCUSDT', 'XLMUSDT',
+    'TRXUSDT', 'EOSUSDT', 'ALGOUSDT', 'BCHUSDT', 'XMRUSDT',
   ]
+
+  // Fetch full live pair list from Bybit on mount — with pagination for 700+ pairs
+  useEffect(() => {
+    const fetchAllPairs = async () => {
+      try {
+        let allPairs = []
+        let cursor = ''
+        let page = 0
+        const maxPages = 10 // safety cap
+
+        while (page < maxPages) {
+          const url = `https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+          const res = await fetch(url)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const data = await res.json()
+
+          if (data.retCode !== 0) throw new Error(data.retMsg)
+
+          const pagePairs = (data.result?.list || [])
+            .filter(s => s.symbol.endsWith('USDT') && s.status === 'Trading')
+            .map(s => s.symbol)
+
+          allPairs = [...allPairs, ...pagePairs]
+
+          // Check for next page cursor
+          const nextCursor = data.result?.nextPageCursor
+          if (!nextCursor) break
+          cursor = nextCursor
+          page++
+        }
+
+        if (allPairs.length > 0) {
+          setAvailablePairs(allPairs.sort())
+        } else {
+          setAvailablePairs(FALLBACK_PAIRS)
+        }
+      } catch (err) {
+        console.warn('Bybit pairs fetch failed, using fallback:', err.message)
+        setAvailablePairs(FALLBACK_PAIRS)
+      } finally {
+        setPairsLoading(false)
+      }
+    }
+
+    fetchAllPairs()
+  }, [])
+
+  const filteredPairs = pairSearch.trim()
+    ? availablePairs.filter(p => p.toLowerCase().includes(pairSearch.toLowerCase()))
+    : availablePairs
 
   const getTVSymbol = (pair) => `BINANCE:${pair}.P`
 
@@ -730,7 +794,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span>Entry Price</span>
                 <span>Mark Price</span>
                 <span>Liq. Price</span>
-                <span>TP / SL</span>
                 <span>Margin</span>
                 <span>PNL (ROI%)</span>
                 <span>Action</span>
@@ -755,14 +818,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <span>{fmt(pos.entry_price)}</span>
                     <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
                     <span>{fmt(pos.liquidation_price)}</span>
-                    <span className="tp-sl-cell">
-                      <span className="tp-value">
-                        {pos.take_profit ? `TP: ${fmt(pos.take_profit)}` : <span className="muted">—</span>}
-                      </span>
-                      <span className="sl-value">
-                        {pos.stop_loss ? `SL: ${fmt(pos.stop_loss)}` : <span className="muted">—</span>}
-                      </span>
-                    </span>
                     <span>${pos.margin.toFixed(2)}</span>
                     <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
                       {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
@@ -897,22 +952,47 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
       {/* Pair dropdown */}
       {showPairDropdown && (
-        <div className="pair-dropdown-overlay" onClick={() => setShowPairDropdown(false)}>
+        <div className="pair-dropdown-overlay" onClick={() => { setShowPairDropdown(false); setPairSearch('') }}>
           <div className="pair-dropdown" onClick={(ev) => ev.stopPropagation()}>
-            {AVAILABLE_PAIRS.map(pair => (
-              <button
-                key={pair}
-                className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
-                onClick={() => { setSelectedPair(pair); setShowPairDropdown(false) }}
-              >
-                {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                {trading.prices[pair] && (
-                  <span className={`pair-dropdown-price ${(trading.prices[pair].change || 0) >= 0 ? 'positive' : 'negative'}`}>
-                    ${fmt(trading.prices[pair].price)}
-                  </span>
-                )}
-              </button>
-            ))}
+            <div className="pair-dropdown-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search pair..."
+                value={pairSearch}
+                onChange={e => setPairSearch(e.target.value)}
+                className="pair-search-input"
+              />
+              {pairSearch && (
+                <button className="pair-search-clear" onClick={() => setPairSearch('')}>×</button>
+              )}
+            </div>
+            <div className="pair-dropdown-list">
+              {pairsLoading ? (
+                <div className="pair-dropdown-loading">
+                  <div className="pair-dropdown-spinner" />
+                  Loading pairs...
+                </div>
+              ) : filteredPairs.length === 0 ? (
+                <div className="pair-dropdown-empty">No pairs found</div>
+              ) : filteredPairs.map(pair => (
+                <button
+                  key={pair}
+                  className={`pair-dropdown-item ${pair === selectedPair ? 'active' : ''}`}
+                  onClick={() => { setSelectedPair(pair); setShowPairDropdown(false); setPairSearch('') }}
+                >
+                  {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
+                  {trading.prices[pair] && (
+                    <span className={`pair-dropdown-price ${(trading.prices[pair].change || 0) >= 0 ? 'positive' : 'negative'}`}>
+                      ${fmt(trading.prices[pair].price)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
