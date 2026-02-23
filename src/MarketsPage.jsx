@@ -661,10 +661,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="#f59e0b">
                   <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
                 </svg>
-                Max Daily Drawdown
+                Daily Loss
               </span>
               <span className="rm-value">
-                None
+                ${drawdownUsed.toFixed(0)} / ${account?.max_daily_loss?.toFixed(0) || '400'}
               </span>
             </div>
             <div className="risk-metric-row">
@@ -673,7 +673,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 Max Drawdown
               </span>
               <span className="rm-value">
-                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '800'}
+                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '600'}
               </span>
             </div>
             {drawdownPercent > 50 && (
@@ -730,6 +730,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span>Entry Price</span>
                 <span>Mark Price</span>
                 <span>Liq. Price</span>
+                <span>TP / SL</span>
                 <span>Margin</span>
                 <span>PNL (ROI%)</span>
                 <span>Action</span>
@@ -754,6 +755,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <span>{fmt(pos.entry_price)}</span>
                     <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
                     <span>{fmt(pos.liquidation_price)}</span>
+                    <span className="tp-sl-cell">
+                      <span className="tp-value">
+                        {pos.take_profit ? `TP: ${fmt(pos.take_profit)}` : <span className="muted">—</span>}
+                      </span>
+                      <span className="sl-value">
+                        {pos.stop_loss ? `SL: ${fmt(pos.stop_loss)}` : <span className="muted">—</span>}
+                      </span>
+                    </span>
                     <span>${pos.margin.toFixed(2)}</span>
                     <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
                       {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}

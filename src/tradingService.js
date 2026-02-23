@@ -8,14 +8,13 @@ import { supabase } from './supabase'
 // No trading fees — revenue comes from challenge fees
 
 const CHALLENGE_CONFIGS = {
-  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400   },
-  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800   },
-  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000  },
-  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000  },
-  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000  },
+  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400  },
+  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800  },
+  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000 },
+  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000 },
+  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000 },
 }
 
-// 100x leverage for all instruments
 export const MAX_LEVERAGE = {
   DEFAULT: 100,
 }
@@ -389,39 +388,27 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Atomic claim: update only if still 'open' — prevents double-fill from StrictMode
-        const { data: claimed } = await supabase
+        // Mark filled
+        await supabase
           .from('demo_orders')
           .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
           .eq('id', order.id)
-          .eq('status', 'open')
-          .select('id')
 
-        if (!claimed || claimed.length === 0) {
-          console.log('[Trading] Order already claimed, skipping:', order.id)
-          continue
-        }
+        // Execute
+        const fillSize = order.price * order.quantity
+        await placeMarketOrder({
+          userId,
+          symbol: order.symbol,
+          side: order.side,
+          sizeUsdt: fillSize,
+          leverage: order.leverage,
+          currentPrice: order.price,
+          takeProfit: order.take_profit,
+          stopLoss: order.stop_loss,
+        })
 
-        try {
-          const fillSize = order.price * order.quantity
-          await placeMarketOrder({
-            userId,
-            symbol: order.symbol,
-            side: order.side,
-            sizeUsdt: fillSize,
-            leverage: order.leverage,
-            currentPrice: order.price,
-            takeProfit: order.take_profit,
-            stopLoss: order.stop_loss,
-          })
-          filled.push(order)
-          console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
-        } catch (execErr) {
-          console.error('[Trading] Fill execution failed, reverting:', order.id, execErr)
-          await supabase.from('demo_orders')
-            .update({ status: 'open', updated_at: new Date().toISOString() })
-            .eq('id', order.id)
-        }
+        filled.push(order)
+        console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
       } catch (err) {
         console.error('[Trading] Fill order error:', order.id, err)
       }
@@ -511,11 +498,22 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  const totalDrawdown = account.initial_balance - account.current_balance
+  // ── True account value: cash balance + margin locked in open positions ──
+  // current_balance is reduced when a position opens (margin deducted).
+  // We must add it back so margin isn't mistaken for a loss.
+  const { data: openPositions } = await supabase
+    .from('demo_positions')
+    .select('margin')
+    .eq('demo_account_id', accountId)
+    .eq('status', 'open')
 
-  // Max drawdown
+  const totalMarginLocked = (openPositions || []).reduce((sum, p) => sum + (p.margin || 0), 0)
+  const trueAccountValue = account.current_balance + totalMarginLocked
+
+  // ── Max drawdown check ──
+  const totalDrawdown = Math.max(0, account.initial_balance - trueAccountValue)
+
   if (totalDrawdown >= account.max_total_drawdown) {
-    // Try to log violation (may fail if no INSERT policy — that's ok)
     try {
       await supabase.from('challenge_violations').insert({
         demo_account_id: accountId, user_id: userId,
@@ -532,38 +530,62 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // Daily loss
-  let dayStart = account.initial_balance
+  // ── Daily snapshot: create if missing, then check daily loss ──
+  const today = new Date().toISOString().split('T')[0]
+  let dayStart = trueAccountValue // default: no loss today if no snapshot
+
   try {
     const { data: todaySnap } = await supabase
       .from('challenge_progress')
       .select('starting_balance')
       .eq('demo_account_id', accountId)
-      .eq('snapshot_date', new Date().toISOString().split('T')[0])
+      .eq('snapshot_date', today)
       .maybeSingle()
-    if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
-  } catch { /* use initial_balance */ }
 
-  const dailyLoss = dayStart - account.current_balance
-  if (dailyLoss >= account.max_daily_loss) {
-    try {
-      await supabase.from('challenge_violations').insert({
-        demo_account_id: accountId, user_id: userId,
-        violation_type: 'DAILY_LOSS',
-        description: `Daily loss $${dailyLoss.toFixed(2)} exceeded $${account.max_daily_loss}`,
-        balance_at_violation: account.current_balance, violation_amount: dailyLoss,
-      })
-    } catch { /* non-critical */ }
+    if (todaySnap?.starting_balance) {
+      dayStart = todaySnap.starting_balance
+    } else {
+      // Create today's snapshot with current true value as starting point
+      await supabase.from('challenge_progress').insert({
+        demo_account_id: accountId,
+        user_id: userId,
+        snapshot_date: today,
+        starting_balance: trueAccountValue,
+        ending_balance: trueAccountValue,
+      }).select().maybeSingle()
+      dayStart = trueAccountValue
+    }
 
-    await supabase
-      .from('demo_accounts')
-      .update({ status: 'failed', updated_at: new Date().toISOString() })
-      .eq('id', accountId)
-    return { failed: true, reason: 'DAILY_LOSS' }
+    // Update today's ending balance
+    await supabase.from('challenge_progress')
+      .update({ ending_balance: trueAccountValue })
+      .eq('demo_account_id', accountId)
+      .eq('snapshot_date', today)
+  } catch { /* use trueAccountValue as dayStart */ }
+
+  // Daily loss check (only if max_daily_loss is set — null means no limit)
+  if (account.max_daily_loss != null) {
+    const dailyLoss = Math.max(0, dayStart - trueAccountValue)
+    if (dailyLoss >= account.max_daily_loss) {
+      try {
+        await supabase.from('challenge_violations').insert({
+          demo_account_id: accountId, user_id: userId,
+          violation_type: 'DAILY_LOSS',
+          description: `Daily loss $${dailyLoss.toFixed(2)} exceeded $${account.max_daily_loss}`,
+          balance_at_violation: account.current_balance, violation_amount: dailyLoss,
+        })
+      } catch { /* non-critical */ }
+
+      await supabase
+        .from('demo_accounts')
+        .update({ status: 'failed', updated_at: new Date().toISOString() })
+        .eq('id', accountId)
+      return { failed: true, reason: 'DAILY_LOSS' }
+    }
   }
 
-  // Profit target
-  const totalProfit = account.current_balance - account.initial_balance
+  // ── Profit target check ──
+  const totalProfit = trueAccountValue - account.initial_balance
   if (totalProfit >= account.profit_target) {
     await supabase
       .from('demo_accounts')
@@ -572,11 +594,11 @@ async function checkChallengeRules(accountId, userId) {
     return { passed: true }
   }
 
-  // High water mark
-  if (account.current_balance > account.high_water_mark) {
+  // ── High water mark ──
+  if (trueAccountValue > account.high_water_mark) {
     await supabase
       .from('demo_accounts')
-      .update({ high_water_mark: account.current_balance, updated_at: new Date().toISOString() })
+      .update({ high_water_mark: trueAccountValue, updated_at: new Date().toISOString() })
       .eq('id', accountId)
   }
 
