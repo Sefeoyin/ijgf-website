@@ -725,10 +725,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="#f59e0b">
                   <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
                 </svg>
-                Daily Loss
+                Max Daily Drawdown
               </span>
               <span className="rm-value">
-                ${drawdownUsed.toFixed(0)} / ${account?.max_daily_loss?.toFixed(0) || '400'}
+                None
               </span>
             </div>
             <div className="risk-metric-row">
@@ -737,7 +737,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 Max Drawdown
               </span>
               <span className="rm-value">
-                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '600'}
+                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '800'}
               </span>
             </div>
             {drawdownPercent > 50 && (

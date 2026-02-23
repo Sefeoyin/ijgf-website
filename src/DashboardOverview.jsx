@@ -65,10 +65,16 @@ function DashboardOverview({ userId }) {
 
   const [realTrades, setRealTrades] = useState([])
 
-  // Margin locked in open positions (not lost — will return when closed)
-  const totalMarginInUse = accountPositions.reduce((sum, p) => sum + (p.margin || 0), 0)
+  // Margin locked in open positions — fallback to entry_price * qty / leverage if column is null
+  const totalMarginInUse = accountPositions.reduce((sum, p) => {
+    const m = (p.margin != null && p.margin > 0)
+      ? p.margin
+      : (p.entry_price * p.quantity) / (p.leverage || 1)
+    return sum + (m || 0)
+  }, 0)
 
-  // True account value = available cash + margin locked in positions
+  // True account value = cash + margin (returned on close) + unrealized PNL from open positions
+  // This is what the balance card should show
   const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
 
   // Realized PNL only (from closed trades) — excludes margin distortion
@@ -327,36 +333,6 @@ function DashboardOverview({ userId }) {
   }, [account])
 
   const hoursMap = { '1D': 24, '1W': 168, '1M': 720, '3M': 2160, '6M': 4320, '1Y': 8760 }
-
-  // Compute dynamic Y-axis labels from current chart data
-  const chartEquities = (() => {
-    if (!account) return []
-    const initial = account.initial_balance ?? 10000
-    const hours = hoursMap[timeRange] || 24
-    const cutoff = Date.now() - hours * 60 * 60 * 1000
-    const filtered = realTrades
-      .filter(t => t.realized_pnl != null && new Date(t.executed_at).getTime() >= cutoff)
-    let running = initial
-    const vals = [initial]
-    filtered.forEach(t => { running += (t.realized_pnl || 0); vals.push(running) })
-    return vals
-  })()
-
-  const yAxisLabels = (() => {
-    if (chartEquities.length === 0) {
-      const base = account?.initial_balance ?? 10000
-      return [base * 1.25, base, base * 0.75, base * 0.5, base * 0.25]
-        .map(v => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v.toFixed(0)}`)
-    }
-    const minV = Math.min(...chartEquities)
-    const maxV = Math.max(...chartEquities)
-    const pad = (maxV - minV) * 0.1 || maxV * 0.1
-    const lo = Math.max(0, minV - pad)
-    const hi = maxV + pad
-    const step = (hi - lo) / 4
-    return [hi, lo + step * 3, lo + step * 2, lo + step, lo]
-      .map(v => `$${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}`)
-  })()
   const dateLabels = {
     '1D': ['6am', '9am', '12pm', '3pm', '6pm'],
     '1W': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
@@ -502,7 +478,11 @@ function DashboardOverview({ userId }) {
           <div className="chart-container">
             {/* Y-axis labels */}
             <div className="chart-y-axis">
-              {yAxisLabels.map((label, i) => <span key={i}>{label}</span>)}
+              <span>$25,000</span>
+              <span>$20,000</span>
+              <span>$15,000</span>
+              <span>$10,000</span>
+              <span>$5,000</span>
             </div>
             
             {/* Chart SVG */}
