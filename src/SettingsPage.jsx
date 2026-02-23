@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const [challengeAlerts,setChallengeAlerts]= useState(true)
   const [payoutConfirms, setPayoutConfirms] = useState(true)
   const [showDeactivate, setShowDeactivate] = useState(false)
-  const [showCancel,     setShowCancel]     = useState(false)
+
 
   const currentLang = LANGUAGES.find(l => l.label === language)
 
