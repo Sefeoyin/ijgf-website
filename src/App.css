@@ -1956,10 +1956,15 @@ body[data-theme="day"] .step-card p {
    Challenges Preview Section (Landing)
    ========================================== */
 .challenges-section {
-  padding: 100px 2rem;
+  padding: 100px 1rem;
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
+}
+
+.challenges-section .section-container {
+  max-width: 1600px;
+  padding: 0 1rem;
 }
 
 .challenges-section::before {
@@ -2831,8 +2836,10 @@ body[data-theme="day"] .faq-item {
 .spec-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
+  align-items: center;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
 }
 
 .spec-row:last-child {
