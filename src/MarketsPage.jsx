@@ -165,6 +165,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
+  // Compact USDT amount for order book — matches Binance style (1.23K, 45.6M)
+  const fmtAmt = (usdt) => {
+    if (!usdt || usdt === 0) return '—'
+    if (usdt >= 1_000_000) return (usdt / 1_000_000).toFixed(2) + 'M'
+    if (usdt >= 1_000)     return (usdt / 1_000).toFixed(2) + 'K'
+    return usdt.toFixed(2)
+  }
+
   const getBaseAsset = () => selectedPair.replace('USDT', '')
 
   const priceStep = selectedPair === 'BTCUSDT' ? 10 : selectedPair === 'ETHUSDT' ? 1 : 0.01
@@ -413,7 +421,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {asks.slice(0, 8).reverse().map((row, i) => (
               <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price negative">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty && row.price ? (row.qty * row.price).toFixed(2) : '—'}</span>
+                <span className="ob-size">{row.qty && row.price ? fmtAmt(row.qty * row.price) : '—'}</span>
               </div>
             ))}
           </div>
@@ -437,7 +445,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {bids.slice(0, 8).map((row, i) => (
               <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price positive">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty && row.price ? (row.qty * row.price).toFixed(2) : '—'}</span>
+                <span className="ob-size">{row.qty && row.price ? fmtAmt(row.qty * row.price) : '—'}</span>
               </div>
             ))}
           </div>

@@ -243,7 +243,6 @@ export async function placeLimitOrder({
       symbol, side, order_type: orderType,
       price, stop_price: stopPrice,
       quantity, leverage,
-      margin,
       take_profit: takeProfit,
       stop_loss: stopLoss,
     })
@@ -295,10 +294,12 @@ export async function cancelOrder(userId, orderId) {
   }
 
   // Restore the reserved margin back to available balance
-  if (order.margin) {
+  // Compute margin from stored fields since demo_orders has no margin column
+  const reservedMargin = (order.price * order.quantity) / order.leverage
+  if (reservedMargin > 0) {
     const account = await getOrCreateDemoAccount(userId)
-    await updateAccountBalance(account.id, account.current_balance + order.margin)
-    console.log('[Trading] Margin restored on cancel: $' + order.margin.toFixed(2))
+    await updateAccountBalance(account.id, account.current_balance + reservedMargin)
+    console.log('[Trading] Margin restored on cancel: $' + reservedMargin.toFixed(2))
   }
 
   return data
