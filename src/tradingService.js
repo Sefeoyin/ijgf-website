@@ -416,8 +416,22 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Restore reserved margin first — placeMarketOrder will re-deduct its own margin
-        const reservedMargin = order.margin || (order.price * order.quantity / order.leverage)
+        // Atomic claim: only fill if order is still 'open' (prevents double-fill from StrictMode double-intervals)
+        const { data: claimed, error: claimErr } = await supabase
+          .from('demo_orders')
+          .update({ status: 'filling', updated_at: new Date().toISOString() })
+          .eq('id', order.id)
+          .eq('status', 'open')  // only succeeds if still open
+          .select()
+          .single()
+
+        if (claimErr || !claimed) {
+          console.log('[Trading] Order already being filled, skipping:', order.id)
+          continue
+        }
+
+        // Restore reserved margin — placeMarketOrder will re-deduct for the position
+        const reservedMargin = (order.price * order.quantity) / (order.leverage || 1)
         const acct = await getOrCreateDemoAccount(userId)
         await updateAccountBalance(acct.id, acct.current_balance + reservedMargin)
 
@@ -433,7 +447,7 @@ export async function checkPendingOrders(userId, priceMap) {
           stopLoss: order.stop_loss,
         })
 
-        // Only mark filled after successful execution — prevents phantom fills
+        // Mark fully filled after successful execution
         await supabase
           .from('demo_orders')
           .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
@@ -442,6 +456,8 @@ export async function checkPendingOrders(userId, priceMap) {
         filled.push(order)
         console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
       } catch (err) {
+        // Revert to open if fill failed so it can retry
+        await supabase.from('demo_orders').update({ status: 'open' }).eq('id', order.id).eq('status', 'filling')
         console.error('[Trading] Fill order error:', order.id, err)
       }
     }
