@@ -389,35 +389,41 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Atomic: only proceed if we are the first to claim this order (prevents StrictMode double-fill)
+        // Atomic claim: update only if still 'open', check count to prevent double-fill
         const { data: claimed } = await supabase
           .from('demo_orders')
           .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
           .eq('id', order.id)
           .eq('status', 'open')
-          .select()
-          .single()
+          .select('id')
 
-        if (!claimed) {
-          console.log('[Trading] Order already filled by another interval, skipping:', order.id)
+        // If no rows returned, another interval already claimed it
+        if (!claimed || claimed.length === 0) {
+          console.log('[Trading] Order already claimed, skipping:', order.id)
           continue
         }
 
-        // Execute position
-        const fillSize = order.price * order.quantity
-        await placeMarketOrder({
-          userId,
-          symbol: order.symbol,
-          side: order.side,
-          sizeUsdt: fillSize,
-          leverage: order.leverage,
-          currentPrice: order.price,
-          takeProfit: order.take_profit,
-          stopLoss: order.stop_loss,
-        })
-
-        filled.push(order)
-        console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
+        // Execute position — if this fails, revert order to 'open' so it can retry
+        try {
+          const fillSize = order.price * order.quantity
+          await placeMarketOrder({
+            userId,
+            symbol: order.symbol,
+            side: order.side,
+            sizeUsdt: fillSize,
+            leverage: order.leverage,
+            currentPrice: order.price,
+            takeProfit: order.take_profit,
+            stopLoss: order.stop_loss,
+          })
+          filled.push(order)
+          console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
+        } catch (execErr) {
+          console.error('[Trading] Fill execution failed, reverting order:', order.id, execErr)
+          await supabase.from('demo_orders')
+            .update({ status: 'open', updated_at: new Date().toISOString() })
+            .eq('id', order.id)
+        }
       } catch (err) {
         console.error('[Trading] Fill order error:', order.id, err)
       }

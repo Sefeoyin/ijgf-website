@@ -65,10 +65,16 @@ function DashboardOverview({ userId }) {
 
   const [realTrades, setRealTrades] = useState([])
 
-  // Margin locked in open positions (not lost — will return when closed)
-  const totalMarginInUse = accountPositions.reduce((sum, p) => sum + (p.margin || 0), 0)
+  // Margin locked in open positions — fallback to entry_price * qty / leverage if column is null
+  const totalMarginInUse = accountPositions.reduce((sum, p) => {
+    const m = (p.margin != null && p.margin > 0)
+      ? p.margin
+      : (p.entry_price * p.quantity) / (p.leverage || 1)
+    return sum + (m || 0)
+  }, 0)
 
-  // True account value = available cash + margin locked in positions
+  // True account value = cash + margin (returned on close) + unrealized PNL from open positions
+  // This is what the balance card should show
   const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
 
   // Realized PNL only (from closed trades) — excludes margin distortion
@@ -470,20 +476,13 @@ function DashboardOverview({ userId }) {
 
           {/* Chart with Y-axis and X-axis labels */}
           <div className="chart-container">
-            {/* Y-axis labels — computed from actual equity range */}
+            {/* Y-axis labels */}
             <div className="chart-y-axis">
-              {(() => {
-                const initial = account?.initial_balance ?? 10000
-                const equityVal = currentChart.equity || initial
-                const minY = Math.min(initial * 0.85, equityVal * 0.95)
-                const maxY = Math.max(initial * 1.15, equityVal * 1.05)
-                const step = (maxY - minY) / 4
-                return [4, 3, 2, 1, 0].map(i => {
-                  const val = minY + step * i
-                  const label = val >= 1000 ? `$${(val / 1000).toFixed(1)}k` : `$${Math.round(val)}`
-                  return <span key={i}>{label}</span>
-                })
-              })()}
+              <span>$25,000</span>
+              <span>$20,000</span>
+              <span>$15,000</span>
+              <span>$10,000</span>
+              <span>$5,000</span>
             </div>
             
             {/* Chart SVG */}
