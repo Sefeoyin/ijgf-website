@@ -13,16 +13,16 @@ function HowItWorksPage() {
       content: "Achieve a 10% profit target on your challenge account to pass the evaluation. There's no time limit - trade at your own pace while managing risk effectively."
     },
     {
-      title: "Daily Loss Limit",
-      content: "Your daily loss limit is 4% of your starting balance. If you hit this limit on any trading day, trading will be paused until the next day."
+      title: "No Daily Loss Limit",
+      content: "IJGF does not impose a daily loss limit. You can trade freely throughout the day without being locked out by a per-day cap. Only the overall maximum drawdown applies."
     },
     {
       title: "Maximum Drawdown",
-      content: "The maximum drawdown is 6% (static) from your starting balance. This is your hard limit - breaching it will end your challenge."
+      content: "The maximum drawdown is 8% (static) from your starting balance. This is your hard floor — if your account equity drops below this level at any point, your challenge is immediately failed."
     },
     {
       title: "Leverage Limits",
-      content: "Maximum leverage is 8x for BTC/ETH pairs and 5x for altcoins. This ensures responsible risk management while still allowing meaningful position sizes."
+      content: "Maximum leverage is 100x on all instruments — BTC, ETH, and all altcoins. This is consistent across every challenge tier. Use leverage responsibly as it amplifies both gains and losses."
     },
     {
       title: "Payout Structure",

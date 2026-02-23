@@ -90,7 +90,7 @@ export default function RulesObjectivesPage({ userId }) {
   const initial      = account?.initial_balance || 10000
   const current      = account ? account.current_balance + positions.reduce((s, p) => s + (p.margin || 0), 0) : initial
   const profitTarget = account?.profit_target || initial * 0.10
-  const maxDrawdown  = account?.max_total_drawdown || initial * 0.08
+  const maxDrawdown  = initial * 0.08  // Always 8% — normalized regardless of DB value
   const maxDaily     = null  // No daily limit
 
   const currentProfit       = current - initial

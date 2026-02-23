@@ -2842,6 +2842,7 @@ body[data-theme="day"] .faq-item {
 .spec-label {
   color: var(--text-secondary);
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .spec-value {
@@ -10737,7 +10738,7 @@ body[data-theme="day"] .footer-text {
   }
 
   .dash-content {
-    padding: 0.5rem 0.75rem !important;
+    padding: 0.5rem 0.5rem !important;
   }
 
   /* Stats cards — tighter gap and padding */
