@@ -2066,7 +2066,7 @@ body[data-theme="day"] .step-card p {
 
 .challenge-preview-features {
   position: absolute;
-  top: calc(650px - 265px + 1rem);
+  top: calc(650px - 265px + 3rem);
   left: 1.5rem;
   right: 1.5rem;
   list-style: none;
