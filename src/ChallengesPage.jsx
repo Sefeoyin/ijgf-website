@@ -16,10 +16,10 @@ function ChallengesPage() {
     {
       name: "The $5k Challenge",
       price: "$49",
-      profitTarget: "$500",
-      maxDrawdown: "$500",
-      dailyLimit: "$200",
-      duration: "30 Days",
+      profitTarget: "$500 (10%)",
+      maxDrawdown: "$400 (8%)",
+      dailyLimit: "None",
+      duration: "Indefinite",
       available: true,
       popular: false,
       features: ["Real-time evaluation", "24/7 support", "Unlimited retakes", "Fast approval process"]
@@ -27,10 +27,10 @@ function ChallengesPage() {
     {
       name: "The $10k Challenge",
       price: "$99",
-      profitTarget: "$1,000",
-      maxDrawdown: "$750",
-      dailyLimit: "$400",
-      duration: "45 Days",
+      profitTarget: "$1,000 (10%)",
+      maxDrawdown: "$800 (8%)",
+      dailyLimit: "None",
+      duration: "Indefinite",
       available: true,
       popular: true,
       features: ["Real-time evaluation", "24/7 support", "Unlimited retakes", "Fast approval process", "Priority review"]
@@ -38,10 +38,10 @@ function ChallengesPage() {
     {
       name: "The $25k Challenge",
       price: "$249",
-      profitTarget: "$2,500",
-      maxDrawdown: "$1,500",
-      dailyLimit: "$1,000",
-      duration: "30 Days",
+      profitTarget: "$2,500 (10%)",
+      maxDrawdown: "$2,000 (8%)",
+      dailyLimit: "None",
+      duration: "Indefinite",
       available: false,
       popular: false,
       features: ["Real-time evaluation", "24/7 support", "Unlimited retakes", "Fast approval process", "Priority review", "Account Manager"]
@@ -49,10 +49,10 @@ function ChallengesPage() {
     {
       name: "The $50k Challenge",
       price: "$499",
-      profitTarget: "$5,000",
-      maxDrawdown: "$3,000",
-      dailyLimit: "$2,000",
-      duration: "30 Days",
+      profitTarget: "$5,000 (10%)",
+      maxDrawdown: "$4,000 (8%)",
+      dailyLimit: "None",
+      duration: "Indefinite",
       available: false,
       popular: false,
       features: ["Real-time evaluation", "24/7 support", "Unlimited retakes", "Fast approval process", "Priority review", "Account Manager"]
@@ -60,10 +60,10 @@ function ChallengesPage() {
     {
       name: "The $100k Challenge",
       price: "$999",
-      profitTarget: "$10,000",
-      maxDrawdown: "$6,000",
-      dailyLimit: "$4,000",
-      duration: "30 Days",
+      profitTarget: "$10,000 (10%)",
+      maxDrawdown: "$8,000 (8%)",
+      dailyLimit: "None",
+      duration: "Indefinite",
       available: false,
       popular: false,
       features: ["Real-time evaluation", "24/7 support", "Unlimited retakes", "Fast approval process", "Priority review", "Account Manager"]
@@ -123,7 +123,7 @@ function ChallengesPage() {
                   <span className="spec-value">{challenge.maxDrawdown}</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Daily Limit</span>
+                  <span className="spec-label">Max Daily Drawdown</span>
                   <span className="spec-value">{challenge.dailyLimit}</span>
                 </div>
                 <div className="spec-row">

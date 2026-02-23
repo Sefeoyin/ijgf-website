@@ -165,13 +165,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  const fmtAmt = (usdt) => {
-    if (!usdt || usdt === 0) return '—'
-    if (usdt >= 1_000_000) return (usdt / 1_000_000).toFixed(2) + 'M'
-    if (usdt >= 1_000)     return (usdt / 1_000).toFixed(2) + 'K'
-    return usdt.toFixed(2)
-  }
-
   const getBaseAsset = () => selectedPair.replace('USDT', '')
 
   const priceStep = selectedPair === 'BTCUSDT' ? 10 : selectedPair === 'ETHUSDT' ? 1 : 0.01
@@ -410,7 +403,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           <div className="orderbook-table-headers">
             <span>Price (USDT)</span>
-            <span className="text-right">Amount</span>
+            <span className="text-right">Size</span>
+            <span className="text-right">Total</span>
           </div>
 
           {/* Sell orders (asks) */}
@@ -418,7 +412,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {asks.slice(0, 8).reverse().map((row, i) => (
               <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price negative">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty && row.price ? fmtAmt(row.qty * row.price) : '—'}</span>
+                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
+                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
               </div>
             ))}
           </div>
@@ -442,7 +437,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {bids.slice(0, 8).map((row, i) => (
               <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price positive">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty && row.price ? fmtAmt(row.qty * row.price) : '—'}</span>
+                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
+                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
               </div>
             ))}
           </div>
@@ -665,10 +661,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="#f59e0b">
                   <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
                 </svg>
-                Daily Loss
+                Max Daily Drawdown
               </span>
               <span className="rm-value">
-                ${drawdownUsed.toFixed(0)} / ${account?.max_daily_loss?.toFixed(0) || '400'}
+                None
               </span>
             </div>
             <div className="risk-metric-row">
@@ -677,7 +673,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 Max Drawdown
               </span>
               <span className="rm-value">
-                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '600'}
+                ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '800'}
               </span>
             </div>
             {drawdownPercent > 50 && (

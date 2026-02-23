@@ -90,9 +90,9 @@ export default function RulesObjectivesPage({ userId }) {
   const initial      = account?.initial_balance || 10000
   const current      = account ? account.current_balance + positions.reduce((s, p) => s + (p.margin || 0), 0) : initial
   const profitTarget = account?.profit_target || initial * 0.10
-  const maxDrawdown  = account?.max_total_drawdown || initial * 0.06
-  const maxDaily     = account?.max_daily_drawdown || initial * 0.04
-  const leverage     = account?.challenge_type === '5k' || account?.challenge_type === '10k' ? '8x BTC/ETH, 5x Alts' : '7x BTC/ETH, 5x Alts'
+  const maxDrawdown  = account?.max_total_drawdown || initial * 0.08
+  const maxDaily     = null  // No daily limit
+  const leverage     = 'Up to 100x (all instruments)'
 
   const currentProfit       = current - initial
   const currentProfitPct    = (currentProfit / initial) * 100
@@ -155,24 +155,17 @@ export default function RulesObjectivesPage({ userId }) {
 
   const rules = [
     {
-      title: 'Maximum Daily Drawdown',
-      summary: `You must not exceed a daily loss of ${maxDailyPct.toFixed(0)}% ($${fmt(maxDaily, 0)}) of your account balance.`,
-      status: { ok: currentDrawdownPct < maxDailyPct },
+      title: 'No Daily Drawdown Limit',
+      summary: 'There is no daily drawdown limit. Only the overall max drawdown applies.',
+      status: { ok: true },
       icon: icons.drawdown,
       detail: (
         <div className="rules-detail">
-          <p>Your account equity must not fall by more than <strong>${fmt(maxDaily, 0)} ({maxDailyPct.toFixed(0)}%)</strong> in a single trading day. This limit resets at midnight UTC.</p>
-          <p>Daily drawdown is calculated from your <em>balance at the start of the day</em>, not your all-time high. If you begin the day at ${fmt(initial)} and lose more than ${fmt(maxDaily, 0)}, your account is automatically suspended for that day.</p>
-          <div className="rules-detail-row">
-            <div className="rules-detail-item">
-              <span className="rules-detail-label">Daily Limit</span>
-              <span className="rules-detail-val red">${fmt(maxDaily, 0)} ({maxDailyPct.toFixed(0)}%)</span>
-            </div>
-          </div>
+          <p>IJGF does <strong>not impose a daily drawdown limit</strong>. You are free to trade throughout the day without being locked out by a per-day cap.</p>
+          <p>Only the overall <strong>Maximum Drawdown (8%)</strong> applies. Manage your risk accordingly — a single bad day can still breach the overall drawdown limit.</p>
           <div className="rules-example">
-            <span className="rules-example-label">Example</span>
-            <p>Account balance = ${fmt(initial)} → Daily loss limit = ${fmt(maxDaily, 0)}.<br/>
-            If you reach ${fmt(initial - maxDaily, 0)} intraday, no new positions can be opened until the next UTC day.</p>
+            <span className="rules-example-label">Note</span>
+            <p>This is a trader-friendly rule. Focus on your overall drawdown limit of 8% and trade with confidence each day.</p>
           </div>
         </div>
       ),
@@ -232,25 +225,21 @@ export default function RulesObjectivesPage({ userId }) {
     },
     {
       title: 'Maximum Leverage',
-      summary: `Leverage is capped at ${leverage}. All positions must be opened within these limits.`,
+      summary: `Leverage is capped at 100x on all instruments. Use leverage responsibly.`,
       icon: icons.leverage,
       detail: (
         <div className="rules-detail">
-          <p>IJGF enforces hard leverage limits on all instruments to promote disciplined position sizing:</p>
+          <p>IJGF supports up to <strong>100x leverage</strong> on all instruments — BTC, ETH, and all altcoins. This is consistent across every challenge tier.</p>
           <div className="rules-detail-row">
             <div className="rules-detail-item">
-              <span className="rules-detail-label">BTC/USDT & ETH/USDT</span>
-              <span className="rules-detail-val">Up to 8x</span>
-            </div>
-            <div className="rules-detail-item">
-              <span className="rules-detail-label">All other altcoins</span>
-              <span className="rules-detail-val">Up to 5x</span>
+              <span className="rules-detail-label">All instruments</span>
+              <span className="rules-detail-val">Up to 100x</span>
             </div>
           </div>
-          <p>Orders submitted above these leverage limits will be automatically rejected by the risk engine. You can use any leverage below the maximum.</p>
+          <p>Orders submitted above 100x will be automatically rejected. You can use any leverage from 1x to 100x.</p>
           <div className="rules-example">
             <span className="rules-example-label">Best Practice</span>
-            <p>Conservative traders typically use 2–3x to give positions room to breathe. High leverage increases your exposure to the daily drawdown limit.</p>
+            <p>High leverage amplifies both gains and losses. Conservative traders use lower leverage to give positions room to breathe and stay within the 8% max drawdown.</p>
           </div>
         </div>
       ),
@@ -361,7 +350,7 @@ export default function RulesObjectivesPage({ userId }) {
         {[
           { label: 'Active Challenges', value: account ? '1' : '0', sub: 'Currently in progress', icon: '◎', colorClass: 'rules-color-purple' },
           { label: 'Challenge Progress', value: `${progressPct.toFixed(0)}%`, sub: 'Objectives completed', icon: '↗', colorClass: 'rules-color-default' },
-          { label: 'Profit Target', value: `+${profitTargetPct.toFixed(0)}%`, sub: 'Required to pass', icon: '📈', colorClass: 'rules-color-green' },
+          { label: 'Profit Target', value: '+10%', sub: 'Required to pass', icon: '📈', colorClass: 'rules-color-green' },
           { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', colorClass: currentProfit >= 0 ? 'rules-color-green' : 'rules-color-red' },
           { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', colorClass: 'rules-color-default' },
         ].map((card, i) => (

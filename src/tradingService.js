@@ -8,16 +8,16 @@ import { supabase } from './supabase'
 // No trading fees — revenue comes from challenge fees
 
 const CHALLENGE_CONFIGS = {
-  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 200,  maxDrawdown: 300  },
-  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: 400,  maxDrawdown: 600  },
-  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: 1000, maxDrawdown: 1500 },
-  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: 2000, maxDrawdown: 3000 },
-  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 4000, maxDrawdown: 6000 },
+  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400   },
+  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800   },
+  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000  },
+  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000  },
+  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000  },
 }
 
+// 100x leverage for all instruments
 export const MAX_LEVERAGE = {
-  BTCUSDT: 10, ETHUSDT: 10,
-  DEFAULT: 5,
+  DEFAULT: 100,
 }
 
 // ---------------------------------------------------------------------------
@@ -389,7 +389,7 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Atomic claim: update only if still 'open', check count to prevent double-fill
+        // Atomic claim: update only if still 'open' — prevents double-fill from StrictMode
         const { data: claimed } = await supabase
           .from('demo_orders')
           .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
@@ -397,13 +397,11 @@ export async function checkPendingOrders(userId, priceMap) {
           .eq('status', 'open')
           .select('id')
 
-        // If no rows returned, another interval already claimed it
         if (!claimed || claimed.length === 0) {
           console.log('[Trading] Order already claimed, skipping:', order.id)
           continue
         }
 
-        // Execute position — if this fails, revert order to 'open' so it can retry
         try {
           const fillSize = order.price * order.quantity
           await placeMarketOrder({
@@ -419,7 +417,7 @@ export async function checkPendingOrders(userId, priceMap) {
           filled.push(order)
           console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
         } catch (execErr) {
-          console.error('[Trading] Fill execution failed, reverting order:', order.id, execErr)
+          console.error('[Trading] Fill execution failed, reverting:', order.id, execErr)
           await supabase.from('demo_orders')
             .update({ status: 'open', updated_at: new Date().toISOString() })
             .eq('id', order.id)

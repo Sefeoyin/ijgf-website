@@ -286,19 +286,19 @@ function LandingPage() {
               <div className="challenge-preview-specs">
                 <div className="spec-row">
                   <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$1,000</span>
+                  <span className="spec-value">$500 (10%)</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$1,000</span>
+                  <span className="spec-value">$400 (8%)</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Daily Limit</span>
-                  <span className="spec-value">$200</span>
+                  <span className="spec-label">Max Daily Drawdown</span>
+                  <span className="spec-value">None</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Duration</span>
-                  <span className="spec-value">30 Days</span>
+                  <span className="spec-value">Indefinite</span>
                 </div>
               </div>
               <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/signup')}>
@@ -321,7 +321,7 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card popular">
+            <div className="preview-card popular">
               <span className="popular-badge">Popular</span>
               <h3 className="challenge-preview-name">The $10k Challenge</h3>
               <div className="challenge-preview-price">
@@ -331,19 +331,19 @@ function LandingPage() {
               <div className="challenge-preview-specs">
                 <div className="spec-row">
                   <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$2,000</span>
+                  <span className="spec-value">$1,000 (10%)</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$1,250</span>
+                  <span className="spec-value">$800 (8%)</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Daily Limit</span>
-                  <span className="spec-value">$500</span>
+                  <span className="spec-label">Max Daily Drawdown</span>
+                  <span className="spec-value">None</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Duration</span>
-                  <span className="spec-value">45 Days</span>
+                  <span className="spec-value">Indefinite</span>
                 </div>
               </div>
               <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/signup')}>
@@ -367,17 +367,17 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card disabled">
+            <div className="eview-card disabled">
               <h3 className="challenge-preview-name">The $25k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$249</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Daily Limit</span><span className="spec-value">$200</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">30 Days</span></div>
+                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$2,500 (10%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$2,000 (8%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
               <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
@@ -387,17 +387,17 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card disabled">
+            <div className="iew-card disabled">
               <h3 className="challenge-preview-name">The $50k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$499</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Daily Limit</span><span className="spec-value">$200</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">30 Days</span></div>
+                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$5,000 (10%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$4,000 (8%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
               <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
@@ -407,17 +407,17 @@ function LandingPage() {
               </ul>
             </div>
 
-            <div className="challenge-preview-card disabled">
+            <div className="iew-card disabled">
               <h3 className="challenge-preview-name">The $100k Challenge</h3>
               <div className="challenge-preview-price">
                 <span className="price">$999</span>
                 <span className="price-period">One time</span>
               </div>
               <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$1,000</span></div>
-                <div className="spec-row"><span className="spec-label">Daily Limit</span><span className="spec-value">$200</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">30 Days</span></div>
+                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$10,000 (10%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$8,000 (8%)</span></div>
+                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
               <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>

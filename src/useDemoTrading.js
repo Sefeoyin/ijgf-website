@@ -90,21 +90,21 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     (sum, p) => sum + (p.unrealized_pnl || 0), 0
   )
 
-  // Total margin locked in open positions
-  const totalMarginInUse = positions.reduce(
-    (sum, p) => sum + (p.margin || 0), 0
-  )
+  // Total margin locked in open positions — fallback to computed if margin column is null
+  const totalMarginInUse = positions.reduce((sum, p) => {
+    const m = (p.margin != null && p.margin > 0)
+      ? p.margin
+      : (p.entry_price * p.quantity) / (p.leverage || 1)
+    return sum + (m || 0)
+  }, 0)
 
   // Equity = balance + unrealized PNL (standard futures definition)
   // This is the "real" account value shown as "Equity"
-  // Equity = cash + margin locked in positions + unrealized PNL
-  // Margin is NOT a loss — it returns when position closes
-  // This is the true account value shown everywhere
+  // Equity = cash + margin locked + unrealized PNL (margin is not lost)
   const equity = account
     ? account.current_balance + totalMarginInUse + totalUnrealizedPNL
     : 0
 
-  // accountValue = same as equity (used for challenge rules)
   const accountValue = equity
 
   // --------------- Notifications helper ---------------
