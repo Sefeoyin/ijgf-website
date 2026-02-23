@@ -91,9 +91,13 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   )
 
   // Total margin locked in open positions
-  const totalMarginInUse = positions.reduce(
-    (sum, p) => sum + (p.margin || 0), 0
-  )
+  // Fall back to entry_price * quantity / leverage if margin column is null
+  const totalMarginInUse = positions.reduce((sum, p) => {
+    const m = p.margin != null
+      ? p.margin
+      : (p.entry_price * p.quantity) / (p.leverage || 1)
+    return sum + (m || 0)
+  }, 0)
 
   // Equity = balance + unrealized PNL (standard futures definition)
   // This is the "real" account value shown as "Equity"

@@ -170,7 +170,7 @@
   border-bottom: 1px solid #1e2329;
   flex-shrink: 0;
 }
-.orderbook-table-headers span { color: #848e9c; font-size: 10px; }
+.orderbook-table-headers span { color: #848e9c; font-size: 10px; white-space: nowrap; }
 .orderbook-table-headers .text-right { text-align: right; }
 
 .ob-sells, .ob-buys { display: flex; flex-direction: column; flex-shrink: 0; }
