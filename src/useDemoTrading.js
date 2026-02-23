@@ -93,23 +93,28 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   // Total margin locked in open positions
   // Fall back to entry_price * quantity / leverage if margin column is null
   const totalMarginInUse = positions.reduce((sum, p) => {
-    const m = p.margin != null
+    const m = (p.margin != null && p.margin > 0)
       ? p.margin
       : (p.entry_price * p.quantity) / (p.leverage || 1)
     return sum + (m || 0)
   }, 0)
 
+  // Total margin reserved by pending limit/stop orders
+  // demo_orders has no margin column so compute from price * quantity / leverage
+  const totalOrderMarginReserved = openOrders.reduce((sum, o) => {
+    const m = (o.price * o.quantity) / (o.leverage || 1)
+    return sum + (m || 0)
+  }, 0)
+
   // Equity = balance + unrealized PNL (standard futures definition)
-  // This is the "real" account value shown as "Equity"
   const equity = account
     ? account.current_balance + totalUnrealizedPNL
     : 0
 
-  // For CHALLENGE RULES: actual account value = balance + margin + unrealized PNL
-  // Margin is not lost — it returns when position closes
-  // This is what we use to measure drawdown and profit target
+  // For CHALLENGE RULES: actual account value = balance + ALL reserved margin + unrealized PNL
+  // Reserved margin (positions + pending orders) is NOT a loss - it returns when closed/cancelled
   const accountValue = account
-    ? account.current_balance + totalMarginInUse + totalUnrealizedPNL
+    ? account.current_balance + totalMarginInUse + totalOrderMarginReserved + totalUnrealizedPNL
     : 0
 
   // --------------- Notifications helper ---------------

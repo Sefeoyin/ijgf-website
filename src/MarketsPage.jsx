@@ -165,7 +165,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  // Compact USDT amount for order book — matches Binance style (1.23K, 45.6M)
+  // Compact USDT amount for order book — K/M notation like Binance
   const fmtAmt = (usdt) => {
     if (!usdt || usdt === 0) return '—'
     if (usdt >= 1_000_000) return (usdt / 1_000_000).toFixed(2) + 'M'
@@ -192,8 +192,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const handleSizePercent = (pct) => {
     if (!account) return
     const availableBalance = account.current_balance
-    // size = margin (capital you're risking). Notional = margin × leverage.
-    const amount = (availableBalance * pct / 100)
+    const amount = (availableBalance * pct / 100) * leverage
     setSize(amount.toFixed(2))
   }
 
@@ -204,10 +203,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return p > 0 ? p : currentPrice
   }
 
-  const sizeVal = parseFloat(size) || 0          // margin (capital user puts in)
-  const notionalVal = sizeVal * leverage           // actual position size in USDT
+  const sizeVal = parseFloat(size) || 0
   const entryPriceVal = getEntryPrice()
-  const qtyEstimate = entryPriceVal > 0 ? notionalVal / entryPriceVal : 0
+  const qtyEstimate = entryPriceVal > 0 ? sizeVal / entryPriceVal : 0
 
   // Expected TP profit
   const tpPriceVal = parseFloat(tpPrice) || 0
@@ -219,7 +217,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const longPnl = (tpPriceVal - entryPriceVal) * qtyEstimate
     const shortPnl = (entryPriceVal - tpPriceVal) * qtyEstimate
     return { longPnl, shortPnl }
-  }, [tpPriceVal, entryPriceVal, qtyEstimate, leverage])
+  }, [tpPriceVal, entryPriceVal, qtyEstimate])
 
   // Expected SL loss
   const slPriceVal = parseFloat(slPrice) || 0
@@ -228,7 +226,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const longPnl = (slPriceVal - entryPriceVal) * qtyEstimate
     const shortPnl = (entryPriceVal - slPriceVal) * qtyEstimate
     return { longPnl, shortPnl }
-  }, [slPriceVal, entryPriceVal, qtyEstimate, leverage])
+  }, [slPriceVal, entryPriceVal, qtyEstimate])
 
   // Estimated liquidation price
   const estLiqLong = entryPriceVal > 0 ? entryPriceVal * (1 - 1 / leverage * 0.95) : 0
@@ -261,7 +259,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         await submitMarketOrder({
           symbol: selectedPair,
           side,
-          sizeUsdt: notionalVal,  // notional = margin × leverage
+          sizeUsdt: sizeVal,
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -276,7 +274,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           orderType: orderType === 'Stop Limit' ? 'STOP_LIMIT' : 'LIMIT',
           price: orderPrice,
           stopPrice: orderType === 'Stop Limit' ? parseFloat(stopPrice) : null,
-          sizeUsdt: notionalVal,  // notional = margin × leverage
+          sizeUsdt: sizeVal,
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -413,7 +411,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           <div className="orderbook-table-headers">
             <span>Price (USDT)</span>
-            <span className="text-right">Amount (USDT)</span>
+            <span className="text-right">Amount</span>
           </div>
 
           {/* Sell orders (asks) */}
@@ -588,7 +586,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span className="input-unit-inside">USDT</span>
               </div>
               {/* Expected TP profit display */}
-              {tpPnl && notionalVal > 0 && (
+              {tpPnl && sizeVal > 0 && (
                 <div className="tp-sl-pnl-row">
                   <span className="tp-sl-pnl-label">Expected Profit:</span>
                   <span className="tp-sl-pnl-values">
@@ -611,7 +609,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span className="input-unit-inside">USDT</span>
               </div>
               {/* Expected SL loss display */}
-              {slPnl && notionalVal > 0 && (
+              {slPnl && sizeVal > 0 && (
                 <div className="tp-sl-pnl-row">
                   <span className="tp-sl-pnl-label">Expected Loss:</span>
                   <span className="tp-sl-pnl-values">
@@ -693,20 +691,16 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           <div className="order-summary">
             <div className="summary-row">
               <span>Margin Required</span>
-              <span>{sizeVal ? `$${sizeVal.toFixed(2)}` : '—'}</span>
-            </div>
-            <div className="summary-row">
-              <span>Notional Value</span>
-              <span>{notionalVal ? `$${notionalVal.toFixed(2)}` : '—'}</span>
+              <span>{sizeVal ? `$${(sizeVal / leverage).toFixed(2)}` : '—'}</span>
             </div>
 
             <div className="summary-row">
               <span>Est. Liq. (Long)</span>
-              <span>{notionalVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
+              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
             </div>
             <div className="summary-row">
               <span>Est. Liq. (Short)</span>
-              <span>{notionalVal && entryPriceVal ? `$${fmt(estLiqShort)}` : '—'}</span>
+              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqShort)}` : '—'}</span>
             </div>
           </div>
         </div>
