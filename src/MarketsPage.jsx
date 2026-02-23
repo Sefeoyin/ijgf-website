@@ -165,7 +165,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  // Compact USDT amount for order book — K/M notation like Binance
   const fmtAmt = (usdt) => {
     if (!usdt || usdt === 0) return '—'
     if (usdt >= 1_000_000) return (usdt / 1_000_000).toFixed(2) + 'M'

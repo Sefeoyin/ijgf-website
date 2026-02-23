@@ -16,7 +16,7 @@ const CHALLENGE_CONFIGS = {
 }
 
 export const MAX_LEVERAGE = {
-  BTCUSDT: 8, ETHUSDT: 8,
+  BTCUSDT: 10, ETHUSDT: 10,
   DEFAULT: 5,
 }
 
@@ -254,11 +254,7 @@ export async function placeLimitOrder({
     throw new Error(`Failed to place order: ${error.message}`)
   }
 
-  // Reserve margin immediately so multiple pending orders can't spend the same funds
-  const newBalance = account.current_balance - margin
-  await updateAccountBalance(account.id, newBalance)
-
-  console.log('[Trading] Order placed:', order.id, '| Margin reserved: $' + margin.toFixed(2))
+  console.log('[Trading] Order placed:', order.id)
   return order
 }
 
@@ -266,19 +262,6 @@ export async function placeLimitOrder({
 // Cancel Order
 // ---------------------------------------------------------------------------
 export async function cancelOrder(userId, orderId) {
-  // Fetch the order first so we can restore its reserved margin
-  const { data: order, error: fetchErr } = await supabase
-    .from('demo_orders')
-    .select('*')
-    .eq('id', orderId)
-    .eq('user_id', userId)
-    .eq('status', 'open')
-    .single()
-
-  if (fetchErr || !order) {
-    throw new Error('Order not found or already cancelled')
-  }
-
   const { data, error } = await supabase
     .from('demo_orders')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
@@ -292,16 +275,6 @@ export async function cancelOrder(userId, orderId) {
     console.error('[Trading] Cancel order error:', error)
     throw new Error(`Failed to cancel: ${error.message}`)
   }
-
-  // Restore the reserved margin back to available balance
-  // Compute margin from stored fields since demo_orders has no margin column
-  const reservedMargin = (order.price * order.quantity) / order.leverage
-  if (reservedMargin > 0) {
-    const account = await getOrCreateDemoAccount(userId)
-    await updateAccountBalance(account.id, account.current_balance + reservedMargin)
-    console.log('[Trading] Margin restored on cancel: $' + reservedMargin.toFixed(2))
-  }
-
   return data
 }
 
@@ -416,25 +389,21 @@ export async function checkPendingOrders(userId, priceMap) {
 
     if (shouldFill) {
       try {
-        // Atomic claim: only fill if order is still 'open' (prevents double-fill from StrictMode double-intervals)
-        const { data: claimed, error: claimErr } = await supabase
+        // Atomic: only proceed if we are the first to claim this order (prevents StrictMode double-fill)
+        const { data: claimed } = await supabase
           .from('demo_orders')
-          .update({ status: 'filling', updated_at: new Date().toISOString() })
+          .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
           .eq('id', order.id)
-          .eq('status', 'open')  // only succeeds if still open
+          .eq('status', 'open')
           .select()
           .single()
 
-        if (claimErr || !claimed) {
-          console.log('[Trading] Order already being filled, skipping:', order.id)
+        if (!claimed) {
+          console.log('[Trading] Order already filled by another interval, skipping:', order.id)
           continue
         }
 
-        // Restore reserved margin — placeMarketOrder will re-deduct for the position
-        const reservedMargin = (order.price * order.quantity) / (order.leverage || 1)
-        const acct = await getOrCreateDemoAccount(userId)
-        await updateAccountBalance(acct.id, acct.current_balance + reservedMargin)
-
+        // Execute position
         const fillSize = order.price * order.quantity
         await placeMarketOrder({
           userId,
@@ -447,17 +416,9 @@ export async function checkPendingOrders(userId, priceMap) {
           stopLoss: order.stop_loss,
         })
 
-        // Mark fully filled after successful execution
-        await supabase
-          .from('demo_orders')
-          .update({ status: 'filled', filled_qty: order.quantity, updated_at: new Date().toISOString() })
-          .eq('id', order.id)
-
         filled.push(order)
         console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
       } catch (err) {
-        // Revert to open if fill failed so it can retry
-        await supabase.from('demo_orders').update({ status: 'open' }).eq('id', order.id).eq('status', 'filling')
         console.error('[Trading] Fill order error:', order.id, err)
       }
     }
@@ -546,42 +507,9 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  // Fetch open positions to compute TRUE account value.
-  // Margin is locked in positions — not a loss, it returns when closed.
-  // Without this, every open position falsely inflates drawdown.
-  const { data: openPositions } = await supabase
-    .from('demo_positions')
-    .select('margin')
-    .eq('demo_account_id', accountId)
-    .eq('status', 'open')
+  const totalDrawdown = account.initial_balance - account.current_balance
 
-  const totalMarginLocked = (openPositions || []).reduce((sum, p) => sum + (p.margin || 0), 0)
-  const trueAccountValue = account.current_balance + totalMarginLocked
-
-  // Create today's daily snapshot if it doesn't exist yet.
-  // This gives checkChallengeRules a reliable daily start value to measure daily loss against.
-  const today = new Date().toISOString().split('T')[0]
-  try {
-    const { data: existingSnap } = await supabase
-      .from('challenge_progress')
-      .select('id')
-      .eq('demo_account_id', accountId)
-      .eq('snapshot_date', today)
-      .maybeSingle()
-
-    if (!existingSnap) {
-      await supabase.from('challenge_progress').insert({
-        demo_account_id: accountId,
-        user_id: userId,
-        snapshot_date: today,
-        starting_balance: trueAccountValue,
-      })
-    }
-  } catch { /* non-critical, daily loss falls back to initial_balance */ }
-
-  const totalDrawdown = account.initial_balance - trueAccountValue
-
-  // Max drawdown check (uses true account value, not just cash balance)
+  // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
     // Try to log violation (may fail if no INSERT policy — that's ok)
     try {
@@ -600,19 +528,19 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // Daily loss — compare trueAccountValue now vs today's opening snapshot
+  // Daily loss
   let dayStart = account.initial_balance
   try {
     const { data: todaySnap } = await supabase
       .from('challenge_progress')
       .select('starting_balance')
       .eq('demo_account_id', accountId)
-      .eq('snapshot_date', today)
+      .eq('snapshot_date', new Date().toISOString().split('T')[0])
       .maybeSingle()
     if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
-  } catch { /* use initial_balance as fallback */ }
+  } catch { /* use initial_balance */ }
 
-  const dailyLoss = dayStart - trueAccountValue
+  const dailyLoss = dayStart - account.current_balance
   if (dailyLoss >= account.max_daily_loss) {
     try {
       await supabase.from('challenge_violations').insert({
@@ -630,8 +558,8 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'DAILY_LOSS' }
   }
 
-  // Profit target (based on true account value including locked margin)
-  const totalProfit = trueAccountValue - account.initial_balance
+  // Profit target
+  const totalProfit = account.current_balance - account.initial_balance
   if (totalProfit >= account.profit_target) {
     await supabase
       .from('demo_accounts')
