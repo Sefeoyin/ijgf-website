@@ -92,7 +92,6 @@ export default function RulesObjectivesPage({ userId }) {
   const profitTarget = account?.profit_target || initial * 0.10
   const maxDrawdown  = account?.max_total_drawdown || initial * 0.08
   const maxDaily     = null  // No daily limit
-  const leverage     = 'Up to 100x (all instruments)'
 
   const currentProfit       = current - initial
   const currentProfitPct    = (currentProfit / initial) * 100
