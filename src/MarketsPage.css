@@ -165,7 +165,7 @@
 
 .orderbook-table-headers {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   padding: 4px 10px;
   border-bottom: 1px solid #1e2329;
   flex-shrink: 0;
@@ -176,7 +176,7 @@
 .ob-sells, .ob-buys { display: flex; flex-direction: column; flex-shrink: 0; }
 .ob-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   padding: 3px 10px;
   cursor: pointer;
   transition: background 0.1s;

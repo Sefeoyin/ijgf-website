@@ -4,36 +4,6 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE } from './tradingService'
 import './MarketsPage.css'
 
-// Separate component so useEffect cleanup runs reliably on unmount
-function MobileChartOverlay({ selectedPair, currentPrice, priceChangePercent, fmt, mobileChartRef, onClose }) {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
-  return (
-    <div className="mobile-chart-overlay">
-      <div className="mobile-chart-header">
-        <button className="mobile-chart-back" onClick={onClose}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <div className="mobile-chart-pair">
-          <span className="pair-symbol">{selectedPair}</span>
-          <span className="pair-type">Perp</span>
-        </div>
-        <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
-          {fmt(currentPrice)}
-        </span>
-      </div>
-      <div className="mobile-chart-body">
-        <div id="tv_chart_container_mobile" ref={mobileChartRef} style={{ width: '100%', height: '100%' }} />
-      </div>
-    </div>
-  )
-}
-
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
@@ -51,7 +21,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   const [mobileChartView, setMobileChartView] = useState(false)
   const [orderSubmitting, setOrderSubmitting] = useState(false)
-  const [orderError, setOrderError] = useState('')
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
@@ -215,7 +184,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const handleSizePercent = (pct) => {
     if (!account) return
     const availableBalance = account.current_balance
-    const amount = (availableBalance * pct / 100) * leverage
+    // size = margin (capital you're risking). Notional = margin × leverage.
+    const amount = (availableBalance * pct / 100)
     setSize(amount.toFixed(2))
   }
 
@@ -226,9 +196,10 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     return p > 0 ? p : currentPrice
   }
 
-  const sizeVal = parseFloat(size) || 0
+  const sizeVal = parseFloat(size) || 0          // margin (capital user puts in)
+  const notionalVal = sizeVal * leverage           // actual position size in USDT
   const entryPriceVal = getEntryPrice()
-  const qtyEstimate = entryPriceVal > 0 ? sizeVal / entryPriceVal : 0
+  const qtyEstimate = entryPriceVal > 0 ? notionalVal / entryPriceVal : 0
 
   // Expected TP profit
   const tpPriceVal = parseFloat(tpPrice) || 0
@@ -240,7 +211,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const longPnl = (tpPriceVal - entryPriceVal) * qtyEstimate
     const shortPnl = (entryPriceVal - tpPriceVal) * qtyEstimate
     return { longPnl, shortPnl }
-  }, [tpPriceVal, entryPriceVal, qtyEstimate])
+  }, [tpPriceVal, entryPriceVal, qtyEstimate, leverage])
 
   // Expected SL loss
   const slPriceVal = parseFloat(slPrice) || 0
@@ -249,7 +220,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const longPnl = (slPriceVal - entryPriceVal) * qtyEstimate
     const shortPnl = (entryPriceVal - slPriceVal) * qtyEstimate
     return { longPnl, shortPnl }
-  }, [slPriceVal, entryPriceVal, qtyEstimate])
+  }, [slPriceVal, entryPriceVal, qtyEstimate, leverage])
 
   // Estimated liquidation price
   const estLiqLong = entryPriceVal > 0 ? entryPriceVal * (1 - 1 / leverage * 0.95) : 0
@@ -276,26 +247,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     if (orderSubmitting) return
     if (!sizeVal || sizeVal <= 0) return
 
-    // IJGF trading rules: Take Profit and Stop Loss are mandatory on all orders
-    if (!tpEnabled || !tpPrice || parseFloat(tpPrice) <= 0) {
-      setOrderError('Take Profit is required by IJGF trading rules.')
-      setTimeout(() => setOrderError(''), 4000)
-      return
-    }
-    if (!slEnabled || !slPrice || parseFloat(slPrice) <= 0) {
-      setOrderError('Stop Loss is required by IJGF trading rules.')
-      setTimeout(() => setOrderError(''), 4000)
-      return
-    }
-    setOrderError('')
-
     setOrderSubmitting(true)
     try {
       if (orderType === 'Market') {
         await submitMarketOrder({
           symbol: selectedPair,
           side,
-          sizeUsdt: sizeVal,
+          sizeUsdt: notionalVal,  // notional = margin × leverage
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -310,7 +268,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           orderType: orderType === 'Stop Limit' ? 'STOP_LIMIT' : 'LIMIT',
           price: orderPrice,
           stopPrice: orderType === 'Stop Limit' ? parseFloat(stopPrice) : null,
-          sizeUsdt: sizeVal,
+          sizeUsdt: notionalVal,  // notional = margin × leverage
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -447,8 +405,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           <div className="orderbook-table-headers">
             <span>Price (USDT)</span>
-            <span className="text-right">Size</span>
-            <span className="text-right">Total</span>
+            <span className="text-right">Amount (USDT)</span>
           </div>
 
           {/* Sell orders (asks) */}
@@ -456,8 +413,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {asks.slice(0, 8).reverse().map((row, i) => (
               <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price negative">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
-                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+                <span className="ob-size">{row.qty && row.price ? (row.qty * row.price).toFixed(2) : '—'}</span>
               </div>
             ))}
           </div>
@@ -481,8 +437,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {bids.slice(0, 8).map((row, i) => (
               <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price positive">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
-                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+                <span className="ob-size">{row.qty && row.price ? (row.qty * row.price).toFixed(2) : '—'}</span>
               </div>
             ))}
           </div>
@@ -625,7 +580,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span className="input-unit-inside">USDT</span>
               </div>
               {/* Expected TP profit display */}
-              {tpPnl && sizeVal > 0 && (
+              {tpPnl && notionalVal > 0 && (
                 <div className="tp-sl-pnl-row">
                   <span className="tp-sl-pnl-label">Expected Profit:</span>
                   <span className="tp-sl-pnl-values">
@@ -648,7 +603,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <span className="input-unit-inside">USDT</span>
               </div>
               {/* Expected SL loss display */}
-              {slPnl && sizeVal > 0 && (
+              {slPnl && notionalVal > 0 && (
                 <div className="tp-sl-pnl-row">
                   <span className="tp-sl-pnl-label">Expected Loss:</span>
                   <span className="tp-sl-pnl-values">
@@ -670,27 +625,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </svg>
             TP &amp; SL required by IJGF rules
           </p>
-
-          {/* TP/SL validation error */}
-          {orderError && (
-            <div style={{
-              padding: '8px 10px',
-              background: 'rgba(239,68,68,0.12)',
-              border: '1px solid rgba(239,68,68,0.35)',
-              borderRadius: '6px',
-              color: '#ef4444',
-              fontSize: '11px',
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="#ef4444">
-                <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
-              </svg>
-              {orderError}
-            </div>
-          )}
 
           {/* Buy/Long + Sell/Short */}
           <div className="order-buttons-row">
@@ -751,16 +685,20 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           <div className="order-summary">
             <div className="summary-row">
               <span>Margin Required</span>
-              <span>{sizeVal ? `$${(sizeVal / leverage).toFixed(2)}` : '—'}</span>
+              <span>{sizeVal ? `$${sizeVal.toFixed(2)}` : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span>Notional Value</span>
+              <span>{notionalVal ? `$${notionalVal.toFixed(2)}` : '—'}</span>
             </div>
 
             <div className="summary-row">
               <span>Est. Liq. (Long)</span>
-              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
+              <span>{notionalVal && entryPriceVal ? `$${fmt(estLiqLong)}` : '—'}</span>
             </div>
             <div className="summary-row">
               <span>Est. Liq. (Short)</span>
-              <span>{sizeVal && entryPriceVal ? `$${fmt(estLiqShort)}` : '—'}</span>
+              <span>{notionalVal && entryPriceVal ? `$${fmt(estLiqShort)}` : '—'}</span>
             </div>
           </div>
         </div>
@@ -930,14 +868,25 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
       {/* Mobile full-screen chart */}
       {mobileChartView && (
-        <MobileChartOverlay
-          selectedPair={selectedPair}
-          currentPrice={currentPrice}
-          priceChangePercent={priceChangePercent}
-          fmt={fmt}
-          mobileChartRef={mobileChartRef}
-          onClose={() => setMobileChartView(false)}
-        />
+        <div className="mobile-chart-overlay" ref={() => { document.body.style.overflow = 'hidden' }}>
+          <div className="mobile-chart-header">
+            <button className="mobile-chart-back" onClick={() => { setMobileChartView(false); document.body.style.overflow = '' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div className="mobile-chart-pair">
+              <span className="pair-symbol">{selectedPair}</span>
+              <span className="pair-type">Perp</span>
+            </div>
+            <span className={`mobile-chart-price ${priceChangePercent >= 0 ? 'positive' : 'negative'}`}>
+              {fmt(currentPrice)}
+            </span>
+          </div>
+          <div className="mobile-chart-body">
+            <div id="tv_chart_container_mobile" ref={mobileChartRef} style={{ width: '100%', height: '100%' }} />
+          </div>
+        </div>
       )}
 
       {/* Pair dropdown */}
