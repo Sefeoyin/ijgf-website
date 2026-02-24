@@ -511,17 +511,31 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  const totalDrawdown = account.initial_balance - account.current_balance
+  // Fetch open positions to compute true equity.
+  // current_balance has margin deducted, so without this we'd see
+  // false drawdown breaches on any open position.
+  const { data: openPositions } = await supabase
+    .from('demo_positions')
+    .select('margin, unrealized_pnl')
+    .eq('demo_account_id', accountId)
+    .eq('status', 'open')
+
+  const lockedMargin = (openPositions || []).reduce((sum, p) => sum + (p.margin || 0), 0)
+  const unrealizedPNL = (openPositions || []).reduce((sum, p) => sum + (p.unrealized_pnl || 0), 0)
+
+  // True equity = cash balance + margin locked in positions + unrealized PNL
+  const trueEquity = account.current_balance + lockedMargin + unrealizedPNL
+
+  const totalDrawdown = account.initial_balance - trueEquity
 
   // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
-    // Try to log violation (may fail if no INSERT policy — that's ok)
     try {
       await supabase.from('challenge_violations').insert({
         demo_account_id: accountId, user_id: userId,
         violation_type: 'MAX_DRAWDOWN',
         description: `Drawdown $${totalDrawdown.toFixed(2)} exceeded $${account.max_total_drawdown}`,
-        balance_at_violation: account.current_balance, violation_amount: totalDrawdown,
+        balance_at_violation: trueEquity, violation_amount: totalDrawdown,
       })
     } catch { /* non-critical */ }
 
@@ -532,7 +546,7 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'MAX_DRAWDOWN' }
   }
 
-  // Daily loss
+  // Daily loss — use true equity vs start-of-day balance
   let dayStart = account.initial_balance
   try {
     const { data: todaySnap } = await supabase
@@ -544,14 +558,14 @@ async function checkChallengeRules(accountId, userId) {
     if (todaySnap?.starting_balance) dayStart = todaySnap.starting_balance
   } catch { /* use initial_balance */ }
 
-  const dailyLoss = dayStart - account.current_balance
+  const dailyLoss = dayStart - trueEquity
   if (dailyLoss >= account.max_daily_loss) {
     try {
       await supabase.from('challenge_violations').insert({
         demo_account_id: accountId, user_id: userId,
         violation_type: 'DAILY_LOSS',
         description: `Daily loss $${dailyLoss.toFixed(2)} exceeded $${account.max_daily_loss}`,
-        balance_at_violation: account.current_balance, violation_amount: dailyLoss,
+        balance_at_violation: trueEquity, violation_amount: dailyLoss,
       })
     } catch { /* non-critical */ }
 
@@ -562,8 +576,8 @@ async function checkChallengeRules(accountId, userId) {
     return { failed: true, reason: 'DAILY_LOSS' }
   }
 
-  // Profit target
-  const totalProfit = account.current_balance - account.initial_balance
+  // Profit target — also use true equity
+  const totalProfit = trueEquity - account.initial_balance
   if (totalProfit >= account.profit_target) {
     await supabase
       .from('demo_accounts')
@@ -573,10 +587,10 @@ async function checkChallengeRules(accountId, userId) {
   }
 
   // High water mark
-  if (account.current_balance > account.high_water_mark) {
+  if (trueEquity > account.high_water_mark) {
     await supabase
       .from('demo_accounts')
-      .update({ high_water_mark: account.current_balance, updated_at: new Date().toISOString() })
+      .update({ high_water_mark: trueEquity, updated_at: new Date().toISOString() })
       .eq('id', accountId)
   }
 
