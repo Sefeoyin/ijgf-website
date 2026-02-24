@@ -22,26 +22,26 @@ import {
   resetDemoAccount,
 } from './tradingService'
 
-const BASE_PAIRS = [
-  // Top caps
+const ALL_PAIRS = [
+  // Large caps
   'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
   'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
   'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
   'TONUSDT', 'TRXUSDT', 'BCHUSDT', 'XLMUSDT', 'ETCUSDT',
   // Mid cap
   'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
-  'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT', 'ORDIUSDT',
-  'RUNEUSDT', 'LDOUSDT', 'ICPUSDT', 'HBARUSDT', 'FILUSDT',
+  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PEPEUSDT', 'SHIBUSDT',
+  'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT', 'ORDIUSDT', 'RUNEUSDT',
+  'LDOUSDT', 'ICPUSDT', 'HBARUSDT', 'FILUSDT', 'ALGOUSDT',
   // DeFi
-  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT',
-  'GRTUSDT', 'DYDXUSDT', 'PENDLEUSDT', 'GMXUSDT', 'STRKUSDT',
+  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'PENDLEUSDT', 'GMXUSDT', 'STRKUSDT', 'SNXUSDT',
   // AI / Infra
-  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'WLDUSDT', 'PYTHUSDT',
-  // Gaming
+  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'PYTHUSDT',
+  // Gaming / Metaverse
   'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
   // Other
-  'ALGOUSDT', 'EOSUSDT', 'JUPUSDT', 'KASUSDT', 'POPCATUSDT',
+  'KASUSDT', 'JUPUSDT', 'POPCATUSDT', 'FTMUSDT', 'EOSUSDT',
 ]
 
 export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
@@ -55,11 +55,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [notifications, setNotifications] = useState([])
 
   // --------------- WebSocket / CoinGecko prices ---------------
-  // Subscribe to the base pair list. If the selected pair isn't in it,
-  // add it so it always has a live price — no reconnect on position changes.
-  const subscribedPairs = BASE_PAIRS.includes(selectedPair)
-    ? BASE_PAIRS
-    : [...BASE_PAIRS, selectedPair]
+  // If the selected pair isn't in our base list, add it so it always gets a price
+  const subscribedPairs = ALL_PAIRS.includes(selectedPair)
+    ? ALL_PAIRS
+    : [...ALL_PAIRS, selectedPair]
   const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(subscribedPairs)
   const { bids, asks, mode: obMode } = useBinanceOrderBook(selectedPair, 10)
 

@@ -49,7 +49,6 @@ export function useBinanceWebSocket(symbols = []) {
   const wsRef = useRef(null)
   const pollRef = useRef(null)
   const mountedRef = useRef(true)
-  const symbolsKey = symbols.slice().sort().join(',')
 
   useEffect(() => {
     mountedRef.current = true
@@ -180,7 +179,7 @@ export function useBinanceWebSocket(symbols = []) {
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null }
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
-  }, [symbolsKey])
+  }, [symbols])
 
   const priceMap = {}
   for (const [sym, data] of Object.entries(prices)) {
