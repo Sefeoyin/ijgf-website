@@ -69,43 +69,26 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     'TRXUSDT', 'EOSUSDT', 'ALGOUSDT', 'BCHUSDT', 'XMRUSDT',
   ]
 
-  // Fetch full live pair list from Bybit on mount — with pagination for 700+ pairs
+  // Fetch full live pair list from Binance futures on mount
   useEffect(() => {
     const fetchAllPairs = async () => {
       try {
-        let allPairs = []
-        let cursor = ''
-        let page = 0
-        const maxPages = 10 // safety cap
+        const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
 
-        while (page < maxPages) {
-          const url = `https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
-          const res = await fetch(url)
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const data = await res.json()
+        const pairs = (data.symbols || [])
+          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+          .map(s => s.symbol)
+          .sort()
 
-          if (data.retCode !== 0) throw new Error(data.retMsg)
-
-          const pagePairs = (data.result?.list || [])
-            .filter(s => s.symbol.endsWith('USDT') && s.status === 'Trading')
-            .map(s => s.symbol)
-
-          allPairs = [...allPairs, ...pagePairs]
-
-          // Check for next page cursor
-          const nextCursor = data.result?.nextPageCursor
-          if (!nextCursor) break
-          cursor = nextCursor
-          page++
-        }
-
-        if (allPairs.length > 0) {
-          setAvailablePairs(allPairs.sort())
+        if (pairs.length > 0) {
+          setAvailablePairs(pairs)
         } else {
           setAvailablePairs(FALLBACK_PAIRS)
         }
       } catch (err) {
-        console.warn('Bybit pairs fetch failed, using fallback:', err.message)
+        console.warn('Binance pairs fetch failed, using fallback:', err.message)
         setAvailablePairs(FALLBACK_PAIRS)
       } finally {
         setPairsLoading(false)
@@ -369,6 +352,29 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const raw = editingTPSL.value.trim()
     const newVal = raw === '' ? null : parseFloat(raw)
     if (raw !== '' && (isNaN(newVal) || newVal <= 0)) { setEditingTPSL(null); return }
+
+    // Warn if the SL/TP would immediately trigger
+    if (newVal != null) {
+      const currentPrice = trading.priceMap[pos.symbol] || pos.entry_price
+      const field = editingTPSL.field
+      let wouldTrigger = false
+      if (field === 'sl') {
+        if (pos.side === 'LONG' && newVal >= currentPrice) wouldTrigger = true
+        if (pos.side === 'SHORT' && newVal <= currentPrice) wouldTrigger = true
+      }
+      if (field === 'tp') {
+        if (pos.side === 'LONG' && newVal <= currentPrice) wouldTrigger = true
+        if (pos.side === 'SHORT' && newVal >= currentPrice) wouldTrigger = true
+      }
+      if (wouldTrigger) {
+        const label = field === 'sl' ? 'Stop Loss' : 'Take Profit'
+        const confirmed = window.confirm(
+          `Warning: This ${label} price ($${newVal}) would immediately close your position at the current market price ($${currentPrice.toFixed(2)}). Continue?`
+        )
+        if (!confirmed) { setEditingTPSL(null); return }
+      }
+    }
+
     const newTP = editingTPSL.field === 'tp' ? newVal : pos.take_profit
     const newSL = editingTPSL.field === 'sl' ? newVal : pos.stop_loss
     setEditingTPSL(null)
