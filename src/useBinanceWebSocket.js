@@ -1,23 +1,94 @@
 /**
  * useBinanceWebSocket.js
  *
- * Binance FUTURES price feed (fstream.binance.com).
- * Falls back to Binance REST polling if WebSocket fails.
+ * Price feed using Binance SPOT WebSocket (stream.binance.com).
+ * Spot WS is accessible globally. Futures WS (fstream) is geo-blocked
+ * in many regions so we avoid it.
  *
- * Key URL formats for futures:
- *   Combined streams: wss://fstream.binance.com/stream?streams=s1/s2/s3
- *   Single stream:    wss://fstream.binance.com/ws/<streamName>
- *   Combined messages are wrapped: { stream: "...", data: { e, s, c, ... } }
+ * For futures-only tokens not on spot (PEPE, SHIB etc), CoinGecko
+ * REST polling fills the gap automatically via the fallback path.
+ *
+ * Correct combined stream URL (spot):
+ *   wss://stream.binance.com:9443/stream?streams=btcusdt@miniTicker/ethusdt@miniTicker
+ * Combined messages are WRAPPED: { stream: "...", data: { e, s, c, ... } }
  */
 
 import { useState, useEffect, useRef } from 'react'
 
-const WS_FUTURES_COMBINED = 'wss://fstream.binance.com/stream?streams='
-const WS_FUTURES_SINGLE   = 'wss://fstream.binance.com/ws/'
-const REST_FUTURES_TICKER = 'https://fapi.binance.com/fapi/v1/ticker/24hr'
+// Spot combined stream endpoint
+const WS_SPOT_COMBINED = 'wss://stream.binance.com:9443/stream?streams='
+const WS_SPOT_SINGLE   = 'wss://stream.binance.com:9443/ws/'
+
+// Comprehensive CoinGecko map — covers futures-only tokens not on spot
+const COINGECKO_MAP = {
+  BTCUSDT:     'bitcoin',
+  ETHUSDT:     'ethereum',
+  BNBUSDT:     'binancecoin',
+  SOLUSDT:     'solana',
+  XRPUSDT:     'ripple',
+  ADAUSDT:     'cardano',
+  DOGEUSDT:    'dogecoin',
+  AVAXUSDT:    'avalanche-2',
+  DOTUSDT:     'polkadot',
+  MATICUSDT:   'matic-network',
+  LINKUSDT:    'chainlink',
+  UNIUSDT:     'uniswap',
+  ATOMUSDT:    'cosmos',
+  LTCUSDT:     'litecoin',
+  NEARUSDT:    'near',
+  APTUSDT:     'aptos',
+  ARBUSDT:     'arbitrum',
+  OPUSDT:      'optimism',
+  BCHUSDT:     'bitcoin-cash',
+  TONUSDT:     'the-open-network',
+  TRXUSDT:     'tron',
+  XLMUSDT:     'stellar',
+  ETCUSDT:     'ethereum-classic',
+  INJUSDT:     'injective-protocol',
+  SUIUSDT:     'sui',
+  SEIUSDT:     'sei-network',
+  TIAUSDT:     'celestia',
+  WLDUSDT:     'worldcoin-wld',
+  PEPEUSDT:    'pepe',
+  SHIBUSDT:    'shiba-inu',
+  WIFUSDT:     'dogwifcoin',
+  BONKUSDT:    'bonk',
+  FLOKIUSDT:   'floki',
+  ORDIUSDT:    'ordinals',
+  RUNEUSDT:    'thorchain',
+  LDOUSDT:     'lido-dao',
+  ICPUSDT:     'internet-computer',
+  HBARUSDT:    'hedera-hashgraph',
+  FILUSDT:     'filecoin',
+  ALGOUSDT:    'algorand',
+  AAVEUSDT:    'aave',
+  CRVUSDT:     'curve-dao-token',
+  MKRUSDT:     'maker',
+  COMPUSDT:    'compound-governance-token',
+  GRTUSDT:     'the-graph',
+  DYDXUSDT:    'dydx',
+  PENDLEUSDT:  'pendle',
+  GMXUSDT:     'gmx',
+  STRKUSDT:    'starknet',
+  SNXUSDT:     'havven',
+  FETUSDT:     'fetch-ai',
+  RENDERUSDT:  'render-token',
+  TAOUSDT:     'bittensor',
+  PYTHUSDT:    'pyth-network',
+  AXSUSDT:     'axie-infinity',
+  SANDUSDT:    'the-sandbox',
+  MANAUSDT:    'decentraland',
+  GALAUSDT:    'gala',
+  IMXUSDT:     'immutable-x',
+  KASUSDT:     'kaspa',
+  JUPUSDT:     'jupiter-exchange-solana',
+  POPCATUSDT:  'popcat',
+  FTMUSDT:     'fantom',
+  EOSUSDT:     'eos',
+}
 
 const WS_CONNECT_TIMEOUT = 6000
-const POLL_INTERVAL = 8000
+const POLL_INTERVAL = 10000
 
 // ---------------------------------------------------------------------------
 // Main hook: prices for subscribed pairs
@@ -40,7 +111,7 @@ export function useBinanceWebSocket(symbols = []) {
     let wsTimedOut = false
     let timeoutId = null
 
-    // ------ Binance REST fallback (covers ALL futures pairs) ------
+    // ------ CoinGecko polling fallback ------
     const startPolling = () => {
       if (!mountedRef.current) return
       if (pollRef.current) return
@@ -49,33 +120,31 @@ export function useBinanceWebSocket(symbols = []) {
 
       const fetchPrices = async () => {
         try {
-          const res = await fetch(REST_FUTURES_TICKER)
-          if (!res.ok) return
-          const tickers = await res.json()
-          if (!mountedRef.current) return
+          const ids = [...new Set(
+            symbols.map(s => COINGECKO_MAP[s]).filter(Boolean)
+          )].join(',')
+          if (!ids) return
 
-          const tickerMap = {}
-          for (const t of tickers) {
-            tickerMap[t.symbol] = t
-          }
+          const res = await fetch(
+            `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
+          )
+          if (!res.ok) return
+          const data = await res.json()
+          if (!mountedRef.current) return
 
           setPrices(prev => {
             const next = { ...prev }
             for (const sym of symbols) {
-              const t = tickerMap[sym]
-              if (t) {
-                const closePrice = parseFloat(t.lastPrice)
-                const openPrice  = parseFloat(t.openPrice)
-                const change = openPrice > 0
-                  ? ((closePrice - openPrice) / openPrice) * 100
-                  : 0
+              const geckoId = COINGECKO_MAP[sym]
+              const coin = geckoId && data[geckoId]
+              if (coin) {
                 next[sym] = {
-                  price: closePrice,
-                  change,
-                  high:        parseFloat(t.highPrice),
-                  low:         parseFloat(t.lowPrice),
-                  volume:      parseFloat(t.volume),
-                  quoteVolume: parseFloat(t.quoteVolume),
+                  price:       coin.usd || 0,
+                  change:      coin.usd_24h_change || 0,
+                  high:        0,
+                  low:         0,
+                  volume:      0,
+                  quoteVolume: 0,
                   lastUpdate:  Date.now(),
                 }
               }
@@ -83,7 +152,7 @@ export function useBinanceWebSocket(symbols = []) {
             return next
           })
         } catch (err) {
-          console.error('Binance REST poll error:', err)
+          console.error('CoinGecko poll error:', err)
         }
       }
 
@@ -91,11 +160,13 @@ export function useBinanceWebSocket(symbols = []) {
       pollRef.current = setInterval(fetchPrices, POLL_INTERVAL)
     }
 
-    // ------ Attempt Futures WebSocket (combined stream) ------
+    // ------ Attempt Spot WebSocket (combined stream) ------
     const tryWebSocket = () => {
       try {
+        // Correct combined stream URL:
+        // wss://stream.binance.com:9443/stream?streams=btcusdt@miniTicker/ethusdt@miniTicker
         const streamNames = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
-        const wsUrl = `${WS_FUTURES_COMBINED}${streamNames}`
+        const wsUrl = `${WS_SPOT_COMBINED}${streamNames}`
         const ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
@@ -118,7 +189,7 @@ export function useBinanceWebSocket(symbols = []) {
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data)
-            // Combined stream wraps payload: { stream: "...", data: { e, s, c, ... } }
+            // Combined streams wrap payload: { stream: "...", data: { e, s, c, ... } }
             const ticker = msg.data || msg
             if (ticker.e === '24hrMiniTicker') {
               const sym        = ticker.s
@@ -175,7 +246,7 @@ export function useBinanceWebSocket(symbols = []) {
 }
 
 // ---------------------------------------------------------------------------
-// Order book — futures single stream, falls back to simulated
+// Order book — spot single stream, falls back to simulated
 // ---------------------------------------------------------------------------
 export function useBinanceOrderBook(symbol, depth = 10) {
   const [bids, setBids] = useState([])
@@ -198,9 +269,8 @@ export function useBinanceOrderBook(symbol, depth = 10) {
     }, WS_CONNECT_TIMEOUT)
 
     try {
-      // Single stream — /ws/ path is correct for futures single streams
-      const stream = `${symbol.toLowerCase()}@depth${depth}@500ms`
-      const ws = new WebSocket(`${WS_FUTURES_SINGLE}${stream}`)
+      const stream = `${symbol.toLowerCase()}@depth${depth}@1000ms`
+      const ws = new WebSocket(`${WS_SPOT_SINGLE}${stream}`)
       wsRef.current = ws
 
       ws.onopen = () => {
