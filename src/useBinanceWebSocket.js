@@ -1,46 +1,26 @@
 /**
  * useBinanceWebSocket.js
  *
- * Hybrid price feed: tries Binance WebSocket first, falls back to
- * CoinGecko REST polling if WS fails (e.g. region blocks, CORS).
+ * Binance FUTURES price feed (fstream.binance.com).
+ * Falls back to Binance REST polling if WebSocket fails.
  *
- * The TradingView chart handles its own data — this hook is
- * only for the order book, order entry, and position PNL.
+ * Key URL formats for futures:
+ *   Combined streams: wss://fstream.binance.com/stream?streams=s1/s2/s3
+ *   Single stream:    wss://fstream.binance.com/ws/<streamName>
+ *   Combined messages are wrapped: { stream: "...", data: { e, s, c, ... } }
  */
 
 import { useState, useEffect, useRef } from 'react'
 
-// ---------------------------------------------------------------------------
-// CoinGecko symbol → id mapping
-// ---------------------------------------------------------------------------
-const COINGECKO_MAP = {
-  BTCUSDT: 'bitcoin',
-  ETHUSDT: 'ethereum',
-  SOLUSDT: 'solana',
-  BNBUSDT: 'binancecoin',
-  XRPUSDT: 'ripple',
-  ADAUSDT: 'cardano',
-  DOGEUSDT: 'dogecoin',
-  AVAXUSDT: 'avalanche-2',
-  DOTUSDT: 'polkadot',
-  MATICUSDT: 'polygon-ecosystem-token',
-  LINKUSDT: 'chainlink',
-  UNIUSDT: 'uniswap',
-  ATOMUSDT: 'cosmos',
-  LTCUSDT: 'litecoin',
-  NEARUSDT: 'near',
-  APTUSDT: 'aptos',
-  ARBUSDT: 'arbitrum',
-  OPUSDT: 'optimism',
-  BCHUSDT: 'bitcoin-cash',
-}
+const WS_FUTURES_COMBINED = 'wss://fstream.binance.com/stream?streams='
+const WS_FUTURES_SINGLE   = 'wss://fstream.binance.com/ws/'
+const REST_FUTURES_TICKER = 'https://fapi.binance.com/fapi/v1/ticker/24hr'
 
-const WS_BASE = 'wss://fstream.binance.com/ws'
-const WS_CONNECT_TIMEOUT = 5000
-const POLL_INTERVAL = 10000
+const WS_CONNECT_TIMEOUT = 6000
+const POLL_INTERVAL = 8000
 
 // ---------------------------------------------------------------------------
-// Main hook: prices for all trading pairs
+// Main hook: prices for subscribed pairs
 // ---------------------------------------------------------------------------
 export function useBinanceWebSocket(symbols = []) {
   const [prices, setPrices] = useState({})
@@ -50,6 +30,9 @@ export function useBinanceWebSocket(symbols = []) {
   const pollRef = useRef(null)
   const mountedRef = useRef(true)
 
+  // Stable string key — only reconnect when symbol list actually changes
+  const symbolsKey = symbols.slice().sort().join(',')
+
   useEffect(() => {
     mountedRef.current = true
     if (symbols.length === 0) return
@@ -57,51 +40,50 @@ export function useBinanceWebSocket(symbols = []) {
     let wsTimedOut = false
     let timeoutId = null
 
-    // ------ CoinGecko polling fallback ------
+    // ------ Binance REST fallback (covers ALL futures pairs) ------
     const startPolling = () => {
       if (!mountedRef.current) return
-      // Don't start twice
       if (pollRef.current) return
       setMode('polling')
       setIsConnected(true)
 
       const fetchPrices = async () => {
         try {
-          const ids = symbols
-            .map(s => COINGECKO_MAP[s])
-            .filter(Boolean)
-          // Deduplicate
-          const uniqueIds = [...new Set(ids)].join(',')
-          if (!uniqueIds) return
-
-          const res = await fetch(
-            `https://api.coingecko.com/api/v3/simple/price?ids=${uniqueIds}&vs_currencies=usd&include_24hr_change=true`
-          )
+          const res = await fetch(REST_FUTURES_TICKER)
           if (!res.ok) return
-          const data = await res.json()
+          const tickers = await res.json()
           if (!mountedRef.current) return
+
+          const tickerMap = {}
+          for (const t of tickers) {
+            tickerMap[t.symbol] = t
+          }
 
           setPrices(prev => {
             const next = { ...prev }
             for (const sym of symbols) {
-              const geckoId = COINGECKO_MAP[sym]
-              const coin = geckoId && data[geckoId]
-              if (coin) {
+              const t = tickerMap[sym]
+              if (t) {
+                const closePrice = parseFloat(t.lastPrice)
+                const openPrice  = parseFloat(t.openPrice)
+                const change = openPrice > 0
+                  ? ((closePrice - openPrice) / openPrice) * 100
+                  : 0
                 next[sym] = {
-                  price: coin.usd || 0,
-                  change: coin.usd_24h_change || 0,
-                  high: 0,
-                  low: 0,
-                  volume: 0,
-                  quoteVolume: 0,
-                  lastUpdate: Date.now(),
+                  price: closePrice,
+                  change,
+                  high:        parseFloat(t.highPrice),
+                  low:         parseFloat(t.lowPrice),
+                  volume:      parseFloat(t.volume),
+                  quoteVolume: parseFloat(t.quoteVolume),
+                  lastUpdate:  Date.now(),
                 }
               }
             }
             return next
           })
         } catch (err) {
-          console.error('CoinGecko poll error:', err)
+          console.error('Binance REST poll error:', err)
         }
       }
 
@@ -109,11 +91,12 @@ export function useBinanceWebSocket(symbols = []) {
       pollRef.current = setInterval(fetchPrices, POLL_INTERVAL)
     }
 
-    // ------ Attempt WebSocket ------
+    // ------ Attempt Futures WebSocket (combined stream) ------
     const tryWebSocket = () => {
       try {
-        const streams = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
-        const ws = new WebSocket(`${WS_BASE}/${streams}`)
+        const streamNames = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
+        const wsUrl = `${WS_FUTURES_COMBINED}${streamNames}`
+        const ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
         timeoutId = setTimeout(() => {
@@ -134,24 +117,26 @@ export function useBinanceWebSocket(symbols = []) {
 
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data)
-            if (data.e === '24hrMiniTicker') {
-              const sym = data.s
-              const closePrice = parseFloat(data.c)
-              const openPrice = parseFloat(data.o)
-              const change = openPrice > 0
+            const msg = JSON.parse(event.data)
+            // Combined stream wraps payload: { stream: "...", data: { e, s, c, ... } }
+            const ticker = msg.data || msg
+            if (ticker.e === '24hrMiniTicker') {
+              const sym        = ticker.s
+              const closePrice = parseFloat(ticker.c)
+              const openPrice  = parseFloat(ticker.o)
+              const change     = openPrice > 0
                 ? ((closePrice - openPrice) / openPrice) * 100
                 : 0
               setPrices(prev => ({
                 ...prev,
                 [sym]: {
-                  price: closePrice,
+                  price:       closePrice,
                   change,
-                  high: parseFloat(data.h),
-                  low: parseFloat(data.l),
-                  volume: parseFloat(data.v),
-                  quoteVolume: parseFloat(data.q),
-                  lastUpdate: Date.now(),
+                  high:        parseFloat(ticker.h),
+                  low:         parseFloat(ticker.l),
+                  volume:      parseFloat(ticker.v),
+                  quoteVolume: parseFloat(ticker.q),
+                  lastUpdate:  Date.now(),
                 }
               }))
             }
@@ -179,7 +164,7 @@ export function useBinanceWebSocket(symbols = []) {
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null }
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
-  }, [symbols])
+  }, [symbolsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const priceMap = {}
   for (const [sym, data] of Object.entries(prices)) {
@@ -190,7 +175,7 @@ export function useBinanceWebSocket(symbols = []) {
 }
 
 // ---------------------------------------------------------------------------
-// Order book — tries WS, falls back to simulated
+// Order book — futures single stream, falls back to simulated
 // ---------------------------------------------------------------------------
 export function useBinanceOrderBook(symbol, depth = 10) {
   const [bids, setBids] = useState([])
@@ -213,8 +198,9 @@ export function useBinanceOrderBook(symbol, depth = 10) {
     }, WS_CONNECT_TIMEOUT)
 
     try {
-      const stream = `${symbol.toLowerCase()}@depth${depth}@1000ms`
-      const ws = new WebSocket(`${WS_BASE}/${stream}`)
+      // Single stream — /ws/ path is correct for futures single streams
+      const stream = `${symbol.toLowerCase()}@depth${depth}@500ms`
+      const ws = new WebSocket(`${WS_FUTURES_SINGLE}${stream}`)
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -232,7 +218,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
             let total = 0
             setBids(data.bids.map(([p, q]) => {
               const price = parseFloat(p)
-              const qty = parseFloat(q)
+              const qty   = parseFloat(q)
               total += qty
               return { price, qty, total }
             }))
@@ -241,7 +227,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
             let total = 0
             setAsks(data.asks.map(([p, q]) => {
               const price = parseFloat(p)
-              const qty = parseFloat(q)
+              const qty   = parseFloat(q)
               total += qty
               return { price, qty, total }
             }))
@@ -258,7 +244,6 @@ export function useBinanceOrderBook(symbol, depth = 10) {
 
       ws.onerror = () => { ws.close() }
     } catch {
-      // Defer setState out of the synchronous effect body
       setTimeout(() => { if (mounted) setMode('simulated') }, 0)
     }
 
@@ -275,7 +260,6 @@ export function useBinanceOrderBook(symbol, depth = 10) {
 /**
  * generateSimulatedOrderBook
  * Creates realistic bids/asks around a live price.
- * Call from MarketsPage when OB mode === 'simulated'.
  */
 export function generateSimulatedOrderBook(currentPrice, depth = 8) {
   if (!currentPrice || currentPrice <= 0) return { bids: [], asks: [] }
@@ -290,7 +274,7 @@ export function generateSimulatedOrderBook(currentPrice, depth = 8) {
   let askTotal = 0
   for (let i = 0; i < depth; i++) {
     const price = currentPrice * (1 + spreadPct * (i + 1))
-    const qty = 0.1 + seededRandom(i, 1) * 4
+    const qty   = 0.1 + seededRandom(i, 1) * 4
     askTotal += qty
     genAsks.push({ price, qty: parseFloat(qty.toFixed(3)), total: parseFloat(askTotal.toFixed(3)) })
   }
@@ -299,7 +283,7 @@ export function generateSimulatedOrderBook(currentPrice, depth = 8) {
   let bidTotal = 0
   for (let i = 0; i < depth; i++) {
     const price = currentPrice * (1 - spreadPct * (i + 1))
-    const qty = 0.1 + seededRandom(i, 2) * 4
+    const qty   = 0.1 + seededRandom(i, 2) * 4
     bidTotal += qty
     genBids.push({ price, qty: parseFloat(qty.toFixed(3)), total: parseFloat(bidTotal.toFixed(3)) })
   }
