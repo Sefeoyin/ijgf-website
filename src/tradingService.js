@@ -592,6 +592,23 @@ async function updateAccountBalance(accountId, newBalance) {
   if (error) console.error('[Trading] Update balance error:', error)
 }
 
+// ---------------------------------------------------------------------------
+// Update TP / SL on an existing open position
+// ---------------------------------------------------------------------------
+export async function updatePositionTPSL(positionId, { takeProfit, stopLoss }) {
+  const updates = {
+    take_profit: (takeProfit != null && takeProfit !== '') ? parseFloat(takeProfit) : null,
+    stop_loss:   (stopLoss   != null && stopLoss   !== '') ? parseFloat(stopLoss)   : null,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase
+    .from('demo_positions')
+    .update(updates)
+    .eq('id', positionId)
+    .eq('status', 'open')
+  if (error) throw new Error(`Failed to update TP/SL: ${error.message}`)
+}
+
 export async function resetDemoAccount(userId, challengeType = '10k') {
   await supabase.from('demo_positions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })

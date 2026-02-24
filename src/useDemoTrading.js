@@ -20,6 +20,7 @@ import {
   checkPositionTPSL,
   computeUnrealizedPNL,
   resetDemoAccount,
+  updatePositionTPSL,
 } from './tradingService'
 
 const ALL_PAIRS = [
@@ -283,6 +284,18 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     }
   }, [positions, refreshState, addNotification])
 
+  const submitUpdateTPSL = useCallback(async (positionId, { takeProfit, stopLoss }) => {
+    try {
+      await updatePositionTPSL(positionId, { takeProfit, stopLoss })
+      addNotification('TP/SL updated', 'info')
+      await refreshState()
+    } catch (err) {
+      setError(err.message)
+      addNotification(`Update failed: ${err.message}`, 'error')
+      throw err
+    }
+  }, [refreshState, addNotification])
+
   const submitResetAccount = useCallback(async () => {
     try {
       await resetDemoAccount(userIdRef.current)
@@ -354,6 +367,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     submitLimitOrder,
     submitCancelOrder,
     submitClosePosition,
+    submitUpdateTPSL,
     submitResetAccount,
     refreshState,
     dismissNotification,
