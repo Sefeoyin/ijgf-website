@@ -39,7 +39,25 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     console.error('[Trading] Fetch account error:', fetchErr)
     throw new Error(`Failed to fetch account: ${fetchErr.message}`)
   }
-  if (existing) return existing
+  if (existing) {
+    // Self-heal: correct any stale config values (e.g. max_total_drawdown changed)
+    const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
+    const needsFix = existing.max_total_drawdown !== config.maxDrawdown ||
+                     existing.profit_target !== config.profitTarget
+    if (needsFix) {
+      const { data: fixed } = await supabase
+        .from('demo_accounts')
+        .update({
+          max_total_drawdown: config.maxDrawdown,
+          profit_target: config.profitTarget,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single()
+      if (fixed) return fixed
+    }
+    return existing
+  }
 
   // 2) Check any status (failed/passed/expired)
   const { data: anyAccount } = await supabase
