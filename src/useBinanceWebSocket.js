@@ -49,14 +49,12 @@ export function useBinanceWebSocket(symbols = []) {
   const wsRef = useRef(null)
   const pollRef = useRef(null)
   const mountedRef = useRef(true)
-
-  // Stable key — only reconnect when the actual symbol list changes
-  const symbolsKey = JSON.stringify([...symbols].sort())
+  // Stable string key — prevents reconnect when array reference changes but content is same
+  const symbolsKey = symbols.slice().sort().join(',')
 
   useEffect(() => {
     mountedRef.current = true
-    const currentSymbols = JSON.parse(symbolsKey)
-    if (currentSymbols.length === 0) return
+    if (symbols.length === 0) return
 
     let wsTimedOut = false
     let timeoutId = null
@@ -64,15 +62,17 @@ export function useBinanceWebSocket(symbols = []) {
     // ------ CoinGecko polling fallback ------
     const startPolling = () => {
       if (!mountedRef.current) return
+      // Don't start twice
       if (pollRef.current) return
       setMode('polling')
       setIsConnected(true)
 
       const fetchPrices = async () => {
         try {
-          const ids = currentSymbols
+          const ids = symbols
             .map(s => COINGECKO_MAP[s])
             .filter(Boolean)
+          // Deduplicate
           const uniqueIds = [...new Set(ids)].join(',')
           if (!uniqueIds) return
 
@@ -85,7 +85,7 @@ export function useBinanceWebSocket(symbols = []) {
 
           setPrices(prev => {
             const next = { ...prev }
-            for (const sym of currentSymbols) {
+            for (const sym of symbols) {
               const geckoId = COINGECKO_MAP[sym]
               const coin = geckoId && data[geckoId]
               if (coin) {
@@ -114,7 +114,7 @@ export function useBinanceWebSocket(symbols = []) {
     // ------ Attempt WebSocket ------
     const tryWebSocket = () => {
       try {
-        const streams = currentSymbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
+        const streams = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
         const ws = new WebSocket(`${WS_BASE}/${streams}`)
         wsRef.current = ws
 

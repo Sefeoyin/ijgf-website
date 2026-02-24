@@ -57,44 +57,33 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
     'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
     'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
-    'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'CRVUSDT',
-    'MKRUSDT', 'GRTUSDT', 'DYDXUSDT', 'AXSUSDT', 'SANDUSDT',
-    'MANAUSDT', 'IMXUSDT', 'RUNEUSDT', 'FETUSDT', 'LDOUSDT',
-    'HBARUSDT', 'ICPUSDT', 'FILUSDT', 'ETCUSDT', 'XLMUSDT',
-    'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
+    'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
+    'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
+    'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
+    'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT',
+    'ALGOUSDT', 'FLOKIUSDT', 'KASUSDT', 'ORDIUSDT', 'PENDLEUSDT',
   ]
 
-  // Fetch all Binance USDT perpetual futures pairs on mount.
-  // This runs in the browser where Binance fapi is accessible.
+  // Fetch all Binance USDT perpetual futures for the dropdown.
+  // Runs in the browser — Binance fapi is accessible client-side.
   useEffect(() => {
     const fetchAllPairs = async () => {
       try {
         const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
-
         const pairs = (data.symbols || [])
-          .filter(s =>
-            s.quoteAsset === 'USDT' &&
-            s.status === 'TRADING' &&
-            s.contractType === 'PERPETUAL'
-          )
+          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.contractType === 'PERPETUAL')
           .map(s => s.symbol)
           .sort()
-
-        if (pairs.length > 0) {
-          setAvailablePairs(pairs)
-        } else {
-          setAvailablePairs(FALLBACK_PAIRS)
-        }
+        setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
       } catch (err) {
-        console.warn('Binance fapi pairs fetch failed, using fallback:', err.message)
+        console.warn('Binance pairs fetch failed, using fallback:', err.message)
         setAvailablePairs(FALLBACK_PAIRS)
       } finally {
         setPairsLoading(false)
       }
     }
-
     fetchAllPairs()
   }, [])
 
