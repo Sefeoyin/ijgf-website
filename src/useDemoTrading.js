@@ -20,13 +20,28 @@ import {
   checkPositionTPSL,
   computeUnrealizedPNL,
   resetDemoAccount,
-  updatePositionTPSL,
 } from './tradingService'
 
 const ALL_PAIRS = [
+  // Major
   'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
   'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+  // Mid cap
   'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
+  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PYTHUSDT', 'JUPUSDT',
+  'TONUSDT', 'PEPEUSDT', 'SHIBUSDT', 'WIFUSDT', 'BONKUSDT',
+  // DeFi
+  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT',
+  'GMXUSDT', 'GRTUSDT', 'DYDXUSDT', 'LDOUSDT', 'PENDLEUSDT',
+  // Gaming / NFT
+  'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
+  // AI / Other
+  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'STRKUSDT', 'ORDIUSDT',
+  'RUNEUSDT', 'FLOKIUSDT', 'KASUSDT', 'FTMUSDT',
+  // Layer 1s
+  'HBARUSDT', 'ICPUSDT', 'FILUSDT', 'ETCUSDT', 'XLMUSDT',
+  'TRXUSDT', 'EOSUSDT', 'ALGOUSDT', 'BCHUSDT',
 ]
 
 export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
@@ -40,7 +55,12 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [notifications, setNotifications] = useState([])
 
   // --------------- WebSocket / CoinGecko prices ---------------
-  const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(ALL_PAIRS)
+  // Merge ALL_PAIRS with the currently selected pair so any pair in the
+  // dropdown always gets a live price even if not in the static list.
+  const subscribedPairs = ALL_PAIRS.includes(selectedPair)
+    ? ALL_PAIRS
+    : [...ALL_PAIRS, selectedPair]
+  const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(subscribedPairs)
   const { bids, asks, mode: obMode } = useBinanceOrderBook(selectedPair, 10)
 
   // KEY FIX: use hasPrices instead of isConnected for order/position checks
@@ -284,18 +304,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     }
   }, [positions, refreshState, addNotification])
 
-  const submitUpdateTPSL = useCallback(async (positionId, { takeProfit, stopLoss }) => {
-    try {
-      await updatePositionTPSL(positionId, userIdRef.current, { takeProfit, stopLoss })
-      addNotification('TP/SL updated', 'info')
-      await refreshState()
-    } catch (err) {
-      setError(err.message)
-      addNotification(`Update failed: ${err.message}`, 'error')
-      throw err
-    }
-  }, [refreshState, addNotification])
-
   const submitResetAccount = useCallback(async () => {
     try {
       await resetDemoAccount(userIdRef.current)
@@ -367,7 +375,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     submitLimitOrder,
     submitCancelOrder,
     submitClosePosition,
-    submitUpdateTPSL,
     submitResetAccount,
     refreshState,
     dismissNotification,
