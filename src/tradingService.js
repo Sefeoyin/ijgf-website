@@ -613,7 +613,6 @@ export async function updatePositionTPSL(positionId, userId, { takeProfit, stopL
   const updates = {
     take_profit: (takeProfit != null && takeProfit !== '') ? parseFloat(takeProfit) : null,
     stop_loss:   (stopLoss   != null && stopLoss   !== '') ? parseFloat(stopLoss)   : null,
-    updated_at: new Date().toISOString(),
   }
   const { error } = await supabase
     .from('demo_positions')
