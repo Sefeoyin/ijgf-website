@@ -595,7 +595,7 @@ async function updateAccountBalance(accountId, newBalance) {
 // ---------------------------------------------------------------------------
 // Update TP / SL on an existing open position
 // ---------------------------------------------------------------------------
-export async function updatePositionTPSL(positionId, { takeProfit, stopLoss }) {
+export async function updatePositionTPSL(positionId, userId, { takeProfit, stopLoss }) {
   const updates = {
     take_profit: (takeProfit != null && takeProfit !== '') ? parseFloat(takeProfit) : null,
     stop_loss:   (stopLoss   != null && stopLoss   !== '') ? parseFloat(stopLoss)   : null,
@@ -605,6 +605,7 @@ export async function updatePositionTPSL(positionId, { takeProfit, stopLoss }) {
     .from('demo_positions')
     .update(updates)
     .eq('id', positionId)
+    .eq('user_id', userId)
     .eq('status', 'open')
   if (error) throw new Error(`Failed to update TP/SL: ${error.message}`)
 }

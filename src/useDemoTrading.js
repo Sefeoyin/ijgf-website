@@ -286,7 +286,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
 
   const submitUpdateTPSL = useCallback(async (positionId, { takeProfit, stopLoss }) => {
     try {
-      await updatePositionTPSL(positionId, { takeProfit, stopLoss })
+      await updatePositionTPSL(positionId, userIdRef.current, { takeProfit, stopLoss })
       addNotification('TP/SL updated', 'info')
       await refreshState()
     } catch (err) {
