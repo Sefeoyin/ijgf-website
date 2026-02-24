@@ -8,7 +8,7 @@
  *  - Real-time TP/SL & pending order checks
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useBinanceWebSocket, useBinanceOrderBook } from './useBinanceWebSocket'
 import {
   getAccountState,
@@ -22,28 +22,6 @@ import {
   resetDemoAccount,
 } from './tradingService'
 
-const ALL_PAIRS = [
-  // Major
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  // Mid cap
-  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PYTHUSDT', 'JUPUSDT',
-  'TONUSDT', 'PEPEUSDT', 'SHIBUSDT', 'WIFUSDT', 'BONKUSDT',
-  // DeFi
-  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT',
-  'GMXUSDT', 'GRTUSDT', 'DYDXUSDT', 'LDOUSDT', 'PENDLEUSDT',
-  // Gaming / NFT
-  'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
-  // AI / Other
-  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'STRKUSDT', 'ORDIUSDT',
-  'RUNEUSDT', 'FLOKIUSDT', 'KASUSDT', 'FTMUSDT',
-  // Layer 1s
-  'HBARUSDT', 'ICPUSDT', 'FILUSDT', 'ETCUSDT', 'XLMUSDT',
-  'TRXUSDT', 'EOSUSDT', 'ALGOUSDT', 'BCHUSDT',
-]
-
 export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   // --------------- Account state ---------------
   const [account, setAccount] = useState(null)
@@ -55,12 +33,16 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [notifications, setNotifications] = useState([])
 
   // --------------- WebSocket / CoinGecko prices ---------------
-  // Merge ALL_PAIRS with the currently selected pair so any pair in the
-  // dropdown always gets a live price even if not in the static list.
-  const subscribedPairs = ALL_PAIRS.includes(selectedPair)
-    ? ALL_PAIRS
-    : [...ALL_PAIRS, selectedPair]
-  const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(subscribedPairs)
+  // Only subscribe to the currently viewed pair + any open position symbols.
+  // This keeps the WebSocket connection small regardless of how many pairs
+  // exist in the dropdown — Binance limits streams per connection.
+  const activeSymbols = useMemo(() => {
+    const positionSymbols = positions.map(p => p.symbol)
+    const set = new Set([selectedPair, ...positionSymbols])
+    return Array.from(set)
+  }, [selectedPair, positions])
+
+  const { prices, priceMap, isConnected, mode: priceMode } = useBinanceWebSocket(activeSymbols)
   const { bids, asks, mode: obMode } = useBinanceOrderBook(selectedPair, 10)
 
   // KEY FIX: use hasPrices instead of isConnected for order/position checks

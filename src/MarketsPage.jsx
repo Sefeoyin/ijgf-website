@@ -24,8 +24,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [orderSubmitting, setOrderSubmitting] = useState(false)
   const [availablePairs, setAvailablePairs] = useState([])
   const [pairsLoading, setPairsLoading] = useState(true)
-  // Tracks which position TP or SL cell is being inline-edited
-  const [editingTPSL, setEditingTPSL] = useState(null) // { positionId, field: 'tp'|'sl', value }
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
@@ -41,7 +39,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     notifications, dismissNotification,
-    submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition, submitUpdateTPSL,
+    submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
 
   // Use simulated order book when WS order book isn't connected
@@ -58,18 +56,16 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
     'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
     'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-    'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PYTHUSDT', 'JUPUSDT',
-    'TONUSDT', 'PEPEUSDT', 'SHIBUSDT', 'WIFUSDT', 'BONKUSDT',
-    'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT',
-    'GMXUSDT', 'GRTUSDT', 'DYDXUSDT', 'AXSUSDT', 'SANDUSDT',
-    'MANAUSDT', 'GALAUSDT', 'IMXUSDT', 'RUNEUSDT', 'FETUSDT',
-    'RENDERUSDT', 'TAOUSDT', 'PENDLEUSDT', 'STRKUSDT', 'ORDIUSDT',
-    'FLOKIUSDT', 'POPCATUSDT', 'KASUSDT', 'LDOUSDT', 'FTMUSDT',
+    'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
+    'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'CRVUSDT',
+    'MKRUSDT', 'GRTUSDT', 'DYDXUSDT', 'AXSUSDT', 'SANDUSDT',
+    'MANAUSDT', 'IMXUSDT', 'RUNEUSDT', 'FETUSDT', 'LDOUSDT',
     'HBARUSDT', 'ICPUSDT', 'FILUSDT', 'ETCUSDT', 'XLMUSDT',
-    'TRXUSDT', 'EOSUSDT', 'ALGOUSDT', 'BCHUSDT', 'XMRUSDT',
+    'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
   ]
 
-  // Fetch full live pair list from Binance futures on mount
+  // Fetch all Binance USDT perpetual futures pairs on mount.
+  // This runs in the browser where Binance fapi is accessible.
   useEffect(() => {
     const fetchAllPairs = async () => {
       try {
@@ -78,7 +74,11 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         const data = await res.json()
 
         const pairs = (data.symbols || [])
-          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+          .filter(s =>
+            s.quoteAsset === 'USDT' &&
+            s.status === 'TRADING' &&
+            s.contractType === 'PERPETUAL'
+          )
           .map(s => s.symbol)
           .sort()
 
@@ -88,7 +88,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           setAvailablePairs(FALLBACK_PAIRS)
         }
       } catch (err) {
-        console.warn('Binance pairs fetch failed, using fallback:', err.message)
+        console.warn('Binance fapi pairs fetch failed, using fallback:', err.message)
         setAvailablePairs(FALLBACK_PAIRS)
       } finally {
         setPairsLoading(false)
@@ -339,46 +339,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     if (val === null || val === undefined || isNaN(val)) return null
     const sign = val >= 0 ? '+' : ''
     return { text: `${sign}$${val.toFixed(2)}`, cls: val >= 0 ? 'positive' : 'negative' }
-  }
-
-  // ── Inline TP/SL editing ──────────────────────────────────────────────────
-  const startEditTPSL = (pos, field) => {
-    const current = field === 'tp' ? pos.take_profit : pos.stop_loss
-    setEditingTPSL({ positionId: pos.id, field, value: current != null ? String(current) : '' })
-  }
-
-  const handleTPSLSave = async (pos) => {
-    if (!editingTPSL || editingTPSL.positionId !== pos.id) return
-    const raw = editingTPSL.value.trim()
-    const newVal = raw === '' ? null : parseFloat(raw)
-    if (raw !== '' && (isNaN(newVal) || newVal <= 0)) { setEditingTPSL(null); return }
-
-    // Warn if the SL/TP would immediately trigger
-    if (newVal != null) {
-      const currentPrice = trading.priceMap[pos.symbol] || pos.entry_price
-      const field = editingTPSL.field
-      let wouldTrigger = false
-      if (field === 'sl') {
-        if (pos.side === 'LONG' && newVal >= currentPrice) wouldTrigger = true
-        if (pos.side === 'SHORT' && newVal <= currentPrice) wouldTrigger = true
-      }
-      if (field === 'tp') {
-        if (pos.side === 'LONG' && newVal <= currentPrice) wouldTrigger = true
-        if (pos.side === 'SHORT' && newVal >= currentPrice) wouldTrigger = true
-      }
-      if (wouldTrigger) {
-        const label = field === 'sl' ? 'Stop Loss' : 'Take Profit'
-        const confirmed = window.confirm(
-          `Warning: This ${label} price ($${newVal}) would immediately close your position at the current market price ($${currentPrice.toFixed(2)}). Continue?`
-        )
-        if (!confirmed) { setEditingTPSL(null); return }
-      }
-    }
-
-    const newTP = editingTPSL.field === 'tp' ? newVal : pos.take_profit
-    const newSL = editingTPSL.field === 'sl' ? newVal : pos.stop_loss
-    setEditingTPSL(null)
-    try { await submitUpdateTPSL(pos.id, { takeProfit: newTP, stopLoss: newSL }) } catch { /* notification handles it */ }
   }
 
   return (
@@ -812,16 +772,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Positions tab */}
           {activePositionsTab === 'positions' && (
-            <div className="positions-panel-scroll">
-              <div className="positions-table-headers pos-cols-10">
+            <>
+              <div className="positions-table-headers">
                 <span>Symbol</span>
                 <span>Size</span>
                 <span>Entry Price</span>
                 <span>Mark Price</span>
                 <span>Liq. Price</span>
                 <span>Margin</span>
-                <span>Take Profit</span>
-                <span>Stop Loss</span>
                 <span>PNL (ROI%)</span>
                 <span>Action</span>
               </div>
@@ -837,7 +795,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 </div>
               ) : (
                 positions.map(pos => (
-                  <div key={pos.id} className="position-row pos-cols-10">
+                  <div key={pos.id} className="position-row">
                     <span className={pos.side === 'LONG' ? 'positive' : 'negative'}>
                       {pos.symbol} <small>{pos.side} {pos.leverage}x</small>
                     </span>
@@ -846,67 +804,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
                     <span>{fmt(pos.liquidation_price)}</span>
                     <span>${pos.margin.toFixed(2)}</span>
-
-                    {/* ── Take Profit (click to edit inline) ── */}
-                    <span className="pos-tpsl-cell" onClick={() => startEditTPSL(pos, 'tp')}>
-                      {editingTPSL?.positionId === pos.id && editingTPSL?.field === 'tp' ? (
-                        <input
-                          autoFocus
-                          className="tpsl-inline-input"
-                          placeholder="TP price"
-                          value={editingTPSL.value}
-                          onChange={e => setEditingTPSL(prev => ({ ...prev, value: e.target.value }))}
-                          onBlur={() => handleTPSLSave(pos)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleTPSLSave(pos)
-                            if (e.key === 'Escape') setEditingTPSL(null)
-                          }}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="tpsl-display">
-                          {pos.take_profit
-                            ? <span className="positive">{fmt(pos.take_profit)}</span>
-                            : <span className="tpsl-empty">—</span>
-                          }
-                          <svg className="tpsl-edit-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                          </svg>
-                        </span>
-                      )}
-                    </span>
-
-                    {/* ── Stop Loss (click to edit inline) ── */}
-                    <span className="pos-tpsl-cell" onClick={() => startEditTPSL(pos, 'sl')}>
-                      {editingTPSL?.positionId === pos.id && editingTPSL?.field === 'sl' ? (
-                        <input
-                          autoFocus
-                          className="tpsl-inline-input"
-                          placeholder="SL price"
-                          value={editingTPSL.value}
-                          onChange={e => setEditingTPSL(prev => ({ ...prev, value: e.target.value }))}
-                          onBlur={() => handleTPSLSave(pos)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleTPSLSave(pos)
-                            if (e.key === 'Escape') setEditingTPSL(null)
-                          }}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="tpsl-display">
-                          {pos.stop_loss
-                            ? <span className="negative">{fmt(pos.stop_loss)}</span>
-                            : <span className="tpsl-empty">—</span>
-                          }
-                          <svg className="tpsl-edit-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                          </svg>
-                        </span>
-                      )}
-                    </span>
-
                     <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
                       {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
                       <small> ({pos.roi?.toFixed(1)}%)</small>
@@ -919,7 +816,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </div>
+            </>
           )}
 
           {/* Open Orders tab */}

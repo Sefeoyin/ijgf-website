@@ -50,9 +50,13 @@ export function useBinanceWebSocket(symbols = []) {
   const pollRef = useRef(null)
   const mountedRef = useRef(true)
 
+  // Stable key — only reconnect when the actual symbol list changes
+  const symbolsKey = JSON.stringify([...symbols].sort())
+
   useEffect(() => {
     mountedRef.current = true
-    if (symbols.length === 0) return
+    const currentSymbols = JSON.parse(symbolsKey)
+    if (currentSymbols.length === 0) return
 
     let wsTimedOut = false
     let timeoutId = null
@@ -60,17 +64,15 @@ export function useBinanceWebSocket(symbols = []) {
     // ------ CoinGecko polling fallback ------
     const startPolling = () => {
       if (!mountedRef.current) return
-      // Don't start twice
       if (pollRef.current) return
       setMode('polling')
       setIsConnected(true)
 
       const fetchPrices = async () => {
         try {
-          const ids = symbols
+          const ids = currentSymbols
             .map(s => COINGECKO_MAP[s])
             .filter(Boolean)
-          // Deduplicate
           const uniqueIds = [...new Set(ids)].join(',')
           if (!uniqueIds) return
 
@@ -83,7 +85,7 @@ export function useBinanceWebSocket(symbols = []) {
 
           setPrices(prev => {
             const next = { ...prev }
-            for (const sym of symbols) {
+            for (const sym of currentSymbols) {
               const geckoId = COINGECKO_MAP[sym]
               const coin = geckoId && data[geckoId]
               if (coin) {
@@ -112,7 +114,7 @@ export function useBinanceWebSocket(symbols = []) {
     // ------ Attempt WebSocket ------
     const tryWebSocket = () => {
       try {
-        const streams = symbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
+        const streams = currentSymbols.map(s => `${s.toLowerCase()}@miniTicker`).join('/')
         const ws = new WebSocket(`${WS_BASE}/${streams}`)
         wsRef.current = ws
 
@@ -179,7 +181,7 @@ export function useBinanceWebSocket(symbols = []) {
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null }
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
-  }, [symbols])
+  }, [symbolsKey])
 
   const priceMap = {}
   for (const [sym, data] of Object.entries(prices)) {
