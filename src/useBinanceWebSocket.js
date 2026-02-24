@@ -35,7 +35,7 @@ const COINGECKO_MAP = {
   BCHUSDT: 'bitcoin-cash',
 }
 
-const WS_BASE = 'wss://stream.binance.com:9443/ws'
+const WS_BASE = 'wss://fstream.binance.com/ws'
 const WS_CONNECT_TIMEOUT = 5000
 const POLL_INTERVAL = 10000
 
@@ -49,7 +49,6 @@ export function useBinanceWebSocket(symbols = []) {
   const wsRef = useRef(null)
   const pollRef = useRef(null)
   const mountedRef = useRef(true)
-  // Stable string key — prevents reconnect when array reference changes but content is same
   const symbolsKey = symbols.slice().sort().join(',')
 
   useEffect(() => {
