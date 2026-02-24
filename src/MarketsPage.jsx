@@ -60,22 +60,21 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
     'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
     'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
-    'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT',
-    'ALGOUSDT', 'FLOKIUSDT', 'KASUSDT', 'ORDIUSDT', 'PENDLEUSDT',
+    'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
   ]
 
-  // Fetch all Binance USDT perpetual futures for the dropdown.
-  // Runs in the browser — Binance fapi is accessible client-side.
+  // Fetch all Binance USDT perpetual futures sorted by 24h quote volume (highest first)
+  // This gives BTC, ETH, SOL etc at top — same order traders expect
   useEffect(() => {
     const fetchAllPairs = async () => {
       try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo')
+        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
-        const pairs = (data.symbols || [])
-          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.contractType === 'PERPETUAL')
-          .map(s => s.symbol)
-          .sort()
+        const tickers = await res.json()
+        const pairs = tickers
+          .filter(t => t.symbol.endsWith('USDT'))
+          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+          .map(t => t.symbol)
         setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
       } catch (err) {
         console.warn('Binance pairs fetch failed, using fallback:', err.message)
@@ -225,6 +224,16 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const amount = (availableBalance * pct / 100) * leverage
     setSize(amount.toFixed(2))
   }
+
+  // Format order book quantity/total: 49845 → 49.8K, 1234567 → 1.23M, 2100000000 → 2.1B
+  const fmtQty = (num) => {
+    if (!num || isNaN(num)) return '—'
+    if (num >= 1_000_000_000) return (num / 1_000_000_000).toPrecision(3).replace(/\.?0+$/, '') + 'B'
+    if (num >= 1_000_000)     return (num / 1_000_000).toPrecision(3).replace(/\.?0+$/, '') + 'M'
+    if (num >= 1_000)         return (num / 1_000).toPrecision(3).replace(/\.?0+$/, '') + 'K'
+    return num.toPrecision(3).replace(/\.?0+$/, '')
+  }
+
 
   // ---- TP/SL Expected PNL Calculations (Binance/Bybit style) ----
   const getEntryPrice = () => {
@@ -450,8 +459,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {asks.slice(0, 8).reverse().map((row, i) => (
               <div key={`sell-${i}`} className="ob-row sell" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price negative">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
-                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+                <span className="ob-size">{fmtQty(row.qty)}</span>
+                <span className="ob-sum">{fmtQty(row.total)}</span>
               </div>
             ))}
           </div>
@@ -475,8 +484,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             {bids.slice(0, 8).map((row, i) => (
               <div key={`buy-${i}`} className="ob-row buy" onClick={() => handleObClick(row.price)}>
                 <span className="ob-price positive">{fmt(row.price)}</span>
-                <span className="ob-size">{row.qty?.toFixed(3) || '—'}</span>
-                <span className="ob-sum">{row.total ? row.total.toFixed(3) : '—'}</span>
+                <span className="ob-size">{fmtQty(row.qty)}</span>
+                <span className="ob-sum">{fmtQty(row.total)}</span>
               </div>
             ))}
           </div>
