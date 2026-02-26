@@ -410,6 +410,32 @@
 .text-right { text-align: right; }
 
 /* ============================================================
+   POSITIONS TABLE — Horizontally scrollable on all viewports
+   ============================================================ */
+.positions-table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #2b3139 transparent;
+}
+.positions-table-wrap::-webkit-scrollbar { height: 4px; width: 4px; }
+.positions-table-wrap::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
+
+/* Sticky header inside the scroll container */
+.positions-table-inner {
+  min-width: 680px;  /* ensures 8 cols never collapse below readable width */
+  width: 100%;
+}
+
+/* Trade-history (6 cols) can be narrower */
+.positions-table-inner.cols-6 { min-width: 520px; }
+
+/* Orders (7 cols) */
+.positions-table-inner.cols-7 { min-width: 600px; }
+
+/* ============================================================
    MOBILE — 768px
    ============================================================ */
 @media (max-width: 768px) {
@@ -419,6 +445,24 @@
   .binance-order-entry { grid-column: 2; height: 70vh; padding: 8px; }
   .binance-bottom-section { grid-template-columns: 1fr; }
   .account-panel { display: none; }
+
+  /* Positions panel: allow full horizontal scroll on mobile */
+  .positions-panel {
+    overflow: hidden;   /* clip outer; inner wrapper scrolls */
+    min-height: 160px;
+  }
+
+  /* Trade/order rows must not wrap — scroll instead */
+  .position-row,
+  .binance-bottom-section .positions-table-headers {
+    white-space: nowrap;
+  }
+
+  /* Tabs scroll without wrapping */
+  .binance-bottom-section .positions-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
 }
 /* ============================================================
    Phase 3B v2: Leverage Modal + TP/SL PNL Display

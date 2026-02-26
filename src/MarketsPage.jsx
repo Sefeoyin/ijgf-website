@@ -725,7 +725,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </div>
             {drawdownPercent > 50 && (
               <div className="drawdown-warning">
-                ⚠️ {drawdownPercent.toFixed(0)}% of max drawdown used
+                ⚠️ {Math.min(drawdownPercent, 999).toFixed(0)}% of max drawdown used
               </div>
             )}
           </div>
@@ -770,7 +770,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Positions tab */}
           {activePositionsTab === 'positions' && (
-            <>
+            <div className="positions-table-wrap">
+              <div className="positions-table-inner">
               <div className="positions-table-headers">
                 <span>Symbol</span>
                 <span>Size</span>
@@ -814,13 +815,15 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+              </div>
+            </div>
           )}
 
           {/* Open Orders tab */}
           {activePositionsTab === 'orders' && (
-            <>
-              <div className="positions-table-headers">
+            <div className="positions-table-wrap">
+              <div className="positions-table-inner cols-7">
+              <div className="positions-table-headers" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
                 <span>Symbol</span>
                 <span>Type</span>
                 <span>Side</span>
@@ -833,7 +836,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <div className="empty-positions"><p>No open orders</p></div>
               ) : (
                 openOrders.map(order => (
-                  <div key={order.id} className="position-row">
+                  <div key={order.id} className="position-row" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
                     <span>{order.symbol}</span>
                     <span>{order.order_type}</span>
                     <span className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</span>
@@ -848,13 +851,15 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+              </div>
+            </div>
           )}
 
           {/* Trade History tab */}
           {(activePositionsTab === 'tradeHistory' || activePositionsTab === 'orderHistory') && (
-            <>
-              <div className="positions-table-headers">
+            <div className="positions-table-wrap">
+              <div className="positions-table-inner cols-6">
+              <div className="positions-table-headers" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
                 <span>Time</span>
                 <span>Symbol</span>
                 <span>Side</span>
@@ -866,7 +871,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <div className="empty-positions"><p>No trade history yet</p></div>
               ) : (
                 recentTrades.map(trade => (
-                  <div key={trade.id} className="position-row">
+                  <div key={trade.id} className="position-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
                     <span>{new Date(trade.executed_at).toLocaleString()}</span>
                     <span>{trade.symbol}</span>
                     <span className={trade.side === 'BUY' ? 'positive' : 'negative'}>{trade.side}</span>
@@ -878,7 +883,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   </div>
                 ))
               )}
-            </>
+              </div>
+            </div>
           )}
         </div>
 
@@ -888,7 +894,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           <div className="account-stats">
             <div className="account-row">
               <span>Balance</span>
-              <span>{account ? account.current_balance.toLocaleString() : '—'} USDT</span>
+              <span>{account ? account.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} USDT</span>
             </div>
             <div className="account-row">
               <span>Equity</span>
@@ -897,7 +903,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             <div className="account-row">
               <span>Unrealized PNL</span>
               <span className={totalUnrealizedPNL >= 0 ? 'positive' : 'negative'}>
-                {totalUnrealizedPNL.toFixed(2)} USDT
+                {totalUnrealizedPNL >= 0 ? '+' : ''}{totalUnrealizedPNL.toFixed(2)} USDT
               </span>
             </div>
             <div className="account-row">

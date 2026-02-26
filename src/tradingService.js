@@ -300,6 +300,7 @@ export async function cancelOrder(userId, orderId) {
 // Close Position
 // ---------------------------------------------------------------------------
 export async function closePosition({ userId, positionId, currentPrice, reason = 'manual' }) {
+  // 1. Fetch the open position — locked to this user + open status
   const { data: pos, error: fetchErr } = await supabase
     .from('demo_positions')
     .select('*')
@@ -313,67 +314,125 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
     throw new Error('Position not found or already closed')
   }
 
+  // 2. Compute realized PNL
   const pnl = pos.side === 'LONG'
     ? (currentPrice - pos.entry_price) * pos.quantity
     : (pos.entry_price - currentPrice) * pos.quantity
 
-  const fee = 0
+  const closedAt = new Date().toISOString()
 
-  const { error: closeErr } = await supabase
+  // 3. Mark position as closed — atomic claim (only if still 'open')
+  const { data: closedPos, error: closeErr } = await supabase
     .from('demo_positions')
     .update({
       status: reason === 'liquidation' ? 'liquidated' : 'closed',
       unrealized_pnl: 0,
-      closed_at: new Date().toISOString(),
+      closed_at: closedAt,
     })
     .eq('id', positionId)
+    .eq('status', 'open')  // guard: prevents double-close race condition
+    .select('id')
 
   if (closeErr) {
     console.error('[Trading] Close position update error:', closeErr)
     throw new Error(`Failed to close position: ${closeErr.message}`)
   }
 
-  // Trade log (non-blocking)
-  const closeSide = pos.side === 'LONG' ? 'SELL' : 'BUY'
-  supabase.from('demo_trades').insert({
-    demo_account_id: pos.demo_account_id,
-    user_id: userId,
-    position_id: positionId,
-    symbol: pos.symbol,
-    side: closeSide,
-    order_type: 'MARKET',
-    price: currentPrice,
-    quantity: pos.quantity,
-    leverage: pos.leverage,
-    total: currentPrice * pos.quantity,
-    fee,
-    realized_pnl: pnl,
-    is_close: true,
-  }).then(({ error }) => {
-    if (error) console.error('[Trading] Close trade log error:', error)
-  })
+  // If nothing was updated, position was already closed by a concurrent call (TP/SL race)
+  if (!closedPos || closedPos.length === 0) {
+    console.warn('[Trading] Position already closed (concurrent close detected):', positionId)
+    throw new Error('Position already closed')
+  }
 
-  // Update balance
-  const account = await getOrCreateDemoAccount(userId)
-  const newBalance = account.current_balance + pos.margin + pnl
-  const isWin = pnl > 0
+  // 4. Fetch the account directly by demo_account_id (NOT by userId default lookup)
+  //    Using pos.demo_account_id avoids the race where getOrCreateDemoAccount returns
+  //    a stale/different account, causing balance to be written to the wrong row.
+  const { data: account, error: accErr } = await supabase
+    .from('demo_accounts')
+    .select('*')
+    .eq('id', pos.demo_account_id)
+    .single()
 
-  await supabase
+  if (accErr || !account) {
+    console.error('[Trading] Account fetch error after close:', accErr)
+    // Balance fetch failed — log for manual reconciliation but don't throw
+    // Position is already marked closed; throwing here would leave an inconsistent state
+    console.error('[Trading] CRITICAL: Balance NOT updated for position', positionId, 'PNL:', pnl)
+    // Attempt a best-effort balance recovery via userId
+    try {
+      const fallback = await getOrCreateDemoAccount(userId)
+      const recoveredBalance = fallback.current_balance + (pos.margin || 0) + pnl
+      await supabase.from('demo_accounts').update({
+        current_balance: Math.max(0, recoveredBalance),
+        equity: Math.max(0, recoveredBalance),
+        updated_at: closedAt,
+      }).eq('id', fallback.id)
+      console.warn('[Trading] Balance recovered via fallback account')
+    } catch (recErr) {
+      console.error('[Trading] Balance recovery also failed:', recErr)
+    }
+    return { pnl, fee: 0, newBalance: null }
+  }
+
+  // 5. Compute and write new balance — margin is returned to the free balance
+  const marginToReturn = pos.margin || 0
+  const newBalance = account.current_balance + marginToReturn + pnl
+
+  const { error: balanceErr } = await supabase
     .from('demo_accounts')
     .update({
       current_balance: Math.max(0, newBalance),
-      equity: Math.max(0, newBalance),
-      total_trades: account.total_trades + 1,
-      winning_trades: isWin ? account.winning_trades + 1 : account.winning_trades,
-      updated_at: new Date().toISOString(),
+      equity:          Math.max(0, newBalance),
+      total_trades:    account.total_trades + 1,
+      winning_trades:  pnl > 0 ? account.winning_trades + 1 : account.winning_trades,
+      updated_at:      closedAt,
     })
-    .eq('id', account.id)
+    .eq('id', pos.demo_account_id)
 
-  // Challenge rules (non-blocking)
-  safeCheckRules(account.id, userId)
+  if (balanceErr) {
+    console.error('[Trading] CRITICAL: Balance update failed for position', positionId, balanceErr)
+    throw new Error(`Balance update failed: ${balanceErr.message}`)
+  }
 
-  console.log('[Trading] Position closed:', positionId, '| PNL:', pnl.toFixed(2), '| Reason:', reason)
-  return { pnl, fee, newBalance: Math.max(0, newBalance) }
+  // 6. Log the closing trade — runs AFTER balance update to ensure atomic visibility
+  const closeSide = pos.side === 'LONG' ? 'SELL' : 'BUY'
+  const { error: tradeLogErr } = await supabase.from('demo_trades').insert({
+    demo_account_id: pos.demo_account_id,
+    user_id:         userId,
+    position_id:     positionId,
+    symbol:          pos.symbol,
+    side:            closeSide,
+    order_type:      'MARKET',
+    price:           currentPrice,
+    quantity:        pos.quantity,
+    leverage:        pos.leverage,
+    total:           currentPrice * pos.quantity,
+    fee:             0,
+    realized_pnl:    pnl,
+    is_close:        true,
+    opened_at:       pos.opened_at ?? null,
+    closed_at:       closedAt,
+    executed_at:     closedAt,
+  })
+
+  if (tradeLogErr) {
+    // Non-critical: balance is already updated. Log for investigation but don't throw.
+    console.error('[Trading] Trade log insert failed (balance already updated):', tradeLogErr)
+  }
+
+  // 7. Challenge rules check (non-blocking — must never revert balance)
+  safeCheckRules(pos.demo_account_id, userId)
+
+  console.log(
+    '[Trading] Position closed:',  positionId,
+    '| Symbol:',                   pos.symbol,
+    '| PNL:',                      pnl.toFixed(2),
+    '| Margin returned:',          marginToReturn.toFixed(2),
+    '| New balance:',              Math.max(0, newBalance).toFixed(2),
+    '| Reason:',                   reason,
+  )
+
+  return { pnl, fee: 0, newBalance: Math.max(0, newBalance) }
 }
 
 // ---------------------------------------------------------------------------
