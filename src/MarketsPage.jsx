@@ -246,7 +246,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const handleSizePercent = (pct) => {
     if (!account) return
     const availableBalance = account.current_balance
-    const amount = (availableBalance * pct / 100) * leverage
+    const amount = availableBalance * pct / 100
     setSize(amount.toFixed(2))
   }
 
@@ -269,7 +269,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
   const sizeVal = parseFloat(size) || 0
   const entryPriceVal = getEntryPrice()
-  const qtyEstimate = entryPriceVal > 0 ? sizeVal / entryPriceVal : 0
+  const qtyEstimate = entryPriceVal > 0 ? (sizeVal * leverage) / entryPriceVal : 0
 
   // Expected TP profit
   const tpPriceVal = parseFloat(tpPrice) || 0
@@ -323,7 +323,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         await submitMarketOrder({
           symbol: selectedPair,
           side,
-          sizeUsdt: sizeVal,
+          sizeUsdt: sizeVal * leverage,
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -338,7 +338,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           orderType: orderType === 'Stop Limit' ? 'STOP_LIMIT' : 'LIMIT',
           price: orderPrice,
           stopPrice: orderType === 'Stop Limit' ? parseFloat(stopPrice) : null,
-          sizeUsdt: sizeVal,
+          sizeUsdt: sizeVal * leverage,
           leverage,
           takeProfit: tpEnabled ? tpPrice : null,
           stopLoss: slEnabled ? slPrice : null,
@@ -798,7 +798,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           <div className="order-summary">
             <div className="summary-row">
               <span>Margin Required</span>
-              <span>{sizeVal ? `$${(sizeVal / leverage).toFixed(2)}` : '—'}</span>
+              <span>{sizeVal ? `$${sizeVal.toFixed(2)}` : '—'}</span>
             </div>
 
             <div className="summary-row">
