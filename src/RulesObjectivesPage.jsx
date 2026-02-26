@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAccountState, getTradingDays, MIN_TRADING_DAYS } from './tradingService'
+import { getAccountState } from './tradingService'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, d = 2) {
@@ -74,31 +74,25 @@ function RuleCard({ title, summary, detail, icon, status }) {
 export default function RulesObjectivesPage({ userId }) {
   const [state, setState]   = useState(null)
   const [loading, setLoading] = useState(true)
-  const [tradingDays, setTradingDays] = useState(0)
 
   useEffect(() => {
     if (!userId) return
     getAccountState(userId)
-      .then(async s => {
-        setState(s)
-        if (s?.account?.id) {
-          const days = await getTradingDays(s.account.id)
-          setTradingDays(days)
-        }
-      })
+      .then(s => setState(s))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [userId])
 
-  const account   = state?.account
-  const positions = state?.positions || []
+  const account     = state?.account
+  const positions   = state?.positions || []
+  const tradingDays = state?.tradingDays ?? 0
 
   // ── live metrics ──────────────────────────────────────────────────────
   const initial      = account?.initial_balance || 10000
   const current      = account ? account.current_balance + positions.reduce((s, p) => s + (p.margin || 0), 0) : initial
   const profitTarget = account?.profit_target || initial * 0.10
   const maxDrawdown  = initial * 0.08  // Always 8% — normalized regardless of DB value
-  const maxDaily     = null  // No daily limit
+  const minTradingDays = account?.min_trading_days || 5
 
   const currentProfit       = current - initial
   const currentProfitPct    = (currentProfit / initial) * 100
@@ -106,10 +100,20 @@ export default function RulesObjectivesPage({ userId }) {
   const currentDrawdownPct  = (currentDrawdown / initial) * 100
   const profitTargetPct     = (profitTarget / initial) * 100
   const maxDrawdownPct      = (maxDrawdown / initial) * 100
-  const maxDailyPct         = (maxDaily / initial) * 100
 
-  // estimate progress %
-  const progressPct = Math.min(100, Math.max(0, (currentProfit / profitTarget) * 100))
+  // ── True overall progress: all 3 objectives must be met to pass ───────
+  const profitProgress   = Math.min(100, Math.max(0, (currentProfit / profitTarget) * 100))
+  const daysProgress     = Math.min(100, (tradingDays / minTradingDays) * 100)
+  const drawdownOk       = currentDrawdown < maxDrawdown
+  // Weight: profit 50%, trading days 30%, drawdown 20%
+  const progressPct = drawdownOk
+    ? (profitProgress * 0.5) + (daysProgress * 0.3) + 20
+    : (profitProgress * 0.5) + (daysProgress * 0.3)
+  // Cap at 99% until ALL objectives are truly met simultaneously
+  const profitMet   = currentProfit >= profitTarget
+  const daysMet     = tradingDays >= minTradingDays
+  const allMet      = profitMet && daysMet && drawdownOk
+  const displayPct  = allMet ? 100 : Math.min(99, progressPct)
   const challengeId = account?.id ? `CH-${String(account.id).slice(0,4).toUpperCase()}` : 'CH-—'
   const daysActive  = account?.created_at
     ? Math.floor((new Date() - new Date(account.created_at)) / 86400000)
@@ -160,40 +164,6 @@ export default function RulesObjectivesPage({ userId }) {
   }
 
   const rules = [
-    {
-      title: 'Minimum Trading Days',
-      summary: `You must trade on at least ${MIN_TRADING_DAYS} separate calendar days before a challenge can be passed.`,
-      status: { ok: tradingDays >= MIN_TRADING_DAYS },
-      icon: icons.consistency,
-      detail: (
-        <div className="rules-detail">
-          <p>To prevent single-session, high-risk attempts, IJGF requires a minimum of <strong>{MIN_TRADING_DAYS} distinct trading days</strong> before a challenge can be marked as passed — even if the profit target is already met.</p>
-          <div className="rules-detail-row">
-            <div className="rules-detail-item">
-              <span className="rules-detail-label">Required Days</span>
-              <span className="rules-detail-val">{MIN_TRADING_DAYS} days</span>
-            </div>
-            <div className="rules-detail-item">
-              <span className="rules-detail-label">Your Progress</span>
-              <span className="rules-detail-val" style={{ color: tradingDays >= MIN_TRADING_DAYS ? '#4ade80' : '#eaecef' }}>
-                {tradingDays} day{tradingDays !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="rules-detail-item">
-              <span className="rules-detail-label">Remaining</span>
-              <span className="rules-detail-val">
-                {Math.max(0, MIN_TRADING_DAYS - tradingDays)} day{Math.max(0, MIN_TRADING_DAYS - tradingDays) !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
-          <p>A "trading day" is any calendar day where at least one trade is executed. The days do not need to be consecutive.</p>
-          <div className="rules-example">
-            <span className="rules-example-label">Why this rule exists</span>
-            <p>This rule promotes consistent, disciplined trading over lucky single-session runs. Funded traders must demonstrate sustained performance — not just a one-day spike.</p>
-          </div>
-        </div>
-      ),
-    },
     {
       title: 'No Daily Drawdown Limit',
       summary: 'There is no daily drawdown limit. Only the overall max drawdown applies.',
@@ -389,11 +359,10 @@ export default function RulesObjectivesPage({ userId }) {
       <div className="rules-stat-grid">
         {[
           { label: 'Active Challenges', value: account ? '1' : '0', sub: 'Currently in progress', icon: '◎', colorClass: 'rules-color-purple' },
-          { label: 'Challenge Progress', value: `${progressPct.toFixed(0)}%`, sub: 'Objectives completed', icon: '↗', colorClass: 'rules-color-default' },
+          { label: 'Challenge Progress', value: `${displayPct.toFixed(0)}%`, sub: 'All objectives combined', icon: '↗', colorClass: allMet ? 'rules-color-green' : 'rules-color-default' },
           { label: 'Profit Target', value: '+10%', sub: 'Required to pass', icon: '📈', colorClass: 'rules-color-green' },
           { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', colorClass: currentProfit >= 0 ? 'rules-color-green' : 'rules-color-red' },
-          { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', colorClass: 'rules-color-default' },
-          { label: 'Min Trading Days', value: `${tradingDays}/${MIN_TRADING_DAYS}`, sub: tradingDays >= MIN_TRADING_DAYS ? '✓ Requirement met' : `${MIN_TRADING_DAYS - tradingDays} more needed`, icon: '📅', colorClass: tradingDays >= MIN_TRADING_DAYS ? 'rules-color-green' : 'rules-color-default' },
+          { label: 'Min Trading Days', value: `${tradingDays}/${minTradingDays}`, sub: daysMet ? 'Requirement met ✓' : `${minTradingDays - tradingDays} more needed`, icon: '◷', colorClass: daysMet ? 'rules-color-green' : 'rules-color-default' },
         ].map((card, i) => (
           <div key={i} className="rules-stat-card">
             <div className="rules-stat-header">
@@ -420,8 +389,8 @@ export default function RulesObjectivesPage({ userId }) {
             <span>Start Date: {account.created_at ? new Date(account.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
             <span>Days Active: {daysActive != null ? daysActive : '—'} days</span>
           </div>
-          <ProgressBar value={progressPct} max={100} color="#8b5cf6" />
-          <div className="rules-challenge-pct">{progressPct.toFixed(0)}% Completed</div>
+          <ProgressBar value={displayPct} max={100} color="#8b5cf6" />
+          <div className="rules-challenge-pct">{displayPct.toFixed(0)}% Completed</div>
 
           <div className="rules-challenge-metrics">
             <div className="rules-metric-block">
@@ -437,23 +406,24 @@ export default function RulesObjectivesPage({ userId }) {
               </div>
               <div className="rules-metric-row">
                 <span className="rules-metric-label">Status</span>
-                <StatusChip ok={currentProfit >= 0} label={currentProfit >= 0 ? 'In Progress' : 'Below Start'} />
+                <StatusChip ok={profitMet} label={profitMet ? 'Met ✓' : 'In Progress'} />
               </div>
               <ProgressBar value={Math.max(0, currentProfit)} max={profitTarget} color="#4ade80" />
             </div>
 
             <div className="rules-metric-block">
-              <div className="rules-metric-title">Max Daily Drawdown</div>
+              <div className="rules-metric-title">Min Trading Days</div>
               <div className="rules-metric-row">
-                <span className="rules-metric-label">Limit</span><span className="rules-metric-val red">{maxDailyPct.toFixed(0)}%</span>
+                <span className="rules-metric-label">Required</span><span className="rules-metric-val">{minTradingDays} days</span>
               </div>
               <div className="rules-metric-row">
-                <span className="rules-metric-label">Current</span><span className="rules-metric-val">{currentDrawdownPct.toFixed(1)}%</span>
+                <span className="rules-metric-label">Completed</span><span className="rules-metric-val">{tradingDays} days</span>
               </div>
               <div className="rules-metric-row">
                 <span className="rules-metric-label">Status</span>
-                <StatusChip ok={currentDrawdownPct < maxDailyPct} label={currentDrawdownPct < maxDailyPct ? 'Within Limit' : 'Breached'} />
+                <StatusChip ok={daysMet} label={daysMet ? 'Met ✓' : 'Incomplete'} />
               </div>
+              <ProgressBar value={tradingDays} max={minTradingDays} color="#a78bfa" />
             </div>
 
             <div className="rules-metric-block">
@@ -468,24 +438,6 @@ export default function RulesObjectivesPage({ userId }) {
                 <span className="rules-metric-label">Status</span>
                 <StatusChip ok={currentDrawdown < maxDrawdown} label={currentDrawdown < maxDrawdown ? 'Within Limit' : 'Breached'} />
               </div>
-            </div>
-
-            <div className="rules-metric-block">
-              <div className="rules-metric-title">Min Trading Days</div>
-              <div className="rules-metric-row">
-                <span className="rules-metric-label">Required</span><span className="rules-metric-val">{MIN_TRADING_DAYS} days</span>
-              </div>
-              <div className="rules-metric-row">
-                <span className="rules-metric-label">Completed</span>
-                <span className="rules-metric-val" style={{ color: tradingDays >= MIN_TRADING_DAYS ? '#4ade80' : '#eaecef' }}>
-                  {tradingDays} day{tradingDays !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="rules-metric-row">
-                <span className="rules-metric-label">Status</span>
-                <StatusChip ok={tradingDays >= MIN_TRADING_DAYS} label={tradingDays >= MIN_TRADING_DAYS ? 'Met' : 'Incomplete'} />
-              </div>
-              <ProgressBar value={tradingDays} max={MIN_TRADING_DAYS} color="#4ade80" warn={60} danger={100} />
             </div>
           </div>
         </div>
