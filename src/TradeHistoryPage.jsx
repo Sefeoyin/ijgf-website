@@ -28,7 +28,7 @@ function tradeDuration(trade) {
 
 export default function TradeHistoryPage({ userId }) {
   const [trades, setTrades]     = useState([])
-  const [account, setAccount]   = useState(null)
+  const [accountId, setAccountId] = useState(null)
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [sideFilter, setSideFilter] = useState('all')
@@ -43,7 +43,7 @@ export default function TradeHistoryPage({ userId }) {
     setLoading(true)
     try {
       const state = await getAccountState(userId)
-      setAccount(state.account)
+      setAccountId(state.account.id)
 
       const { data } = await supabase
         .from('demo_trades')
