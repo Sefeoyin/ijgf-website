@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getAccountState } from './tradingService'
+import { getAccountState, getTradingDays, resetDemoAccount, MIN_TRADING_DAYS } from './tradingService'
+import ChallengeResultModal from './ChallengeResultModal'
+import { supabase } from './supabase'
 
 function DashboardOverview({ userId }) {
   const [timeRange, setTimeRange] = useState('1D')
@@ -18,6 +20,10 @@ function DashboardOverview({ userId }) {
   const [account, setAccount] = useState(null)
   const [accountLoading, setAccountLoading] = useState(true)
   const [accountPositions, setAccountPositions] = useState([])
+  const [tradingDays, setTradingDays] = useState(0)
+  const [userName, setUserName] = useState('Trader')
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [startingNewChallenge, setStartingNewChallenge] = useState(false)
 
   // Load account + trades from Supabase
   useEffect(() => {
@@ -29,6 +35,22 @@ function DashboardOverview({ userId }) {
         setAccount(state.account)
         setRealTrades(state.recentTrades)
         setAccountPositions(state.positions || [])
+        // Load trading days
+        if (state.account?.id) {
+          const days = await getTradingDays(state.account.id)
+          setTradingDays(days)
+        }
+        // Load user profile
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUserName(
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split('@')[0] ||
+            'Trader'
+          )
+          setAvatarUrl(user.user_metadata?.avatar_url || null)
+        }
       } catch (err) {
         console.error('DashboardOverview: failed to load account', err)
       } finally {
@@ -37,6 +59,25 @@ function DashboardOverview({ userId }) {
     }
     load()
   }, [userId])
+
+  // Handle start new challenge — resets the demo account
+  const handleStartNewChallenge = useCallback(async () => {
+    if (startingNewChallenge) return
+    setStartingNewChallenge(true)
+    try {
+      await resetDemoAccount(userId)
+      // Reload state
+      const state = await getAccountState(userId)
+      setAccount(state.account)
+      setRealTrades(state.recentTrades)
+      setAccountPositions(state.positions || [])
+      setTradingDays(0)
+    } catch (err) {
+      console.error('DashboardOverview: failed to reset account', err)
+    } finally {
+      setStartingNewChallenge(false)
+    }
+  }, [userId, startingNewChallenge])
 
   // Real-time market data from CoinGecko - Expanded list
   const [markets, setMarkets] = useState([
@@ -88,6 +129,8 @@ function DashboardOverview({ userId }) {
       ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
       : 0,
     currentEquity: trueAccountValue,
+    tradingDays,
+    minTradingDays: MIN_TRADING_DAYS,
   }
 
   // Filter markets based on search query and favorites filter
@@ -387,7 +430,19 @@ function DashboardOverview({ userId }) {
 
   return (
     <div className="dashboard-overview">
-      {/* Top Stats Cards - 4 cards in one row */}
+
+      {/* Challenge Result Modal — shown when passed or failed */}
+      {(account?.status === 'passed' || account?.status === 'failed') && (
+        <ChallengeResultModal
+          account={account}
+          userName={userName}
+          avatarUrl={avatarUrl}
+          tradingDays={tradingDays}
+          onStartNew={handleStartNewChallenge}
+        />
+      )}
+
+      {/* Top Stats Cards */}
       <div className="stats-cards-row">
         <div className="stats-card">
           <div className="stats-card-header">
@@ -441,7 +496,30 @@ function DashboardOverview({ userId }) {
             <span className="stats-label">Current Equity</span>
           </div>
           <div className="stats-value">{formatCurrency(stats.currentEquity)}</div>
-          <div className="stats-subtitle">All time performance</div>
+          <div className="stats-subtitle">Account value</div>
+        </div>
+
+        {/* Trading Days card */}
+        <div className={`stats-card ${stats.tradingDays >= stats.minTradingDays ? 'stats-card--met' : ''}`}>
+          <div className="stats-card-header">
+            <div className={`stats-icon ${stats.tradingDays >= stats.minTradingDays ? 'green' : 'blue'}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <span className="stats-label">Trading Days</span>
+          </div>
+          <div className="stats-value">
+            <span className={stats.tradingDays >= stats.minTradingDays ? 'pnl-positive' : ''}>
+              {stats.tradingDays}
+            </span>
+            <span className="stats-value-denom">/{stats.minTradingDays}</span>
+          </div>
+          <div className="stats-subtitle">
+            {stats.tradingDays >= stats.minTradingDays ? '✓ Minimum met' : `${stats.minTradingDays - stats.tradingDays} more needed`}
+          </div>
         </div>
       </div>
 
@@ -700,6 +778,13 @@ function DashboardOverview({ userId }) {
                   <span className="metric-label">Max Drawdown</span>
                   <span className="metric-value">{formatCurrency(account.max_total_drawdown)}</span>
                 </div>
+                <div className="challenge-metric">
+                  <span className="metric-label">Min Trading Days</span>
+                  <span className={`metric-value ${tradingDays >= MIN_TRADING_DAYS ? 'metric-value--met' : ''}`}>
+                    {tradingDays}/{MIN_TRADING_DAYS}
+                    {tradingDays >= MIN_TRADING_DAYS && ' ✓'}
+                  </span>
+                </div>
               </div>
               <div className="challenge-progress">
                 <div className="progress-label">
@@ -710,6 +795,18 @@ function DashboardOverview({ userId }) {
                   <div
                     className="progress-bar-fill"
                     style={{ width: `${Math.min(100, Math.max(0, (trueAccountValue - account.initial_balance) / account.profit_target * 100))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="challenge-progress">
+                <div className="progress-label">
+                  <span>Trading Days</span>
+                  <span>{tradingDays}/{MIN_TRADING_DAYS} days</span>
+                </div>
+                <div className="progress-bar-track">
+                  <div
+                    className={`progress-bar-fill ${tradingDays >= MIN_TRADING_DAYS ? 'progress-bar-fill--met' : 'progress-bar-fill--days'}`}
+                    style={{ width: `${Math.min(100, (tradingDays / MIN_TRADING_DAYS) * 100)}%` }}
                   />
                 </div>
               </div>

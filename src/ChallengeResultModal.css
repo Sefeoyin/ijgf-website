@@ -1,0 +1,390 @@
+/* ============================================================
+   ChallengeResultModal.css
+   Pass: gold/purple certificate with confetti
+   Fail: dark resilience screen with quote
+   ============================================================ */
+
+/* ── Canvas confetti ── */
+.confetti-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── Shared overlay ── */
+.crm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: crm-fade-in 0.5s ease;
+}
+
+@keyframes crm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pass-overlay { background: rgba(0, 0, 0, 0.88); }
+.fail-overlay { background: rgba(0, 0, 0, 0.92); }
+
+/* ── Card ── */
+.crm-card {
+  position: relative;
+  z-index: 9999;
+  max-width: 480px;
+  width: 100%;
+  border-radius: 20px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: crm-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes crm-slide-up {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.pass-card {
+  background: linear-gradient(145deg, #0f0f1a 0%, #1a0d2e 100%);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  box-shadow:
+    0 0 60px rgba(124, 58, 237, 0.25),
+    0 0 120px rgba(251, 191, 36, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.fail-card {
+  background: linear-gradient(145deg, #0f0f11 0%, #1a1212 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Pass badge ── */
+.crm-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.pass-badge {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+
+/* ── Certificate card (inside pass card) ── */
+.crm-cert {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 14px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative corner accents */
+.crm-cert::before, .crm-cert::after {
+  content: '';
+  position: absolute;
+  width: 40px; height: 40px;
+  border-color: rgba(251, 191, 36, 0.25);
+  border-style: solid;
+}
+.crm-cert::before {
+  top: 8px; left: 8px;
+  border-width: 1px 0 0 1px;
+  border-radius: 4px 0 0 0;
+}
+.crm-cert::after {
+  bottom: 8px; right: 8px;
+  border-width: 0 1px 1px 0;
+  border-radius: 0 0 4px 0;
+}
+
+.crm-cert-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.crm-cert-logo {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #a78bfa;
+}
+.crm-cert-id {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: monospace;
+}
+
+/* Trophy icon — animated */
+.crm-trophy {
+  color: #fbbf24;
+  animation: trophy-pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.5));
+}
+@keyframes trophy-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.5)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.8)); }
+}
+
+/* Avatar */
+.crm-avatar {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(124, 58, 237, 0.3);
+}
+.crm-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.crm-avatar-initials {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2d9f3;
+  letter-spacing: 0.05em;
+}
+
+.crm-congratulations {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+.crm-trader-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0;
+  text-align: center;
+}
+.crm-cert-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Stats row inside cert */
+.crm-stats-row {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+.crm-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.crm-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+.crm-stat-val.positive { color: #4ade80; }
+.crm-stat-val.negative { color: #f87171; }
+.crm-stat-lbl {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.crm-cert-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.03em;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+/* ── Info text below cert ── */
+.crm-next-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 360px;
+}
+
+/* ── Primary CTA button ── */
+.crm-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.pass-card .crm-primary-btn {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+}
+.pass-card .crm-primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+}
+.fail-card .crm-primary-btn {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+}
+.fail-card .crm-primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+}
+
+/* ── Fail specific ── */
+.crm-fail-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f87171;
+  animation: fail-icon-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fail-icon-in {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.crm-fail-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f3f4f6;
+  margin: 0;
+  text-align: center;
+}
+.crm-fail-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Quote block */
+.crm-quote-block {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px 20px;
+  position: relative;
+}
+.crm-quote-mark {
+  color: rgba(124, 58, 237, 0.4);
+  position: absolute;
+  top: 12px; left: 14px;
+}
+.crm-quote-text {
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  margin: 0 0 8px;
+  padding-left: 8px;
+}
+.crm-quote-author {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+  text-align: right;
+}
+
+/* Resilience block */
+.crm-resilience {
+  width: 100%;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.crm-resilience h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a78bfa;
+  margin: 0 0 8px;
+}
+.crm-resilience p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.65;
+  margin: 0;
+}
+.crm-resilience strong {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Fail stats row */
+.crm-fail-stats {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.crm-try-again-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .crm-card { padding: 24px 18px; gap: 16px; }
+  .crm-cert { padding: 18px 14px; }
+  .crm-congratulations { font-size: 18px; }
+  .crm-fail-title { font-size: 18px; }
+  .crm-stats-row { gap: 8px; }
+  .crm-stat-val { font-size: 12px; }
+}

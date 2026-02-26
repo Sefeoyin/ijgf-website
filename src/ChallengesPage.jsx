@@ -19,6 +19,7 @@ function ChallengesPage() {
       profitTarget: "$500 (10%)",
       maxDrawdown: "$400 (8%)",
       dailyLimit: "None",
+      minTradingDays: "5 Days",
       duration: "Indefinite",
       available: true,
       popular: false,
@@ -30,6 +31,7 @@ function ChallengesPage() {
       profitTarget: "$1,000 (10%)",
       maxDrawdown: "$800 (8%)",
       dailyLimit: "None",
+      minTradingDays: "5 Days",
       duration: "Indefinite",
       available: true,
       popular: true,
@@ -41,6 +43,7 @@ function ChallengesPage() {
       profitTarget: "$2,500 (10%)",
       maxDrawdown: "$2,000 (8%)",
       dailyLimit: "None",
+      minTradingDays: "5 Days",
       duration: "Indefinite",
       available: false,
       popular: false,
@@ -52,6 +55,7 @@ function ChallengesPage() {
       profitTarget: "$5,000 (10%)",
       maxDrawdown: "$4,000 (8%)",
       dailyLimit: "None",
+      minTradingDays: "5 Days",
       duration: "Indefinite",
       available: false,
       popular: false,
@@ -63,6 +67,7 @@ function ChallengesPage() {
       profitTarget: "$10,000 (10%)",
       maxDrawdown: "$8,000 (8%)",
       dailyLimit: "None",
+      minTradingDays: "5 Days",
       duration: "Indefinite",
       available: false,
       popular: false,
@@ -125,6 +130,10 @@ function ChallengesPage() {
                 <div className="spec-row">
                   <span className="spec-label">Max Daily Drawdown</span>
                   <span className="spec-value">{challenge.dailyLimit}</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-label">Min Trading Days</span>
+                  <span className="spec-value spec-value--highlight">{challenge.minTradingDays}</span>
                 </div>
                 <div className="spec-row">
                   <span className="spec-label">Duration</span>

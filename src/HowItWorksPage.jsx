@@ -10,7 +10,11 @@ function HowItWorksPage() {
   const rules = [
     {
       title: "Profit Targets",
-      content: "Achieve a 10% profit target on your challenge account to pass the evaluation. There's no time limit - trade at your own pace while managing risk effectively."
+      content: "Achieve a 10% profit target on your challenge account to pass the evaluation. There's no time limit — trade at your own pace while managing risk effectively."
+    },
+    {
+      title: "Minimum Trading Days",
+      content: "You must trade on at least 5 distinct calendar days before a challenge can be marked as passed. This rule applies even if the profit target is already met. It promotes consistent, disciplined trading over single-session lucky runs. A trading day counts any calendar day on which at least one trade is executed — the days do not need to be consecutive."
     },
     {
       title: "No Daily Loss Limit",
@@ -71,12 +75,12 @@ function HowItWorksPage() {
           <div className="how-process-section">
             <h2 className="how-section-title">Step - by - Step Process</h2>
             <ol className="how-process-list">
-              <li><span>1.</span> Sign Up  -  Create your account</li>
-              <li><span>2.</span> Choose Challenge  -  Pick account size</li>
-              <li><span>3.</span> Complete Evaluation  -  Hit profit target while respecting drawdown rules</li>
-              <li><span>4.</span> Select Exchange  -  Choose your preferred exchange (Binance, Bybit, OKX, Bitget, etc.)</li>
-              <li><span>5.</span> Get Funded  -  Trade real capital with up to 80% profit split</li>
-              <li><span>6.</span> Withdraw Profits  -  On-demand payouts in USDC or USDT</li>
+              <li><span>1.</span> Sign Up  —  Create your account</li>
+              <li><span>2.</span> Choose Challenge  —  Pick account size ($5K–$100K)</li>
+              <li><span>3.</span> Complete Evaluation  —  Hit the 10% profit target, stay within 8% max drawdown, and trade on at least 5 distinct calendar days</li>
+              <li><span>4.</span> Select Exchange  —  Choose your preferred exchange (Binance, Bybit, OKX, Bitget, etc.)</li>
+              <li><span>5.</span> Get Funded  —  Trade real capital with up to 80% profit split</li>
+              <li><span>6.</span> Withdraw Profits  —  On-demand payouts in USDC or USDT</li>
             </ol>
           </div>
 

@@ -70,7 +70,12 @@ const faqs = [
   {
     id: 'time-limits',
     question: "Are there time limits on challenges?",
-    answer: "No. Unlike other platforms, IJGF has no time limits on evaluation challenges. Trade at your own pace and focus on executing your strategy properly without rushed decisions."
+    answer: "There is no overall time limit — you can take as long as you need to reach your profit target. However, you must trade on a minimum of 5 separate calendar days before your challenge can be marked as passed. This ensures consistency and disciplined trading behaviour."
+  },
+  {
+    id: 'min-trading-days',
+    question: "What is the minimum trading days requirement?",
+    answer: "You must place at least one trade on 5 distinct calendar days to be eligible to pass. If you hit the profit target but haven't traded on 5 separate days, your challenge stays active until the requirement is met. This rule rewards consistent traders, not one-day gamblers."
   },
   {
     id: 'regulated',
@@ -297,6 +302,10 @@ function LandingPage() {
                   <span className="spec-value">None</span>
                 </div>
                 <div className="spec-row">
+                  <span className="spec-label">Min Trading Days</span>
+                  <span className="spec-value spec-value--highlight">5 Days</span>
+                </div>
+                <div className="spec-row">
                   <span className="spec-label">Duration</span>
                   <span className="spec-value">Indefinite</span>
                 </div>
@@ -342,6 +351,10 @@ function LandingPage() {
                   <span className="spec-value">None</span>
                 </div>
                 <div className="spec-row">
+                  <span className="spec-label">Min Trading Days</span>
+                  <span className="spec-value spec-value--highlight">5 Days</span>
+                </div>
+                <div className="spec-row">
                   <span className="spec-label">Duration</span>
                   <span className="spec-value">Indefinite</span>
                 </div>
@@ -377,6 +390,7 @@ function LandingPage() {
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$2,500 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$2,000 (8%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
@@ -397,6 +411,7 @@ function LandingPage() {
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$5,000 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$4,000 (8%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
@@ -417,6 +432,7 @@ function LandingPage() {
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$10,000 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$8,000 (8%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
+                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
               <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>

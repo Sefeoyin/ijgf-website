@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAccountState } from './tradingService'
+import { getAccountState, getTradingDays, MIN_TRADING_DAYS } from './tradingService'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, d = 2) {
@@ -74,11 +74,18 @@ function RuleCard({ title, summary, detail, icon, status }) {
 export default function RulesObjectivesPage({ userId }) {
   const [state, setState]   = useState(null)
   const [loading, setLoading] = useState(true)
+  const [tradingDays, setTradingDays] = useState(0)
 
   useEffect(() => {
     if (!userId) return
     getAccountState(userId)
-      .then(s => setState(s))
+      .then(async s => {
+        setState(s)
+        if (s?.account?.id) {
+          const days = await getTradingDays(s.account.id)
+          setTradingDays(days)
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [userId])
@@ -154,7 +161,39 @@ export default function RulesObjectivesPage({ userId }) {
 
   const rules = [
     {
-      title: 'No Daily Drawdown Limit',
+      title: 'Minimum Trading Days',
+      summary: `You must trade on at least ${MIN_TRADING_DAYS} separate calendar days before a challenge can be passed.`,
+      status: { ok: tradingDays >= MIN_TRADING_DAYS },
+      icon: icons.consistency,
+      detail: (
+        <div className="rules-detail">
+          <p>To prevent single-session, high-risk attempts, IJGF requires a minimum of <strong>{MIN_TRADING_DAYS} distinct trading days</strong> before a challenge can be marked as passed — even if the profit target is already met.</p>
+          <div className="rules-detail-row">
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Required Days</span>
+              <span className="rules-detail-val">{MIN_TRADING_DAYS} days</span>
+            </div>
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Your Progress</span>
+              <span className="rules-detail-val" style={{ color: tradingDays >= MIN_TRADING_DAYS ? '#4ade80' : '#eaecef' }}>
+                {tradingDays} day{tradingDays !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Remaining</span>
+              <span className="rules-detail-val">
+                {Math.max(0, MIN_TRADING_DAYS - tradingDays)} day{Math.max(0, MIN_TRADING_DAYS - tradingDays) !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+          <p>A "trading day" is any calendar day where at least one trade is executed. The days do not need to be consecutive.</p>
+          <div className="rules-example">
+            <span className="rules-example-label">Why this rule exists</span>
+            <p>This rule promotes consistent, disciplined trading over lucky single-session runs. Funded traders must demonstrate sustained performance — not just a one-day spike.</p>
+          </div>
+        </div>
+      ),
+    },
       summary: 'There is no daily drawdown limit. Only the overall max drawdown applies.',
       status: { ok: true },
       icon: icons.drawdown,
@@ -352,6 +391,7 @@ export default function RulesObjectivesPage({ userId }) {
           { label: 'Profit Target', value: '+10%', sub: 'Required to pass', icon: '📈', colorClass: 'rules-color-green' },
           { label: 'Current PNL', value: `${currentProfit >= 0 ? '+' : ''}${currentProfitPct.toFixed(1)}%`, sub: 'Since challenge start', icon: '$', colorClass: currentProfit >= 0 ? 'rules-color-green' : 'rules-color-red' },
           { label: 'Days Active', value: daysActive != null ? `${daysActive} days` : '—', sub: 'Since challenge start', icon: '◷', colorClass: 'rules-color-default' },
+          { label: 'Min Trading Days', value: `${tradingDays}/${MIN_TRADING_DAYS}`, sub: tradingDays >= MIN_TRADING_DAYS ? '✓ Requirement met' : `${MIN_TRADING_DAYS - tradingDays} more needed`, icon: '📅', colorClass: tradingDays >= MIN_TRADING_DAYS ? 'rules-color-green' : 'rules-color-default' },
         ].map((card, i) => (
           <div key={i} className="rules-stat-card">
             <div className="rules-stat-header">
@@ -426,6 +466,24 @@ export default function RulesObjectivesPage({ userId }) {
                 <span className="rules-metric-label">Status</span>
                 <StatusChip ok={currentDrawdown < maxDrawdown} label={currentDrawdown < maxDrawdown ? 'Within Limit' : 'Breached'} />
               </div>
+            </div>
+
+            <div className="rules-metric-block">
+              <div className="rules-metric-title">Min Trading Days</div>
+              <div className="rules-metric-row">
+                <span className="rules-metric-label">Required</span><span className="rules-metric-val">{MIN_TRADING_DAYS} days</span>
+              </div>
+              <div className="rules-metric-row">
+                <span className="rules-metric-label">Completed</span>
+                <span className="rules-metric-val" style={{ color: tradingDays >= MIN_TRADING_DAYS ? '#4ade80' : '#eaecef' }}>
+                  {tradingDays} day{tradingDays !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="rules-metric-row">
+                <span className="rules-metric-label">Status</span>
+                <StatusChip ok={tradingDays >= MIN_TRADING_DAYS} label={tradingDays >= MIN_TRADING_DAYS ? 'Met' : 'Incomplete'} />
+              </div>
+              <ProgressBar value={tradingDays} max={MIN_TRADING_DAYS} color="#4ade80" warn={60} danger={100} />
             </div>
           </div>
         </div>

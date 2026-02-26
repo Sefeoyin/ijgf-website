@@ -8,12 +8,15 @@ import { supabase } from './supabase'
 // No trading fees — revenue comes from challenge fees
 
 const CHALLENGE_CONFIGS = {
-  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400   },
-  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800   },
-  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000  },
-  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000  },
-  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000  },
+  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400,  minTradingDays: 5 },
+  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800,  minTradingDays: 5 },
+  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000, minTradingDays: 5 },
+  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000, minTradingDays: 5 },
+  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000, minTradingDays: 5 },
 }
+
+// Platform-wide minimum — fallback if column absent from DB row
+export const MIN_TRADING_DAYS = 5
 
 // 100x leverage for all instruments
 export const MAX_LEVERAGE = {
@@ -82,6 +85,7 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
       profit_target: config.profitTarget,
       max_daily_loss: config.dailyLoss,
       max_total_drawdown: config.maxDrawdown,
+      min_trading_days: config.minTradingDays,
       high_water_mark: config.initial,
     })
     .select()
@@ -119,11 +123,20 @@ export async function getAccountState(userId) {
       .limit(50),
   ])
 
+  // Count distinct calendar days the trader has traded on this account
+  let tradingDays = 0
+  try {
+    tradingDays = new Set(
+      (tradeRes.data || []).map(t => t.executed_at.split('T')[0])
+    ).size
+  } catch { /* non-critical */ }
+
   return {
     account,
     positions: posRes.data || [],
     orders: ordRes.data || [],
     recentTrades: tradeRes.data || [],
+    tradingDays,
   }
 }
 
@@ -654,14 +667,42 @@ async function checkChallengeRules(accountId, userId) {
   }
 
   // Profit target — also use true equity
+  // CRITICAL: trader must ALSO have completed min_trading_days before passing
   const totalProfit = trueEquity - account.initial_balance
   if (totalProfit >= account.profit_target) {
-    await supabase
-      .from('demo_accounts')
-      .update({ status: 'passed', updated_at: new Date().toISOString() })
-      .eq('id', accountId)
-    return { passed: true }
+    // Count distinct calendar days with trades
+    const { data: allTrades } = await supabase
+      .from('demo_trades')
+      .select('executed_at')
+      .eq('demo_account_id', accountId)
+
+    const tradingDays = new Set(
+      (allTrades || []).map(t => t.executed_at.split('T')[0])
+    ).size
+
+    const minDays = account.min_trading_days || MIN_TRADING_DAYS
+
+    if (tradingDays >= minDays) {
+      // All conditions met — mark as passed
+      await supabase
+        .from('demo_accounts')
+        .update({ status: 'passed', updated_at: new Date().toISOString() })
+        .eq('id', accountId)
+      return { passed: true, tradingDays }
+    }
+
+    // Target hit but not enough days — stay active, return pending state
+    return { status: 'active', pendingPass: true, tradingDays, minDays }
   }
+
+  // Count trading days for state tracking even if target not yet hit
+  const { data: daysTrades } = await supabase
+    .from('demo_trades')
+    .select('executed_at')
+    .eq('demo_account_id', accountId)
+  const tradingDays = new Set(
+    (daysTrades || []).map(t => t.executed_at.split('T')[0])
+  ).size
 
   // High water mark
   if (trueEquity > account.high_water_mark) {
@@ -671,7 +712,7 @@ async function checkChallengeRules(accountId, userId) {
       .eq('id', accountId)
   }
 
-  return { status: 'active' }
+  return { status: 'active', tradingDays }
 }
 
 async function updateAccountBalance(accountId, newBalance) {
