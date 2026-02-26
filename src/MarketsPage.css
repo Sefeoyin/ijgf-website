@@ -410,7 +410,98 @@
 .text-right { text-align: right; }
 
 /* ============================================================
+   BP-TABLE — Proper HTML <table> for all bottom-panel tabs
+   Replaces the old CSS-grid position-row approach.
+   Horizontally scrollable on all viewports, including mobile.
+   ============================================================ */
+
+/* Scroll container — fills remaining height of positions-panel */
+.bp-table-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #2b3139 transparent;
+}
+.bp-table-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
+.bp-table-scroll::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 3px; }
+
+/* The table itself */
+.bp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+  color: #eaecef;
+}
+
+/* Header row */
+.bp-table thead tr {
+  border-bottom: 1px solid #1e2329;
+  background: transparent;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #0b0e11;  /* match container bg so sticky header is opaque */
+}
+.bp-table th {
+  color: #848e9c;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: left;
+  padding: 5px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+/* Body rows */
+.bp-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.1s;
+}
+.bp-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+.bp-table td {
+  padding: 8px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.bp-table td small {
+  display: block;
+  font-size: 9px;
+  opacity: 0.55;
+  margin-top: 2px;
+}
+
+/* Date/time columns — monospace so chars don't reflow */
+.bp-table td.bp-date,
+.bp-table td.bp-time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: #848e9c;
+}
+
+/* Empty state inside table */
+.bp-empty-cell {
+  text-align: center;
+  padding: 24px 0 !important;
+}
+
+/* Keep close/cancel buttons consistent */
+.bp-table .close-pos-btn {
+  font-size: 10px;
+  padding: 3px 7px;
+}
+
+/* ============================================================
    POSITIONS TABLE — Horizontally scrollable on all viewports
+   (Legacy wrapper kept for any remaining uses)
    ============================================================ */
 .positions-table-wrap {
   flex: 1;
@@ -423,16 +514,8 @@
 .positions-table-wrap::-webkit-scrollbar { height: 4px; width: 4px; }
 .positions-table-wrap::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
 
-/* Sticky header inside the scroll container */
-.positions-table-inner {
-  min-width: 680px;  /* ensures 8 cols never collapse below readable width */
-  width: 100%;
-}
-
-/* Trade-history (6 cols) can be narrower */
+.positions-table-inner { min-width: 680px; width: 100%; }
 .positions-table-inner.cols-6 { min-width: 520px; }
-
-/* Orders (7 cols) */
 .positions-table-inner.cols-7 { min-width: 600px; }
 
 /* ============================================================
@@ -446,19 +529,17 @@
   .binance-bottom-section { grid-template-columns: 1fr; }
   .account-panel { display: none; }
 
-  /* Positions panel: allow full horizontal scroll on mobile */
+  /* Positions panel: clip outer; bp-table-scroll handles scroll */
   .positions-panel {
-    overflow: hidden;   /* clip outer; inner wrapper scrolls */
-    min-height: 160px;
+    overflow: hidden;
+    min-height: 180px;
   }
 
-  /* Trade/order rows must not wrap — scroll instead */
-  .position-row,
-  .binance-bottom-section .positions-table-headers {
-    white-space: nowrap;
-  }
+  /* bp-table on mobile — slightly smaller text, same scroll behaviour */
+  .bp-table th  { font-size: 9px;  padding: 4px 6px; }
+  .bp-table td  { font-size: 10px; padding: 7px 6px; }
 
-  /* Tabs scroll without wrapping */
+  /* Tabs must not wrap — they scroll */
   .binance-bottom-section .positions-tabs {
     overflow-x: auto;
     flex-wrap: nowrap;

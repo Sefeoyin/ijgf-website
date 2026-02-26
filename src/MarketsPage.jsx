@@ -770,120 +770,162 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
           {/* Positions tab */}
           {activePositionsTab === 'positions' && (
-            <div className="positions-table-wrap">
-              <div className="positions-table-inner">
-              <div className="positions-table-headers">
-                <span>Symbol</span>
-                <span>Size</span>
-                <span>Entry Price</span>
-                <span>Mark Price</span>
-                <span>Liq. Price</span>
-                <span>Margin</span>
-                <span>PNL (ROI%)</span>
-                <span>Action</span>
-              </div>
-              {positions.length === 0 ? (
-                <div className="empty-positions">
-                  <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
-                    <rect x="10" y="10" width="18" height="18" rx="2"/>
-                    <rect x="36" y="10" width="18" height="18" rx="2"/>
-                    <rect x="36" y="36" width="18" height="18" rx="2"/>
-                    <rect x="10" y="36" width="18" height="18" rx="2"/>
-                  </svg>
-                  <p>No open positions</p>
-                </div>
-              ) : (
-                positions.map(pos => (
-                  <div key={pos.id} className="position-row">
-                    <span className={pos.side === 'LONG' ? 'positive' : 'negative'}>
-                      {pos.symbol} <small>{pos.side} {pos.leverage}x</small>
-                    </span>
-                    <span>{pos.quantity.toFixed(4)}</span>
-                    <span>{fmt(pos.entry_price)}</span>
-                    <span>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</span>
-                    <span>{fmt(pos.liquidation_price)}</span>
-                    <span>${pos.margin.toFixed(2)}</span>
-                    <span className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
-                      {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
-                      <small> ({pos.roi?.toFixed(1)}%)</small>
-                    </span>
-                    <span>
-                      <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>
-                        Close
-                      </button>
-                    </span>
-                  </div>
-                ))
-              )}
-              </div>
+            <div className="bp-table-scroll">
+              <table className="bp-table">
+                <colgroup>
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '70px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Size</th>
+                    <th>Entry Price</th>
+                    <th>Mark Price</th>
+                    <th>Liq. Price</th>
+                    <th>Margin</th>
+                    <th>PNL (ROI%)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="bp-empty-cell">
+                        <div className="empty-positions">
+                          <svg width="36" height="36" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
+                            <rect x="10" y="10" width="18" height="18" rx="2"/><rect x="36" y="10" width="18" height="18" rx="2"/>
+                            <rect x="36" y="36" width="18" height="18" rx="2"/><rect x="10" y="36" width="18" height="18" rx="2"/>
+                          </svg>
+                          <p>No open positions</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : positions.map(pos => (
+                    <tr key={pos.id}>
+                      <td className={pos.side === 'LONG' ? 'positive' : 'negative'}>
+                        {pos.symbol}<br /><small>{pos.side} {pos.leverage}x</small>
+                      </td>
+                      <td>{pos.quantity.toFixed(4)}</td>
+                      <td>{fmt(pos.entry_price)}</td>
+                      <td>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</td>
+                      <td>{fmt(pos.liquidation_price)}</td>
+                      <td>${pos.margin.toFixed(2)}</td>
+                      <td className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
+                        {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
+                        <br /><small>({pos.roi?.toFixed(1)}%)</small>
+                      </td>
+                      <td>
+                        <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>Close</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
           {/* Open Orders tab */}
           {activePositionsTab === 'orders' && (
-            <div className="positions-table-wrap">
-              <div className="positions-table-inner cols-7">
-              <div className="positions-table-headers" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                <span>Symbol</span>
-                <span>Type</span>
-                <span>Side</span>
-                <span>Price</span>
-                <span>Qty</span>
-                <span>Status</span>
-                <span>Action</span>
-              </div>
-              {openOrders.length === 0 ? (
-                <div className="empty-positions"><p>No open orders</p></div>
-              ) : (
-                openOrders.map(order => (
-                  <div key={order.id} className="position-row" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                    <span>{order.symbol}</span>
-                    <span>{order.order_type}</span>
-                    <span className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</span>
-                    <span>{fmt(order.price)}</span>
-                    <span>{order.quantity.toFixed(4)}</span>
-                    <span>{order.status}</span>
-                    <span>
-                      <button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>
-                        Cancel
-                      </button>
-                    </span>
-                  </div>
-                ))
-              )}
-              </div>
+            <div className="bp-table-scroll">
+              <table className="bp-table">
+                <colgroup>
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '55px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '65px' }} />
+                  <col style={{ width: '65px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Type</th>
+                    <th>Side</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {openOrders.length === 0 ? (
+                    <tr><td colSpan={7} className="bp-empty-cell"><div className="empty-positions"><p>No open orders</p></div></td></tr>
+                  ) : openOrders.map(order => (
+                    <tr key={order.id}>
+                      <td>{order.symbol}</td>
+                      <td>{order.order_type}</td>
+                      <td className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</td>
+                      <td>{fmt(order.price)}</td>
+                      <td>{order.quantity.toFixed(4)}</td>
+                      <td>{order.status}</td>
+                      <td>
+                        <button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>Cancel</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {/* Trade History tab */}
+          {/* Trade History / Order History tab */}
           {(activePositionsTab === 'tradeHistory' || activePositionsTab === 'orderHistory') && (
-            <div className="positions-table-wrap">
-              <div className="positions-table-inner cols-6">
-              <div className="positions-table-headers" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                <span>Time</span>
-                <span>Symbol</span>
-                <span>Side</span>
-                <span>Price</span>
-                <span>Qty</span>
-                <span>PNL</span>
-              </div>
-              {recentTrades.length === 0 ? (
-                <div className="empty-positions"><p>No trade history yet</p></div>
-              ) : (
-                recentTrades.map(trade => (
-                  <div key={trade.id} className="position-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                    <span>{new Date(trade.executed_at).toLocaleString()}</span>
-                    <span>{trade.symbol}</span>
-                    <span className={trade.side === 'BUY' ? 'positive' : 'negative'}>{trade.side}</span>
-                    <span>{fmt(trade.price)}</span>
-                    <span>{trade.quantity.toFixed(4)}</span>
-                    <span className={(trade.realized_pnl || 0) >= 0 ? 'positive' : 'negative'}>
-                      {trade.realized_pnl != null ? `${trade.realized_pnl >= 0 ? '+' : ''}$${trade.realized_pnl.toFixed(2)}` : '—'}
-                    </span>
-                  </div>
-                ))
-              )}
-              </div>
+            <div className="bp-table-scroll">
+              <table className="bp-table">
+                <colgroup>
+                  <col style={{ width: '82px' }} />  {/* Date */}
+                  <col style={{ width: '72px' }} />  {/* Time */}
+                  <col style={{ width: '82px' }} />  {/* Symbol */}
+                  <col style={{ width: '52px' }} />  {/* Side */}
+                  <col style={{ width: '96px' }} />  {/* Price */}
+                  <col style={{ width: '72px' }} />  {/* Qty */}
+                  <col style={{ width: '88px' }} />  {/* PNL */}
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Symbol</th>
+                    <th>Side</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>PNL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTrades.length === 0 ? (
+                    <tr><td colSpan={7} className="bp-empty-cell"><div className="empty-positions"><p>No trade history yet</p></div></td></tr>
+                  ) : recentTrades.map(trade => {
+                    const d = new Date(trade.executed_at)
+                    const datePart = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                    const timePart = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+                    const pnl = trade.realized_pnl
+                    return (
+                      <tr key={trade.id}>
+                        <td className="bp-date">{datePart}</td>
+                        <td className="bp-time">{timePart}</td>
+                        <td>{trade.symbol}</td>
+                        <td className={trade.side === 'BUY' ? 'positive' : 'negative'}>
+                          {trade.side}
+                        </td>
+                        <td>{fmt(trade.price)}</td>
+                        <td>{trade.quantity.toFixed(4)}</td>
+                        <td className={pnl == null ? '' : pnl >= 0 ? 'positive' : 'negative'}>
+                          {pnl != null ? `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}` : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
