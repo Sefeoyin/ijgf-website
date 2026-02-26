@@ -27,85 +27,85 @@ function tradeDuration(trade) {
 }
 
 export default function TradeHistoryPage({ userId }) {
-  const [trades, setTrades]     = useState([])
-  const [accountId, setAccountId] = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
-  const [sideFilter, setSideFilter] = useState('all')
+  const [trades, setTrades]             = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [search, setSearch]             = useState('')
+  const [sideFilter, setSideFilter]     = useState('all')
   const [symbolFilter, setSymbolFilter] = useState('all')
   const [showFilters, setShowFilters]   = useState(false)
-  const [sortCol, setSortCol]   = useState('executed_at')
-  const [sortDir, setSortDir]   = useState('desc')
-  const [page, setPage]         = useState(1)
+  const [sortCol, setSortCol]           = useState('executed_at')
+  const [sortDir, setSortDir]           = useState('desc')
+  const [page, setPage]                 = useState(1)
   const PER_PAGE = 20
 
+  // ── Load & pair open+close records by position_id ─────────────────────────
+  // The DB stores two rows per round-trip: is_close=false (open leg) and
+  // is_close=true (close leg). We pair them so Entry, Exit, Duration and PNL
+  // all appear on a single row — exactly how Binance/Bybit display history.
   const loadTrades = useCallback(async () => {
     setLoading(true)
     try {
       const state = await getAccountState(userId)
-      setAccountId(state.account.id)
+      const demoAccountId = state.account.id
 
       const { data } = await supabase
         .from('demo_trades')
         .select('*')
-        .eq('demo_account_id', state.account.id)
+        .eq('demo_account_id', demoAccountId)
         .order('executed_at', { ascending: false })
 
       const raw = data || []
 
-      // Pair open (is_close=false) + close (is_close=true) records by position_id
-      // Each paired row has: entry_price, exit_price, realized_pnl, opened_at, closed_at
+      // Index all open legs by position_id
       const openMap = {}
-      const paired = []
-
-      // First pass: index all open-leg records
       raw.forEach(t => {
         if (!t.is_close) openMap[t.position_id] = t
       })
 
-      // Second pass: match close legs with their open leg
-      const usedPositions = new Set()
+      const paired = []
+      const closedPositions = new Set()
+
+      // Match every close leg with its open leg
       raw.forEach(t => {
         if (!t.is_close) return
         const openLeg = openMap[t.position_id]
-        usedPositions.add(t.position_id)
+        closedPositions.add(t.position_id)
         paired.push({
-          id: t.id,
-          position_id: t.position_id,
-          symbol: t.symbol,
-          side: openLeg ? (openLeg.side === 'BUY' ? 'LONG' : 'SHORT') : t.side,
-          entry_price: openLeg?.price ?? null,
-          exit_price: t.price,
-          quantity: t.quantity,
-          leverage: t.leverage,
+          id:           t.id,
+          position_id:  t.position_id,
+          symbol:       t.symbol,
+          side:         openLeg ? (openLeg.side === 'BUY' ? 'LONG' : 'SHORT') : t.side,
+          entry_price:  openLeg?.price ?? null,
+          exit_price:   t.price,
+          quantity:     t.quantity,
+          leverage:     t.leverage,
           realized_pnl: t.realized_pnl,
-          opened_at: openLeg?.executed_at ?? null,
-          closed_at: t.executed_at,
-          executed_at: t.executed_at,
+          opened_at:    openLeg?.executed_at ?? null,
+          closed_at:    t.executed_at,
+          executed_at:  t.executed_at,
         })
       })
 
-      // Also include open positions that haven't been closed yet
+      // Include still-open positions (no close leg yet)
       raw.forEach(t => {
-        if (!t.is_close && !usedPositions.has(t.position_id)) {
+        if (!t.is_close && !closedPositions.has(t.position_id)) {
           paired.push({
-            id: t.id,
-            position_id: t.position_id,
-            symbol: t.symbol,
-            side: t.side === 'BUY' ? 'LONG' : 'SHORT',
-            entry_price: t.price,
-            exit_price: null,
-            quantity: t.quantity,
-            leverage: t.leverage,
+            id:           t.id,
+            position_id:  t.position_id,
+            symbol:       t.symbol,
+            side:         t.side === 'BUY' ? 'LONG' : 'SHORT',
+            entry_price:  t.price,
+            exit_price:   null,
+            quantity:     t.quantity,
+            leverage:     t.leverage,
             realized_pnl: null,
-            opened_at: t.executed_at,
-            closed_at: null,
-            executed_at: t.executed_at,
+            opened_at:    t.executed_at,
+            closed_at:    null,
+            executed_at:  t.executed_at,
           })
         }
       })
 
-      // Sort by most recent first
       paired.sort((a, b) => new Date(b.executed_at) - new Date(a.executed_at))
       setTrades(paired)
     } catch (e) {
@@ -120,13 +120,13 @@ export default function TradeHistoryPage({ userId }) {
     loadTrades()
   }, [userId, loadTrades])
 
-  // ── derived symbols for filter ────────────────────────────────────────────
+  // ── Derived symbols for filter ────────────────────────────────────────────
   const symbols = useMemo(() => {
     const s = new Set(trades.map(t => t.symbol))
     return ['all', ...Array.from(s)]
   }, [trades])
 
-  // ── filtered + sorted ────────────────────────────────────────────────────
+  // ── Filtered + sorted ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = [...trades]
     const q = search.trim().toLowerCase()
@@ -305,7 +305,8 @@ export default function TradeHistoryPage({ userId }) {
               {paginated.map(trade => {
                 const pnl = trade.realized_pnl
                 const dur = tradeDuration(trade)
-                const margin = trade.entry_price && trade.quantity
+                // ROI as % of margin used (matches Binance/Bybit convention)
+                const margin = trade.entry_price && trade.quantity && trade.leverage
                   ? (trade.entry_price * trade.quantity) / trade.leverage : null
                 const pnlPct = pnl != null && margin ? ((pnl / margin) * 100).toFixed(2) : null
 
