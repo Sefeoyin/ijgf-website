@@ -876,8 +876,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     </tr>
                   ) : positions.map(pos => {
                     const edit = tpSlEdit[pos.id]
-                    const tpVal = edit ? edit.tp : (pos.take_profit ?? '')
-                    const slVal = edit ? edit.sl : (pos.stop_loss ?? '')
                     const isDirty = edit && (String(edit.tp) !== String(pos.take_profit ?? '') || String(edit.sl) !== String(pos.stop_loss ?? ''))
                     return (
                       <tr key={pos.id}>
