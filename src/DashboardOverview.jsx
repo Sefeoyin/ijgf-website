@@ -1,29 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getAccountState, getTradingDays, resetDemoAccount, MIN_TRADING_DAYS } from './tradingService'
-import ChallengeResultModal from './ChallengeResultModal'
-import { supabase } from './supabase'
+import { getAccountState, resetDemoAccount } from './tradingService'
 
-function DashboardOverview({ userId }) {
-  const [timeRange, setTimeRange] = useState('1D')
+function DashboardOverview({ userId, onNavigate }) {
+  const [timeRange, setTimeRange] = useState('1W')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
-  const [sortBy, setSortBy] = useState('default') // default, price-high, price-low, change-high, change-low, name
-  const [priceAlerts, setPriceAlerts] = useState([]) // { symbol, targetPrice, condition: 'above' | 'below', triggered: false }
+  const [sortBy, setSortBy] = useState('default')
+  const [priceAlerts, setPriceAlerts] = useState([])
   const [showAlertModal, setShowAlertModal] = useState(false)
   const [alertModalMarket, setAlertModalMarket] = useState(null)
-  const [notifications, setNotifications] = useState([]) // { id, message, type: 'success' | 'info' }
+  const [notifications, setNotifications] = useState([])
   const [showMarketsModal, setShowMarketsModal] = useState(false)
+  const [showChallengeModal, setShowChallengeModal] = useState(false)
+  const [startingChallenge, setStartingChallenge] = useState(false)
   
   // Real account data from Supabase
   const [account, setAccount] = useState(null)
   const [accountLoading, setAccountLoading] = useState(true)
   const [accountPositions, setAccountPositions] = useState([])
-  const [tradingDays, setTradingDays] = useState(0)
-  const [userName, setUserName] = useState('Trader')
-  const [avatarUrl, setAvatarUrl] = useState(null)
-  const [startingNewChallenge, setStartingNewChallenge] = useState(false)
 
   // Load account + trades from Supabase
   useEffect(() => {
@@ -35,22 +31,6 @@ function DashboardOverview({ userId }) {
         setAccount(state.account)
         setRealTrades(state.recentTrades)
         setAccountPositions(state.positions || [])
-        // Load trading days
-        if (state.account?.id) {
-          const days = await getTradingDays(state.account.id)
-          setTradingDays(days)
-        }
-        // Load user profile
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setUserName(
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split('@')[0] ||
-            'Trader'
-          )
-          setAvatarUrl(user.user_metadata?.avatar_url || null)
-        }
       } catch (err) {
         console.error('DashboardOverview: failed to load account', err)
       } finally {
@@ -60,49 +40,8 @@ function DashboardOverview({ userId }) {
     load()
   }, [userId])
 
-  // Handle start new challenge — resets the demo account
-  const handleStartNewChallenge = useCallback(async () => {
-    if (startingNewChallenge) return
-    setStartingNewChallenge(true)
-    try {
-      await resetDemoAccount(userId)
-      // Reload state
-      const state = await getAccountState(userId)
-      setAccount(state.account)
-      setRealTrades(state.recentTrades)
-      setAccountPositions(state.positions || [])
-      setTradingDays(0)
-    } catch (err) {
-      console.error('DashboardOverview: failed to reset account', err)
-    } finally {
-      setStartingNewChallenge(false)
-    }
-  }, [userId, startingNewChallenge])
-
-  // Real-time market data from CoinGecko - Expanded list
-  const [markets, setMarkets] = useState([
-    // Top favorites
-    { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0, favorite: true },
-    { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0, favorite: true },
-    
-    // Popular coins
-    { symbol: 'SOLUSDT', name: 'Solana', price: 0, change: 0, favorite: false },
-    { symbol: 'BNBUSDT', name: 'Binance Coin', price: 0, change: 0, favorite: false },
-    { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0, favorite: false },
-    { symbol: 'ADAUSDT', name: 'Cardano', price: 0, change: 0, favorite: false },
-    { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0, change: 0, favorite: false },
-    { symbol: 'AVAXUSDT', name: 'Avalanche', price: 0, change: 0, favorite: false },
-    { symbol: 'DOTUSDT', name: 'Polkadot', price: 0, change: 0, favorite: false },
-    { symbol: 'MATICUSDT', name: 'Polygon', price: 0, change: 0, favorite: false },
-    { symbol: 'LINKUSDT', name: 'Chainlink', price: 0, change: 0, favorite: false },
-    { symbol: 'UNIUSDT', name: 'Uniswap', price: 0, change: 0, favorite: false },
-    { symbol: 'ATOMUSDT', name: 'Cosmos', price: 0, change: 0, favorite: false },
-    { symbol: 'LTCUSDT', name: 'Litecoin', price: 0, change: 0, favorite: false },
-    { symbol: 'NEARUSDT', name: 'NEAR Protocol', price: 0, change: 0, favorite: false },
-    { symbol: 'APTUSDT', name: 'Aptos', price: 0, change: 0, favorite: false },
-    { symbol: 'ARBUSDT', name: 'Arbitrum', price: 0, change: 0, favorite: false },
-    { symbol: 'OPUSDT', name: 'Optimism', price: 0, change: 0, favorite: false }
-  ])
+  // Real-time market data from Binance Futures — all USDT perps
+  const [markets, setMarkets] = useState([])
 
   const [realTrades, setRealTrades] = useState([])
 
@@ -129,8 +68,6 @@ function DashboardOverview({ userId }) {
       ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
       : 0,
     currentEquity: trueAccountValue,
-    tradingDays,
-    minTradingDays: MIN_TRADING_DAYS,
   }
 
   // Filter markets based on search query and favorites filter
@@ -257,81 +194,55 @@ function DashboardOverview({ userId }) {
     })
   }, [markets, priceAlerts, addNotification, removePriceAlert])
 
-  // Fetch real prices from CoinGecko API (better CORS support than Binance)
+  // Human-readable names for top coins — others fall back to ticker base
+  const COIN_NAMES = {
+    BTCUSDT:'Bitcoin', ETHUSDT:'Ethereum', BNBUSDT:'BNB', SOLUSDT:'Solana',
+    XRPUSDT:'XRP', ADAUSDT:'Cardano', DOGEUSDT:'Dogecoin', AVAXUSDT:'Avalanche',
+    DOTUSDT:'Polkadot', MATICUSDT:'Polygon', LINKUSDT:'Chainlink', UNIUSDT:'Uniswap',
+    ATOMUSDT:'Cosmos', LTCUSDT:'Litecoin', NEARUSDT:'NEAR Protocol', APTUSDT:'Aptos',
+    ARBUSDT:'Arbitrum', OPUSDT:'Optimism', SUIUSDT:'Sui', INJUSDT:'Injective',
+    SEIUSDT:'Sei', WLDUSDT:'Worldcoin', PEPEUSDT:'Pepe', SHIBUSDT:'Shiba Inu',
+    TONUSDT:'Toncoin', TRXUSDT:'TRON', BCHUSDT:'Bitcoin Cash', XLMUSDT:'Stellar',
+    ETCUSDT:'Ethereum Classic', FILUSDT:'Filecoin', ICPUSDT:'Internet Computer',
+    HBARUSDT:'Hedera', AAVEUSDT:'Aave', LDOUSDT:'Lido', WIFUSDT:'dogwifhat',
+    BONKUSDT:'Bonk', FLOKIUSDT:'Floki', RUNEUSDT:'THORChain', FETUSDT:'Fetch.ai',
+    RENDERUSDT:'Render', IMXUSDT:'Immutable X', KASUSDT:'Kaspa', JUPUSDT:'Jupiter',
+    TAOUSDT:'Bittensor', SANDUSDT:'The Sandbox', MANAUSDT:'Decentraland',
+    GALAUSDT:'Gala', AXSUSDT:'Axie Infinity', GMXUSDT:'GMX', PENDLEUSDT:'Pendle',
+    TIAUSDT:'Celestia', STRKUSDT:'Starknet', CRVUSDT:'Curve DAO', MKRUSDT:'Maker',
+    COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
+  }
+
+  // Fetch all Binance Futures USDT pairs sorted by 24h volume
   useEffect(() => {
-    const fetchPrices = async () => {
-      // Map Binance symbols to CoinGecko IDs - Expanded list
-      const coinGeckoMap = {
-        'BTCUSDT': { id: 'bitcoin', symbol: 'BTC' },
-        'ETHUSDT': { id: 'ethereum', symbol: 'ETH' },
-        'SOLUSDT': { id: 'solana', symbol: 'SOL' },
-        'BNBUSDT': { id: 'binancecoin', symbol: 'BNB' },
-        'XRPUSDT': { id: 'ripple', symbol: 'XRP' },
-        'ADAUSDT': { id: 'cardano', symbol: 'ADA' },
-        'DOGEUSDT': { id: 'dogecoin', symbol: 'DOGE' },
-        'AVAXUSDT': { id: 'avalanche-2', symbol: 'AVAX' },
-        'DOTUSDT': { id: 'polkadot', symbol: 'DOT' },
-        'MATICUSDT': { id: 'polygon-ecosystem-token', symbol: 'MATIC' },
-        'LINKUSDT': { id: 'chainlink', symbol: 'LINK' },
-        'UNIUSDT': { id: 'uniswap', symbol: 'UNI' },
-        'ATOMUSDT': { id: 'cosmos', symbol: 'ATOM' },
-        'LTCUSDT': { id: 'litecoin', symbol: 'LTC' },
-        'NEARUSDT': { id: 'near', symbol: 'NEAR' },
-        'APTUSDT': { id: 'aptos', symbol: 'APT' },
-        'ARBUSDT': { id: 'arbitrum', symbol: 'ARB' },
-        'OPUSDT': { id: 'optimism', symbol: 'OP' }
-      }
-      
-      console.log('🔄 Fetching prices from CoinGecko...')
-      
+    const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
+    const fetchAllMarkets = async () => {
       try {
-        // CoinGecko API - fetch all coins at once
-        const ids = Object.values(coinGeckoMap).map(coin => coin.id).join(',')
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
-        )
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        console.log('📊 CoinGecko response:', data)
-        
-        setMarkets(prevMarkets =>
-          prevMarkets.map(market => {
-            const coinInfo = coinGeckoMap[market.symbol]
-            const coinData = coinInfo && data[coinInfo.id]
-            
-            if (coinData) {
-              console.log(`✅ Updating ${market.symbol}: $${coinData.usd}`)
-              return {
-                ...market,
-                price: coinData.usd,
-                change: coinData.usd_24h_change || 0
-              }
-            }
-            console.log(`⚠️ No data for ${market.symbol}`)
-            return market
-          })
-        )
-        
+        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const tickers = await res.json()
+        const parsed = tickers
+          .filter(t => t.symbol.endsWith('USDT'))
+          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+          .map(t => ({
+            symbol: t.symbol,
+            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
+            price: parseFloat(t.lastPrice) || 0,
+            change: parseFloat(t.priceChangePercent) || 0,
+            favorite: FAVORITES.has(t.symbol),
+          }))
+        setMarkets(parsed)
         setIsLoadingPrices(false)
-        console.log('✅ Price update complete')
-      } catch (error) {
-        console.error('❌ Error fetching CoinGecko prices:', error)
+      } catch (err) {
+        console.error('Binance Futures ticker fetch failed:', err)
         setIsLoadingPrices(false)
       }
     }
 
-    // Fetch immediately
-    fetchPrices()
-
-    // Then update every 30 seconds (CoinGecko rate limit is generous)
-    const interval = setInterval(fetchPrices, 30000)
-
+    fetchAllMarkets()
+    const interval = setInterval(fetchAllMarkets, 30000)
     return () => clearInterval(interval)
-  }, []) // Empty dependency array is intentional - we only want to set up the interval once
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build equity chart from real trade history
   const buildChartFromTrades = useCallback((trades, hoursBack) => {
@@ -345,7 +256,8 @@ function DashboardOverview({ userId }) {
       .sort((a, b) => new Date(a.executed_at) - new Date(b.executed_at))
 
     if (filtered.length === 0) {
-      return { path: 'M 50 170 L 750 170', fillPath: 'M 50 170 L 750 170 L 750 170 L 50 170 Z', equity: initial, change: 0, dates: [] }
+      const pad = initial * 0.15
+      return { path: 'M 50 90 L 750 90', fillPath: 'M 50 90 L 750 90 L 750 170 L 50 170 Z', equity: initial, change: 0, dates: [], yMin: initial - pad, yMax: initial + pad }
     }
 
     // Build cumulative equity points
@@ -360,10 +272,13 @@ function DashboardOverview({ userId }) {
 
     // Normalize to SVG y-axis (170 = bottom, 10 = top)
     const equities = points.map(p => p.equity)
-    const minE = Math.min(...equities)
-    const maxE = Math.max(...equities)
-    const range = maxE - minE || 1
-    const normalize = (e) => 170 - ((e - minE) / range) * 160
+    const rawMin = Math.min(...equities)
+    const rawMax = Math.max(...equities)
+    const pad = (rawMax - rawMin) * 0.15 || initial * 0.1
+    const yMin = rawMin - pad
+    const yMax = rawMax + pad
+    const range = yMax - yMin
+    const normalize = (e) => 170 - ((e - yMin) / range) * 160
 
     const normalized = points.map(p => ({ x: p.x, y: normalize(p.equity), equity: p.equity }))
     const path = normalized.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
@@ -372,7 +287,7 @@ function DashboardOverview({ userId }) {
     const finalEquity = running
     const change = ((finalEquity - initial) / initial) * 100
 
-    return { path, fillPath, equity: finalEquity, change, dates: [] }
+    return { path, fillPath, equity: finalEquity, change, dates: [], yMin, yMax }
   }, [account])
 
   const hoursMap = { '1D': 24, '1W': 168, '1M': 720, '3M': 2160, '6M': 4320, '1Y': 8760 }
@@ -430,19 +345,7 @@ function DashboardOverview({ userId }) {
 
   return (
     <div className="dashboard-overview">
-
-      {/* Challenge Result Modal — shown when passed or failed */}
-      {(account?.status === 'passed' || account?.status === 'failed') && (
-        <ChallengeResultModal
-          account={account}
-          userName={userName}
-          avatarUrl={avatarUrl}
-          tradingDays={tradingDays}
-          onStartNew={handleStartNewChallenge}
-        />
-      )}
-
-      {/* Top Stats Cards */}
+      {/* Top Stats Cards - 4 cards in one row */}
       <div className="stats-cards-row">
         <div className="stats-card">
           <div className="stats-card-header">
@@ -496,30 +399,7 @@ function DashboardOverview({ userId }) {
             <span className="stats-label">Current Equity</span>
           </div>
           <div className="stats-value">{formatCurrency(stats.currentEquity)}</div>
-          <div className="stats-subtitle">Account value</div>
-        </div>
-
-        {/* Trading Days card */}
-        <div className={`stats-card ${stats.tradingDays >= stats.minTradingDays ? 'stats-card--met' : ''}`}>
-          <div className="stats-card-header">
-            <div className={`stats-icon ${stats.tradingDays >= stats.minTradingDays ? 'green' : 'blue'}`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <span className="stats-label">Trading Days</span>
-          </div>
-          <div className="stats-value">
-            <span className={stats.tradingDays >= stats.minTradingDays ? 'pnl-positive' : ''}>
-              {stats.tradingDays}
-            </span>
-            <span className="stats-value-denom">/{stats.minTradingDays}</span>
-          </div>
-          <div className="stats-subtitle">
-            {stats.tradingDays >= stats.minTradingDays ? '✓ Minimum met' : `${stats.minTradingDays - stats.tradingDays} more needed`}
-          </div>
+          <div className="stats-subtitle">All time performance</div>
         </div>
       </div>
 
@@ -554,14 +434,12 @@ function DashboardOverview({ userId }) {
 
           {/* Chart with Y-axis and X-axis labels */}
           <div className="chart-container">
-            {/* Y-axis labels */}
+            {/* Y-axis labels — dynamic based on actual equity range */}
             <div className="chart-y-axis">
-              <span>$25,000</span>
-              <span>$20,000</span>
-              <span>$15,000</span>
-              <span>$10,000</span>
-              <span>$5,000</span>
-            </div>
+              {[4,3,2,1,0].map(i => {
+                const val = (currentChart.yMin || 0) + i * ((currentChart.yMax - currentChart.yMin) / 4 || 1)
+                return <span key={i}>{formatCurrency(val)}</span>
+              })}
             
             {/* Chart SVG */}
             <div className="chart-svg-wrapper">
@@ -780,10 +658,7 @@ function DashboardOverview({ userId }) {
                 </div>
                 <div className="challenge-metric">
                   <span className="metric-label">Min Trading Days</span>
-                  <span className={`metric-value ${tradingDays >= MIN_TRADING_DAYS ? 'metric-value--met' : ''}`}>
-                    {tradingDays}/{MIN_TRADING_DAYS}
-                    {tradingDays >= MIN_TRADING_DAYS && ' ✓'}
-                  </span>
+                  <span className="metric-value">{account.min_trading_days || 5} days</span>
                 </div>
               </div>
               <div className="challenge-progress">
@@ -798,18 +673,6 @@ function DashboardOverview({ userId }) {
                   />
                 </div>
               </div>
-              <div className="challenge-progress">
-                <div className="progress-label">
-                  <span>Trading Days</span>
-                  <span>{tradingDays}/{MIN_TRADING_DAYS} days</span>
-                </div>
-                <div className="progress-bar-track">
-                  <div
-                    className={`progress-bar-fill ${tradingDays >= MIN_TRADING_DAYS ? 'progress-bar-fill--met' : 'progress-bar-fill--days'}`}
-                    style={{ width: `${Math.min(100, (tradingDays / MIN_TRADING_DAYS) * 100)}%` }}
-                  />
-                </div>
-              </div>
             </div>
           ) : (
             <div className="challenge-card empty-state">
@@ -819,18 +682,27 @@ function DashboardOverview({ userId }) {
                   <path d="M12 6v6l4 2"/>
                 </svg>
               </div>
-              <p className="empty-text">{account ? `Challenge ${account.status}` : 'No active challenges'}</p>
-              <p className="empty-subtext">Start a challenge to begin trading</p>
+              <p className="empty-text">
+                {account?.status === 'failed' ? 'Challenge Failed' : account?.status === 'passed' ? 'Challenge Passed! 🎉' : 'No active challenges'}
+              </p>
+              <p className="empty-subtext">
+                {account?.status === 'failed' ? 'Ready to try again?' : account?.status === 'passed' ? 'Start a new challenge to keep trading' : 'Start a challenge to begin trading'}
+              </p>
             </div>
           )}
-          <button className="btn-start-challenge">Start New Challenge</button>
+          {/* Only show Start New Challenge when NOT actively in a challenge */}
+          {!accountLoading && account?.status !== 'active' && (
+            <button className="btn-start-challenge" onClick={() => setShowChallengeModal(true)}>
+              {account?.status === 'failed' ? 'Try Again' : account?.status === 'passed' ? 'Start New Challenge' : 'Start Challenge'}
+            </button>
+          )}
         </div>
 
         {/* History Widget - Bottom Right */}
         <div className="history-widget">
           <div className="widget-header">
             <h3>History</h3>
-            <button className="btn-view-all-link">View All</button>
+            <button className="btn-view-all-link" onClick={() => onNavigate && onNavigate('history')}>View All</button>
           </div>
           <div className="history-table">
             <div className="table-header">
@@ -1108,6 +980,71 @@ function DashboardOverview({ userId }) {
                   </table>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Challenge Picker Modal */}
+      {showChallengeModal && (
+        <div className="modal-overlay" onClick={() => !startingChallenge && setShowChallengeModal(false)}>
+          <div className="challenge-picker-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3>Choose Your Challenge</h3>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginTop: '0.25rem' }}>Select your account size to begin</p>
+              </div>
+              <button className="modal-close" onClick={() => setShowChallengeModal(false)} disabled={startingChallenge}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="challenge-picker-grid">
+              {[
+                { key: '5k',   size: '$5,000',   fee: '$49',  target: '10%', drawdown: '8%' },
+                { key: '10k',  size: '$10,000',  fee: '$99',  target: '10%', drawdown: '8%' },
+                { key: '25k',  size: '$25,000',  fee: '$249', target: '10%', drawdown: '8%' },
+                { key: '50k',  size: '$50,000',  fee: '$499', target: '10%', drawdown: '8%' },
+                { key: '100k', size: '$100,000', fee: '$749', target: '10%', drawdown: '8%' },
+                { key: '200k', size: '$200,000', fee: '$999', target: '10%', drawdown: '8%', comingSoon: true },
+              ].map(tier => (
+                <div
+                  key={tier.key}
+                  className={`challenge-tier-card ${tier.comingSoon ? 'coming-soon' : ''}`}
+                  onClick={() => {
+                    if (tier.comingSoon || startingChallenge) return
+                    setStartingChallenge(true)
+                    resetDemoAccount(userId, tier.key)
+                      .then(() => {
+                        setShowChallengeModal(false)
+                        // Reload account state
+                        return getAccountState(userId)
+                      })
+                      .then(state => {
+                        setAccount(state.account)
+                        setRealTrades(state.recentTrades)
+                        setAccountPositions(state.positions || [])
+                      })
+                      .catch(err => console.error('Failed to start challenge:', err))
+                      .finally(() => setStartingChallenge(false))
+                  }}
+                >
+                  {tier.comingSoon && <span className="tier-coming-soon-badge">Coming Soon</span>}
+                  <div className="tier-size">{tier.size}</div>
+                  <div className="tier-fee">{tier.fee} fee</div>
+                  <div className="tier-details">
+                    <span>Profit Target: <strong>{tier.target}</strong></span>
+                    <span>Max Drawdown: <strong>{tier.drawdown}</strong></span>
+                    <span>Profit Split: <strong>80%</strong></span>
+                  </div>
+                  {!tier.comingSoon && (
+                    <div className="tier-cta">
+                      {startingChallenge ? 'Starting...' : 'Select'}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

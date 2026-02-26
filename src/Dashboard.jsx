@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
@@ -26,7 +26,9 @@ function Dashboard() {
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
 
-  const checkUserAndLoadProfile = useCallback(async () => {
+  useEffect(() => { checkUserAndLoadProfile() }, [])
+
+  const checkUserAndLoadProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
@@ -45,9 +47,7 @@ function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [navigate])
-
-  useEffect(() => { checkUserAndLoadProfile() }, [checkUserAndLoadProfile])
+  }
 
   useEffect(() => {
     const checkAlerts = () => {
@@ -216,7 +216,7 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard' && <DashboardOverview userId={userId} />}
+          {activeTab === 'dashboard' && <DashboardOverview userId={userId} onNavigate={setActiveTab} />}
           {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}

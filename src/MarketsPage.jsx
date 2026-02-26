@@ -37,6 +37,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [orderSubmitting, setOrderSubmitting] = useState(false)
   const [availablePairs, setAvailablePairs] = useState([])
   const [pairsLoading, setPairsLoading] = useState(true)
+  const [snapshotPrices, setSnapshotPrices] = useState({}) // { BTCUSDT: { price, change } }
   // Reconcile balance state
   const [reconcileState, setReconcileState] = useState('idle') // 'idle' | 'confirm' | 'running' | 'done' | 'error'
   const [reconcileResult, setReconcileResult] = useState(null)
@@ -100,6 +101,17 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           .filter(t => t.symbol.endsWith('USDT'))
           .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
           .map(t => t.symbol)
+        // Build snapshot price map for dropdown display
+        const snap = {}
+        tickers.forEach(t => {
+          if (t.symbol.endsWith('USDT')) {
+            snap[t.symbol] = {
+              price: parseFloat(t.lastPrice) || 0,
+              change: parseFloat(t.priceChangePercent) || 0,
+            }
+          }
+        })
+        setSnapshotPrices(snap)
         setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
       } catch (err) {
         console.warn('Binance pairs fetch failed, using fallback:', err.message)
@@ -1217,11 +1229,17 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   onClick={() => { setSelectedPair(pair); setShowPairDropdown(false); setPairSearch('') }}
                 >
                   {pair.replace('USDT', '')} <span className="pair-dropdown-quote">/ USDT</span>
-                  {trading.prices[pair] && (
-                    <span className={`pair-dropdown-price ${(trading.prices[pair].change || 0) >= 0 ? 'positive' : 'negative'}`}>
-                      ${fmt(trading.prices[pair].price)}
-                    </span>
-                  )}
+                  {(() => {
+                    const liveData = trading.prices[pair]
+                    const snapData = snapshotPrices[pair]
+                    const data = liveData || snapData
+                    if (!data) return null
+                    return (
+                      <span className={`pair-dropdown-price ${(data.change || 0) >= 0 ? 'positive' : 'negative'}`}>
+                        ${fmt(data.price)}
+                      </span>
+                    )
+                  })()}
                 </button>
               ))}
             </div>
