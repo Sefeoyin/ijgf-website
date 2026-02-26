@@ -766,6 +766,21 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
 // This repairs any balance desync caused by the old fire-and-forget bug
 // where closePosition logged the trade but failed to update the balance row.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Trading Days Counter
+// Returns the number of distinct calendar days an account has traded.
+// ---------------------------------------------------------------------------
+export async function getTradingDays(accountId) {
+  if (!accountId) return 0
+  const { data, error } = await supabase
+    .from('demo_trades')
+    .select('executed_at')
+    .eq('demo_account_id', accountId)
+
+  if (error || !data) return 0
+  return new Set(data.map(t => t.executed_at.split('T')[0])).size
+}
+
 export async function reconcileDemoAccount(userId, challengeType = '10k') {
   const account = await getOrCreateDemoAccount(userId, challengeType)
 
