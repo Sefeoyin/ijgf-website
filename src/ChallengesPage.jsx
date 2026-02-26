@@ -128,10 +128,6 @@ function ChallengesPage() {
                   <span className="spec-value">{challenge.maxDrawdown}</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Max Daily Drawdown</span>
-                  <span className="spec-value">{challenge.dailyLimit}</span>
-                </div>
-                <div className="spec-row">
                   <span className="spec-label">Min Trading Days</span>
                   <span className="spec-value spec-value--highlight">{challenge.minTradingDays}</span>
                 </div>

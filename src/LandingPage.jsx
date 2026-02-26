@@ -298,10 +298,6 @@ function LandingPage() {
                   <span className="spec-value">$400 (8%)</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Max Daily Drawdown</span>
-                  <span className="spec-value">None</span>
-                </div>
-                <div className="spec-row">
                   <span className="spec-label">Min Trading Days</span>
                   <span className="spec-value spec-value--highlight">5 Days</span>
                 </div>
@@ -347,10 +343,6 @@ function LandingPage() {
                   <span className="spec-value">$800 (8%)</span>
                 </div>
                 <div className="spec-row">
-                  <span className="spec-label">Max Daily Drawdown</span>
-                  <span className="spec-value">None</span>
-                </div>
-                <div className="spec-row">
                   <span className="spec-label">Min Trading Days</span>
                   <span className="spec-value spec-value--highlight">5 Days</span>
                 </div>
@@ -389,7 +381,6 @@ function LandingPage() {
               <div className="challenge-preview-specs">
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$2,500 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$2,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
                 <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
@@ -410,7 +401,6 @@ function LandingPage() {
               <div className="challenge-preview-specs">
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$5,000 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$4,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
                 <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>
@@ -431,7 +421,6 @@ function LandingPage() {
               <div className="challenge-preview-specs">
                 <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$10,000 (10%)</span></div>
                 <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$8,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Daily Drawdown</span><span className="spec-value">None</span></div>
                 <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
                 <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
               </div>

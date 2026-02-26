@@ -4,7 +4,7 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE, reconcileDemoAccount } from './tradingService'
 import './MarketsPage.css'
 
-function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
+function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
   const [pairSearch, setPairSearch] = useState('')
@@ -41,6 +41,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     bids: liveBids, asks: liveAsks, obMode,
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
+    tradingDays, minTradingDays, tradingDaysPercent,
+    challengeResult, dismissChallengeResult, submitStartNewChallenge,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
@@ -341,6 +343,20 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     const sign = val >= 0 ? '+' : ''
     return { text: `${sign}$${val.toFixed(2)}`, cls: val >= 0 ? 'positive' : 'negative' }
   }
+
+  // ---- Fire parent callback when challenge status changes ----
+  useEffect(() => {
+    if ((challengeResult === 'passed' || challengeResult === 'failed') && onChallengeResult) {
+      onChallengeResult(
+        challengeResult,
+        trading.account,
+        trading.tradingDays,
+        trading.submitStartNewChallenge
+      )
+      // Reset local state so it doesn't re-fire
+      trading.dismissChallengeResult()
+    }
+  }, [challengeResult]) // eslint-disable-line
 
   // ---- Reconcile balance handler ----
   const handleReconcile = async () => {
@@ -731,17 +747,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
             </div>
             <div className="risk-metric-row">
               <span className="rm-label">
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="#f59e0b">
-                  <path d="M8 1L1 14h14L8 1zm-1 9v2h2v-2H7zm0-5v4h2V5H7z"/>
-                </svg>
-                Max Daily Drawdown
-              </span>
-              <span className="rm-value">
-                None
-              </span>
-            </div>
-            <div className="risk-metric-row">
-              <span className="rm-label">
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="#ef4444"><circle cx="8" cy="8" r="6"/></svg>
                 Max Drawdown
               </span>
@@ -749,9 +754,23 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 ${drawdownUsed.toFixed(0)} / ${account?.max_total_drawdown?.toFixed(0) || '800'}
               </span>
             </div>
+            <div className="risk-metric-row">
+              <span className="rm-label">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="#a78bfa"><circle cx="8" cy="8" r="6"/></svg>
+                Trading Days
+              </span>
+              <span className={`rm-value ${tradingDays >= minTradingDays ? 'positive' : ''}`}>
+                {tradingDays} / {minTradingDays} days
+              </span>
+            </div>
             {drawdownPercent > 50 && (
               <div className="drawdown-warning">
                 ⚠️ {Math.min(drawdownPercent, 999).toFixed(0)}% of max drawdown used
+              </div>
+            )}
+            {equityProfit >= (account?.profit_target || 1000) && tradingDays < minTradingDays && (
+              <div className="drawdown-warning" style={{borderColor:'rgba(167,139,250,0.4)',color:'#a78bfa'}}>
+                🏁 Target hit! Trade {minTradingDays - tradingDays} more day{minTradingDays - tradingDays !== 1 ? 's' : ''} to pass
               </div>
             )}
           </div>
