@@ -13235,3 +13235,219 @@ body[data-theme="day"] .tier-cta { border-color: rgba(0,0,0,0.06); color: #7c3ae
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX 1 — PREVENT MOBILE ZOOM ON SEARCH INPUT FOCUS
+   iOS Safari zooms when input font-size < 16px
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pair-search-input {
+  font-size: 16px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #eaecef;
+  padding: 0 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .pair-search-input {
+    font-size: 13px;
+  }
+}
+
+.pair-dropdown-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2b3139;
+  background: #1e2329;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pair-search-clear {
+  background: none;
+  border: none;
+  color: #848e9c;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pair-dropdown-loading,
+.pair-dropdown-empty {
+  padding: 16px 12px;
+  color: #848e9c;
+  font-size: 13px;
+  text-align: center;
+}
+
+.pair-dropdown-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.pair-dropdown-price {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+}
+.pair-dropdown-price.positive { color: #0ecb81; }
+.pair-dropdown-price.negative { color: #f6465d; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX 2 — LIGHT MODE: PAIR SEARCH INPUT & DROPDOWN SEARCH BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+body[data-theme="day"] .pair-dropdown-search {
+  background: #f8f9fc;
+  border-bottom-color: var(--border-color);
+}
+
+body[data-theme="day"] .pair-search-input {
+  color: var(--text-primary);
+}
+
+body[data-theme="day"] .pair-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+body[data-theme="day"] .pair-search-clear {
+  color: var(--text-muted);
+}
+
+body[data-theme="day"] .pair-dropdown-search svg {
+  color: var(--text-muted);
+}
+
+body[data-theme="day"] .pair-dropdown-loading,
+body[data-theme="day"] .pair-dropdown-empty {
+  color: var(--text-muted);
+}
+
+body[data-theme="day"] .pair-dropdown-spinner {
+  border-color: rgba(0,0,0,0.08);
+  border-top-color: #7c3aed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX 3 — DASHBOARD BACKGROUND: ANIMATED PURPLE GRADIENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes dashGradientShift {
+  0%   { background-position: 0% 0%; }
+  25%  { background-position: 100% 0%; }
+  50%  { background-position: 100% 100%; }
+  75%  { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+@keyframes dashOrb1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(60px, -40px) scale(1.15); }
+  66%       { transform: translate(-30px, 50px) scale(0.9); }
+}
+
+@keyframes dashOrb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-50px, 60px) scale(0.85); }
+  66%       { transform: translate(70px, -30px) scale(1.1); }
+}
+
+@keyframes dashOrb3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(40px, 40px) scale(1.2); }
+}
+
+.dashboard-main {
+  position: relative;
+  background: #05050a;
+  overflow: hidden;
+}
+
+/* Orb layer — sits behind all content, never captures pointer events */
+.dashboard-main::before,
+.dashboard-main::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  opacity: 0.18;
+}
+
+/* Top-left orb */
+.dashboard-main::before {
+  width: 600px;
+  height: 600px;
+  top: -150px;
+  left: 80px;
+  background: radial-gradient(circle, #7c3aed 0%, #a855f7 50%, transparent 70%);
+  animation: dashOrb1 18s ease-in-out infinite;
+}
+
+/* Bottom-right orb */
+.dashboard-main::after {
+  width: 500px;
+  height: 500px;
+  bottom: -100px;
+  right: 100px;
+  background: radial-gradient(circle, #4f46e5 0%, #7c3aed 50%, transparent 70%);
+  animation: dashOrb2 22s ease-in-out infinite;
+}
+
+/* All direct children of dashboard-main sit above the orbs */
+.dashboard-main > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Third mid-screen orb via a wrapper approach — applied on overview page */
+.dashboard-overview::before {
+  content: '';
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #6d28d9 0%, transparent 65%);
+  filter: blur(90px);
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+  animation: dashOrb3 28s ease-in-out infinite;
+}
+
+/* Light mode: subtle lavender tint instead of dark */
+body[data-theme="day"] .dashboard-main {
+  background: #f4f3ff;
+}
+
+body[data-theme="day"] .dashboard-main::before {
+  opacity: 0.08;
+}
+
+body[data-theme="day"] .dashboard-main::after {
+  opacity: 0.06;
+}
+
+body[data-theme="day"] .dashboard-overview::before {
+  opacity: 0.05;
+}
