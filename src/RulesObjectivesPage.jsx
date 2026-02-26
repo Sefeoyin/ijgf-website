@@ -194,6 +194,8 @@ export default function RulesObjectivesPage({ userId }) {
         </div>
       ),
     },
+    {
+      title: 'No Daily Drawdown Limit',
       summary: 'There is no daily drawdown limit. Only the overall max drawdown applies.',
       status: { ok: true },
       icon: icons.drawdown,
