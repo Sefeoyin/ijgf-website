@@ -440,6 +440,7 @@ function DashboardOverview({ userId, onNavigate }) {
                 const val = (currentChart.yMin || 0) + i * ((currentChart.yMax - currentChart.yMin) / 4 || 1)
                 return <span key={i}>{formatCurrency(val)}</span>
               })}
+            </div>
             
             {/* Chart SVG */}
             <div className="chart-svg-wrapper">
