@@ -4,6 +4,19 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE, reconcileDemoAccount, getTradingDays, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
+// Module-level constant — never changes, no need to be inside the component
+const FALLBACK_PAIRS = [
+  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
+  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
+  'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
+  'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
+  'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
+]
+
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
@@ -74,19 +87,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   )
   const bids = obMode === 'ws' ? liveBids : simOb.bids
   const asks = obMode === 'ws' ? liveAsks : simOb.asks
-
-  // Fallback list used while API loads or if fetch fails
-  const FALLBACK_PAIRS = [
-    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-    'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-    'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-    'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-    'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
-    'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
-    'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
-    'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
-    'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
-  ]
 
   // Fetch all Binance USDT perpetual futures sorted by 24h quote volume (highest first)
   // This gives BTC, ETH, SOL etc at top — same order traders expect

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from './supabase'
 import { getAccountState } from './tradingService'
 
@@ -39,12 +39,7 @@ export default function TradeHistoryPage({ userId }) {
   const [page, setPage]         = useState(1)
   const PER_PAGE = 20
 
-  useEffect(() => {
-    if (!userId) return
-    loadTrades()
-  }, [userId])
-
-  const loadTrades = async () => {
+  const loadTrades = useCallback(async () => {
     setLoading(true)
     try {
       const state = await getAccountState(userId)
@@ -61,7 +56,12 @@ export default function TradeHistoryPage({ userId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    loadTrades()
+  }, [userId, loadTrades])
 
   // ── derived symbols for filter ────────────────────────────────────────────
   const symbols = useMemo(() => {

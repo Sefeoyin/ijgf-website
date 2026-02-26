@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
@@ -26,9 +26,7 @@ function Dashboard() {
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
 
-  useEffect(() => { checkUserAndLoadProfile() }, [])
-
-  const checkUserAndLoadProfile = async () => {
+  const checkUserAndLoadProfile = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
@@ -47,7 +45,9 @@ function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [navigate])
+
+  useEffect(() => { checkUserAndLoadProfile() }, [checkUserAndLoadProfile])
 
   useEffect(() => {
     const checkAlerts = () => {
