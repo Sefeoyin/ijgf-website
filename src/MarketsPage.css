@@ -1485,3 +1485,177 @@
   .tpsl-sep { display: none; }
   .tpsl-input { font-size: 11px; padding: 4px 6px; }
 }
+
+/* ================================================================
+   LIGHT MODE (day theme) — positions panel, bp-table, order panel
+   ================================================================ */
+body[data-theme="day"] .binance-markets-page {
+  background: #f4f2ff;
+  color: #1a1a2e;
+}
+body[data-theme="day"] .binance-chart-section,
+body[data-theme="day"] .binance-orderbook-column,
+body[data-theme="day"] .binance-order-entry,
+body[data-theme="day"] .binance-bottom-section,
+body[data-theme="day"] .positions-panel,
+body[data-theme="day"] .account-panel {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+body[data-theme="day"] .binance-bottom-section .positions-tabs {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+}
+body[data-theme="day"] .binance-bottom-section .pos-tab {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .binance-bottom-section .pos-tab.active {
+  color: #1a1a2e;
+  border-bottom-color: #7C3AED;
+}
+body[data-theme="day"] .binance-bottom-section .pos-tab:hover {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .bp-table-scroll {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+body[data-theme="day"] .bp-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+}
+body[data-theme="day"] .bp-table {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .bp-table thead tr {
+  background: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+body[data-theme="day"] .bp-table th {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .bp-table tbody tr {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+body[data-theme="day"] .bp-table tbody tr:hover {
+  background: rgba(124, 58, 237, 0.04);
+}
+body[data-theme="day"] .bp-table td {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .bp-table td small {
+  color: #5a5a7a;
+  opacity: 1;
+}
+body[data-theme="day"] .bp-table td.bp-date,
+body[data-theme="day"] .bp-table td.bp-time {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .bp-empty-cell,
+body[data-theme="day"] .empty-positions {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .bp-table .close-pos-btn {
+  background: #f6f0ff;
+  border-color: rgba(124, 58, 237, 0.25);
+  color: #7C3AED;
+}
+body[data-theme="day"] .bp-table .close-pos-btn:hover {
+  background: #ede8ff;
+  border-color: #7C3AED;
+}
+body[data-theme="day"] .account-header {
+  color: #1a1a2e;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+body[data-theme="day"] .account-row {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .account-row span:last-child {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .account-actions button {
+  background: #f4f2ff;
+  border-color: rgba(124, 58, 237, 0.15);
+  color: #1a1a2e;
+}
+body[data-theme="day"] .account-actions button:hover {
+  border-color: #7C3AED;
+  color: #7C3AED;
+}
+body[data-theme="day"] .hide-symbols {
+  color: #5a5a7a;
+}
+/* TP/SL cell in light mode */
+body[data-theme="day"] .tpsl-sep {
+  color: rgba(0, 0, 0, 0.25);
+}
+body[data-theme="day"] .tpsl-none {
+  color: rgba(0, 0, 0, 0.2);
+}
+body[data-theme="day"] .tpsl-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1a1a2e;
+}
+body[data-theme="day"] .tpsl-edit-hint {
+  color: rgba(0, 0, 0, 0.2);
+}
+/* Risk panel / order entry in light mode */
+body[data-theme="day"] .risk-monitor,
+body[data-theme="day"] .order-panel-inner {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+body[data-theme="day"] .rm-label,
+body[data-theme="day"] .rm-value,
+body[data-theme="day"] .summary-row span:first-child {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .summary-row span:last-child {
+  color: #1a1a2e;
+}
+body[data-theme="day"] .avbl-label,
+body[data-theme="day"] .avbl-value {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .entry-input-group label {
+  color: #5a5a7a;
+}
+body[data-theme="day"] .input-with-unit input,
+body[data-theme="day"] .price-input-wrap input {
+  background: #f4f2ff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1a1a2e;
+}
+body[data-theme="day"] .input-unit-inside {
+  color: #5a5a7a;
+  background: #f4f2ff;
+}
+body[data-theme="day"] .input-adj-btn {
+  background: #f4f2ff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1a1a2e;
+}
+body[data-theme="day"] .pct-btn {
+  background: #f4f2ff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #5a5a7a;
+}
+body[data-theme="day"] .pct-btn:hover,
+body[data-theme="day"] .pct-btn.active {
+  border-color: #7C3AED;
+  color: #7C3AED;
+  background: #ede8ff;
+}
+body[data-theme="day"] .order-type-tabs button {
+  color: #5a5a7a;
+  background: transparent;
+}
+body[data-theme="day"] .order-type-tabs button.active {
+  color: #1a1a2e;
+  border-bottom-color: #7C3AED;
+}
+body[data-theme="day"] .drawdown-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #92400e;
+}

@@ -50,7 +50,64 @@ export default function TradeHistoryPage({ userId }) {
         .select('*')
         .eq('demo_account_id', state.account.id)
         .order('executed_at', { ascending: false })
-      setTrades(data || [])
+
+      const raw = data || []
+
+      // Pair open (is_close=false) + close (is_close=true) records by position_id
+      // Each paired row has: entry_price, exit_price, realized_pnl, opened_at, closed_at
+      const openMap = {}
+      const paired = []
+
+      // First pass: index all open-leg records
+      raw.forEach(t => {
+        if (!t.is_close) openMap[t.position_id] = t
+      })
+
+      // Second pass: match close legs with their open leg
+      const usedPositions = new Set()
+      raw.forEach(t => {
+        if (!t.is_close) return
+        const openLeg = openMap[t.position_id]
+        usedPositions.add(t.position_id)
+        paired.push({
+          id: t.id,
+          position_id: t.position_id,
+          symbol: t.symbol,
+          side: openLeg ? (openLeg.side === 'BUY' ? 'LONG' : 'SHORT') : t.side,
+          entry_price: openLeg?.price ?? null,
+          exit_price: t.price,
+          quantity: t.quantity,
+          leverage: t.leverage,
+          realized_pnl: t.realized_pnl,
+          opened_at: openLeg?.executed_at ?? null,
+          closed_at: t.executed_at,
+          executed_at: t.executed_at,
+        })
+      })
+
+      // Also include open positions that haven't been closed yet
+      raw.forEach(t => {
+        if (!t.is_close && !usedPositions.has(t.position_id)) {
+          paired.push({
+            id: t.id,
+            position_id: t.position_id,
+            symbol: t.symbol,
+            side: t.side === 'BUY' ? 'LONG' : 'SHORT',
+            entry_price: t.price,
+            exit_price: null,
+            quantity: t.quantity,
+            leverage: t.leverage,
+            realized_pnl: null,
+            opened_at: t.executed_at,
+            closed_at: null,
+            executed_at: t.executed_at,
+          })
+        }
+      })
+
+      // Sort by most recent first
+      paired.sort((a, b) => new Date(b.executed_at) - new Date(a.executed_at))
+      setTrades(paired)
     } catch (e) {
       console.error(e)
     } finally {
@@ -248,8 +305,9 @@ export default function TradeHistoryPage({ userId }) {
               {paginated.map(trade => {
                 const pnl = trade.realized_pnl
                 const dur = tradeDuration(trade)
-                const pnlPct = account?.initial_balance
-                  ? ((pnl / account.initial_balance) * 100).toFixed(2) : null
+                const margin = trade.entry_price && trade.quantity
+                  ? (trade.entry_price * trade.quantity) / trade.leverage : null
+                const pnlPct = pnl != null && margin ? ((pnl / margin) * 100).toFixed(2) : null
 
                 return (
                   <tr key={trade.id}>
