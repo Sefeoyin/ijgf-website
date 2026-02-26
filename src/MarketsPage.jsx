@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
-import { MAX_LEVERAGE, reconcileDemoAccount, getTradingDays, MIN_TRADING_DAYS } from './tradingService'
+import { MAX_LEVERAGE, reconcileDemoAccount, getTradingDays, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
@@ -53,6 +53,19 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     if (!account?.id) return
     getTradingDays(account.id).then(setTradingDays).catch(() => {})
   }, [account?.id, recentTrades?.length])
+
+  // Inline TP/SL editing state: { [posId]: { tp: string, sl: string, saving: bool } }
+  const [tpSlEdit, setTpSlEdit] = useState({})
+  const initTpSl = (pos) => {
+    if (tpSlEdit[pos.id]) return
+    setTpSlEdit(prev => ({ ...prev, [pos.id]: { tp: pos.take_profit ?? '', sl: pos.stop_loss ?? '', saving: false } }))
+  }
+  const saveTpSl = async (pos) => {
+    setTpSlEdit(prev => ({ ...prev, [pos.id]: { ...prev[pos.id], saving: true } }))
+    await updatePositionTPSL(pos.id, userId, { takeProfit: tpSlEdit[pos.id].tp, stopLoss: tpSlEdit[pos.id].sl })
+    await trading.refreshState()
+    setTpSlEdit(prev => { const n = { ...prev }; delete n[pos.id]; return n })
+  }
 
   // Use simulated order book when WS order book isn't connected
   const simOb = useMemo(
@@ -640,7 +653,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           )}
 
           <div className="entry-input-group">
-            <label>Size</label>
+            <label>Amount</label>
             <div className="input-row">
               <button className="input-adj-btn" onClick={() => adjustSize('down')}>−</button>
               <div className="input-with-unit">
@@ -831,6 +844,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   <col style={{ width: '100px' }} />
                   <col style={{ width: '100px' }} />
                   <col style={{ width: '80px' }} />
+                  <col style={{ width: '140px' }} />
                   <col style={{ width: '110px' }} />
                   <col style={{ width: '70px' }} />
                 </colgroup>
@@ -842,6 +856,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <th>Mark Price</th>
                     <th>Liq. Price</th>
                     <th>Margin</th>
+                    <th>TP / SL</th>
                     <th>PNL (ROI%)</th>
                     <th>Action</th>
                   </tr>
@@ -849,7 +864,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 <tbody>
                   {positions.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="bp-empty-cell">
+                      <td colSpan={9} className="bp-empty-cell">
                         <div className="empty-positions">
                           <svg width="36" height="36" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.2">
                             <rect x="10" y="10" width="18" height="18" rx="2"/><rect x="36" y="10" width="18" height="18" rx="2"/>
@@ -859,25 +874,63 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                         </div>
                       </td>
                     </tr>
-                  ) : positions.map(pos => (
-                    <tr key={pos.id}>
-                      <td className={pos.side === 'LONG' ? 'positive' : 'negative'}>
-                        {pos.symbol}<br /><small>{pos.side} {pos.leverage}x</small>
-                      </td>
-                      <td>{pos.quantity.toFixed(4)}</td>
-                      <td>{fmt(pos.entry_price)}</td>
-                      <td>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</td>
-                      <td>{fmt(pos.liquidation_price)}</td>
-                      <td>${pos.margin.toFixed(2)}</td>
-                      <td className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
-                        {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
-                        <br /><small>({pos.roi?.toFixed(1)}%)</small>
-                      </td>
-                      <td>
-                        <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>Close</button>
-                      </td>
-                    </tr>
-                  ))}
+                  ) : positions.map(pos => {
+                    const edit = tpSlEdit[pos.id]
+                    const tpVal = edit ? edit.tp : (pos.take_profit ?? '')
+                    const slVal = edit ? edit.sl : (pos.stop_loss ?? '')
+                    const isDirty = edit && (String(edit.tp) !== String(pos.take_profit ?? '') || String(edit.sl) !== String(pos.stop_loss ?? ''))
+                    return (
+                      <tr key={pos.id}>
+                        <td className={pos.side === 'LONG' ? 'positive' : 'negative'}>
+                          {pos.symbol}<br /><small>{pos.side} {pos.leverage}x</small>
+                        </td>
+                        <td>{pos.quantity.toFixed(4)}</td>
+                        <td>{fmt(pos.entry_price)}</td>
+                        <td>{fmt(trading.priceMap[pos.symbol] || pos.entry_price)}</td>
+                        <td>{fmt(pos.liquidation_price)}</td>
+                        <td>${pos.margin.toFixed(2)}</td>
+                        <td className="tpsl-cell" onClick={() => initTpSl(pos)}>
+                          {edit ? (
+                            <div className="tpsl-inputs">
+                              <input
+                                className="tpsl-input tp"
+                                type="number"
+                                placeholder="TP"
+                                value={edit.tp}
+                                onChange={e => setTpSlEdit(prev => ({ ...prev, [pos.id]: { ...prev[pos.id], tp: e.target.value } }))}
+                              />
+                              <input
+                                className="tpsl-input sl"
+                                type="number"
+                                placeholder="SL"
+                                value={edit.sl}
+                                onChange={e => setTpSlEdit(prev => ({ ...prev, [pos.id]: { ...prev[pos.id], sl: e.target.value } }))}
+                              />
+                              {isDirty && (
+                                <button className="tpsl-save-btn" onClick={() => saveTpSl(pos)} disabled={edit.saving}>
+                                  {edit.saving ? '…' : 'Save'}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="tpsl-display">
+                              <span className="tpsl-tp">{pos.take_profit ? fmt(pos.take_profit) : <span className="tpsl-none">—</span>}</span>
+                              <span className="tpsl-sep"> / </span>
+                              <span className="tpsl-sl">{pos.stop_loss ? fmt(pos.stop_loss) : <span className="tpsl-none">—</span>}</span>
+                              <span className="tpsl-edit-hint">✎</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className={pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}>
+                          {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
+                          <br /><small>({pos.roi?.toFixed(1)}%)</small>
+                        </td>
+                        <td>
+                          <button className="close-pos-btn" onClick={() => submitClosePosition(pos.id)}>Close</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -893,6 +946,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                   <col style={{ width: '55px' }} />
                   <col style={{ width: '100px' }} />
                   <col style={{ width: '80px' }} />
+                  <col style={{ width: '100px' }} />
                   <col style={{ width: '65px' }} />
                   <col style={{ width: '65px' }} />
                 </colgroup>
@@ -903,13 +957,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                     <th>Side</th>
                     <th>Price</th>
                     <th>Qty</th>
+                    <th>TP / SL</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {openOrders.length === 0 ? (
-                    <tr><td colSpan={7} className="bp-empty-cell"><div className="empty-positions"><p>No open orders</p></div></td></tr>
+                    <tr><td colSpan={8} className="bp-empty-cell"><div className="empty-positions"><p>No open orders</p></div></td></tr>
                   ) : openOrders.map(order => (
                     <tr key={order.id}>
                       <td>{order.symbol}</td>
@@ -917,6 +972,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                       <td className={order.side === 'BUY' ? 'positive' : 'negative'}>{order.side}</td>
                       <td>{fmt(order.price)}</td>
                       <td>{order.quantity.toFixed(4)}</td>
+                      <td>
+                        <div className="tpsl-display">
+                          <span className="tpsl-tp">{order.take_profit ? fmt(order.take_profit) : <span className="tpsl-none">—</span>}</span>
+                          <span className="tpsl-sep"> / </span>
+                          <span className="tpsl-sl">{order.stop_loss ? fmt(order.stop_loss) : <span className="tpsl-none">—</span>}</span>
+                        </div>
+                      </td>
                       <td>{order.status}</td>
                       <td>
                         <button className="close-pos-btn" onClick={() => submitCancelOrder(order.id)}>Cancel</button>
