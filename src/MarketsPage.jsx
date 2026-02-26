@@ -41,8 +41,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     bids: liveBids, asks: liveAsks, obMode,
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
-    tradingDays, minTradingDays, tradingDaysPercent,
-    challengeResult, dismissChallengeResult, submitStartNewChallenge,
+    tradingDays, minTradingDays,
+    challengeResult,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
