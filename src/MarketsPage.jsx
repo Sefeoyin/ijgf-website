@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
-import { MAX_LEVERAGE, reconcileDemoAccount } from './tradingService'
+import { MAX_LEVERAGE, reconcileDemoAccount, getTradingDays, MIN_TRADING_DAYS } from './tradingService'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
@@ -41,11 +41,18 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     bids: liveBids, asks: liveAsks, obMode,
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
-    tradingDays, minTradingDays,
     challengeResult,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
+
+  // Trading days — loaded directly since useDemoTrading doesn't expose them
+  const [tradingDays, setTradingDays] = useState(0)
+  const minTradingDays = MIN_TRADING_DAYS
+  useEffect(() => {
+    if (!account?.id) return
+    getTradingDays(account.id).then(setTradingDays).catch(() => {})
+  }, [account?.id, recentTrades?.length])
 
   // Use simulated order book when WS order book isn't connected
   const simOb = useMemo(
