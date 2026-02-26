@@ -20,6 +20,7 @@ function DashboardOverview({ userId, onNavigate }) {
   const [account, setAccount] = useState(null)
   const [accountLoading, setAccountLoading] = useState(true)
   const [accountPositions, setAccountPositions] = useState([])
+  const [accountTradingDays, setAccountTradingDays] = useState(0)
 
   // Load account + trades from Supabase
   useEffect(() => {
@@ -31,6 +32,7 @@ function DashboardOverview({ userId, onNavigate }) {
         setAccount(state.account)
         setRealTrades(state.recentTrades)
         setAccountPositions(state.positions || [])
+        setAccountTradingDays(state.tradingDays ?? 0)
       } catch (err) {
         console.error('DashboardOverview: failed to load account', err)
       } finally {
@@ -41,7 +43,27 @@ function DashboardOverview({ userId, onNavigate }) {
   }, [userId])
 
   // Real-time market data from Binance Futures — all USDT perps
-  const [markets, setMarkets] = useState([])
+  // Pre-populated with top coins so list is never empty while fetch loads
+  const [markets, setMarkets] = useState([
+    { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0, favorite: true },
+    { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0, favorite: true },
+    { symbol: 'SOLUSDT', name: 'Solana', price: 0, change: 0, favorite: false },
+    { symbol: 'BNBUSDT', name: 'Binance Coin', price: 0, change: 0, favorite: false },
+    { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0, favorite: false },
+    { symbol: 'ADAUSDT', name: 'Cardano', price: 0, change: 0, favorite: false },
+    { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0, change: 0, favorite: false },
+    { symbol: 'AVAXUSDT', name: 'Avalanche', price: 0, change: 0, favorite: false },
+    { symbol: 'DOTUSDT', name: 'Polkadot', price: 0, change: 0, favorite: false },
+    { symbol: 'MATICUSDT', name: 'Polygon', price: 0, change: 0, favorite: false },
+    { symbol: 'LINKUSDT', name: 'Chainlink', price: 0, change: 0, favorite: false },
+    { symbol: 'UNIUSDT', name: 'Uniswap', price: 0, change: 0, favorite: false },
+    { symbol: 'ATOMUSDT', name: 'Cosmos', price: 0, change: 0, favorite: false },
+    { symbol: 'LTCUSDT', name: 'Litecoin', price: 0, change: 0, favorite: false },
+    { symbol: 'NEARUSDT', name: 'NEAR Protocol', price: 0, change: 0, favorite: false },
+    { symbol: 'APTUSDT', name: 'Aptos', price: 0, change: 0, favorite: false },
+    { symbol: 'ARBUSDT', name: 'Arbitrum', price: 0, change: 0, favorite: false },
+    { symbol: 'OPUSDT', name: 'Optimism', price: 0, change: 0, favorite: false },
+  ])
 
   const [realTrades, setRealTrades] = useState([])
 
@@ -659,7 +681,7 @@ function DashboardOverview({ userId, onNavigate }) {
                 </div>
                 <div className="challenge-metric">
                   <span className="metric-label">Min Trading Days</span>
-                  <span className="metric-value">{account.min_trading_days || 5} days</span>
+                  <span className="metric-value">{accountTradingDays}/{account.min_trading_days || 5}</span>
                 </div>
               </div>
               <div className="challenge-progress">
@@ -671,6 +693,18 @@ function DashboardOverview({ userId, onNavigate }) {
                   <div
                     className="progress-bar-fill"
                     style={{ width: `${Math.min(100, Math.max(0, (trueAccountValue - account.initial_balance) / account.profit_target * 100))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="challenge-progress">
+                <div className="progress-label">
+                  <span>Trading Days</span>
+                  <span>{accountTradingDays}/{account.min_trading_days || 5} days</span>
+                </div>
+                <div className="progress-bar-track">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${Math.min(100, (accountTradingDays / (account.min_trading_days || 5)) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -1026,6 +1060,7 @@ function DashboardOverview({ userId, onNavigate }) {
                         setAccount(state.account)
                         setRealTrades(state.recentTrades)
                         setAccountPositions(state.positions || [])
+                        setAccountTradingDays(state.tradingDays ?? 0)
                       })
                       .catch(err => console.error('Failed to start challenge:', err))
                       .finally(() => setStartingChallenge(false))
