@@ -165,6 +165,36 @@ export default function RulesObjectivesPage({ userId }) {
 
   const rules = [
     {
+      title: 'Minimum Trading Days',
+      summary: `You must trade on at least ${minTradingDays} separate calendar days before a challenge can be passed.`,
+      status: { ok: daysMet },
+      icon: icons.consistency,
+      detail: (
+        <div className="rules-detail">
+          <p>To prevent single-session, high-risk attempts, IJGF requires a minimum of <strong>{minTradingDays} distinct trading days</strong> before a challenge can be marked as passed — even if the profit target is already met.</p>
+          <div className="rules-detail-row">
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Required Days</span>
+              <span className="rules-detail-val">{minTradingDays} days</span>
+            </div>
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Your Progress</span>
+              <span className="rules-detail-val" style={{ color: daysMet ? '#4ade80' : '#eaecef' }}>{tradingDays} days</span>
+            </div>
+            <div className="rules-detail-item">
+              <span className="rules-detail-label">Remaining</span>
+              <span className="rules-detail-val">{daysMet ? '0 days' : `${minTradingDays - tradingDays} day${minTradingDays - tradingDays !== 1 ? 's' : ''}`}</span>
+            </div>
+          </div>
+          <p>A "trading day" is any calendar day where at least one trade is executed. The days do not need to be consecutive.</p>
+          <div className="rules-example">
+            <span className="rules-example-label">Why this rule exists</span>
+            <p>This rule promotes consistent, disciplined trading over lucky single-session runs. Funded traders must demonstrate sustained performance — not just a one-day spike.</p>
+          </div>
+        </div>
+      ),
+    },
+    {
       title: 'No Daily Drawdown Limit',
       summary: 'There is no daily drawdown limit. Only the overall max drawdown applies.',
       status: { ok: true },
