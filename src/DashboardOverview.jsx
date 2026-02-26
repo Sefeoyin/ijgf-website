@@ -238,6 +238,33 @@ function DashboardOverview({ userId, onNavigate }) {
   // Fetch all Binance Futures USDT pairs sorted by 24h volume
   useEffect(() => {
     const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
+
+    // CoinGecko map for the 18 default coins — used as quick price seed
+    const COINGECKO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,cardano,dogecoin,avalanche-2,polkadot,polygon-ecosystem-token,chainlink,uniswap,cosmos,litecoin,near,aptos,arbitrum,optimism'
+    const COINGECKO_SYMBOL_MAP = {
+      bitcoin:'BTCUSDT', ethereum:'ETHUSDT', solana:'SOLUSDT', binancecoin:'BNBUSDT',
+      ripple:'XRPUSDT', cardano:'ADAUSDT', dogecoin:'DOGEUSDT', 'avalanche-2':'AVAXUSDT',
+      polkadot:'DOTUSDT', 'polygon-ecosystem-token':'MATICUSDT', chainlink:'LINKUSDT',
+      uniswap:'UNIUSDT', cosmos:'ATOMUSDT', litecoin:'LTCUSDT', near:'NEARUSDT',
+      aptos:'APTUSDT', arbitrum:'ARBUSDT', optimism:'OPUSDT',
+    }
+
+    // Step 1: seed default 18 coins from CoinGecko immediately (fast, no CORS issues)
+    const seedPrices = async () => {
+      try {
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS}&vs_currencies=usd&include_24hr_change=true`)
+        if (!res.ok) return
+        const data = await res.json()
+        setMarkets(prev => prev.map(m => {
+          const cgId = Object.entries(COINGECKO_SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
+          const d = cgId && data[cgId]
+          return d ? { ...m, price: d.usd || 0, change: d.usd_24h_change || 0 } : m
+        }))
+        setIsLoadingPrices(false)
+      } catch { /* silent */ }
+    }
+
+    // Step 2: replace full list from Binance Futures (all 200+ pairs with live prices)
     const fetchAllMarkets = async () => {
       try {
         const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
@@ -253,15 +280,17 @@ function DashboardOverview({ userId, onNavigate }) {
             change: parseFloat(t.priceChangePercent) || 0,
             favorite: FAVORITES.has(t.symbol),
           }))
-        setMarkets(parsed)
-        setIsLoadingPrices(false)
+        if (parsed.length > 0) {
+          setMarkets(parsed)
+          setIsLoadingPrices(false)
+        }
       } catch (err) {
         console.error('Binance Futures ticker fetch failed:', err)
-        setIsLoadingPrices(false)
       }
     }
 
-    fetchAllMarkets()
+    seedPrices()         // fires immediately — populates defaults with real prices
+    fetchAllMarkets()    // fires immediately — replaces with full list once done
     const interval = setInterval(fetchAllMarkets, 30000)
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -422,6 +451,22 @@ function DashboardOverview({ userId, onNavigate }) {
           </div>
           <div className="stats-value">{formatCurrency(stats.currentEquity)}</div>
           <div className="stats-subtitle">All time performance</div>
+        </div>
+
+        <div className="stats-card">
+          <div className="stats-card-header">
+            <div className="stats-icon blue">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <span className="stats-label">Trading Days</span>
+          </div>
+          <div className="stats-value">{accountTradingDays}/{account?.min_trading_days || 5}</div>
+          <div className="stats-subtitle">Days active this challenge</div>
         </div>
       </div>
 
@@ -703,7 +748,7 @@ function DashboardOverview({ userId, onNavigate }) {
                 </div>
                 <div className="progress-bar-track">
                   <div
-                    className="progress-bar-fill"
+                    className="progress-bar-fill progress-bar-fill--blue"
                     style={{ width: `${Math.min(100, (accountTradingDays / (account.min_trading_days || 5)) * 100)}%` }}
                   />
                 </div>

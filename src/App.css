@@ -13209,3 +13209,29 @@ body[data-theme="day"] .tier-cta { border-color: rgba(0,0,0,0.06); color: #7c3ae
   .challenge-picker-grid { grid-template-columns: repeat(2, 1fr); }
   .challenge-picker-modal { padding: 1.25rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRADING DAYS PROGRESS BAR — BLUE VARIANT
+   ═══════════════════════════════════════════════════════════════════════════ */
+.progress-bar-fill--blue {
+  background: linear-gradient(90deg, #2563eb, #3b82f6) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATS CARDS ROW — 5 COLUMNS FOR TRADING DAYS CARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+.stats-cards-row {
+  grid-template-columns: repeat(5, 1fr) !important;
+}
+
+@media (max-width: 1200px) {
+  .stats-cards-row {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-cards-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

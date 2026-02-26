@@ -14,7 +14,7 @@ function pct(val, total) {
 // ─── Progress bar ─────────────────────────────────────────────────────────
 function ProgressBar({ value, max, color = '#8b5cf6', warn = 70, danger = 90 }) {
   const perc = pct(value, max)
-  const c = perc >= danger ? '#f87171' : perc >= warn ? '#fbbf24' : color
+  const c = perc >= danger ? '#8b5cf6' : perc >= warn ? '#fbbf24' : color
   return (
     <div className="rules-progress-track">
       <div className="rules-progress-fill" style={{ width: `${perc}%`, background: c }} />
