@@ -1260,3 +1260,161 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================================
+   RECONCILE BALANCE — Account panel widget
+   ============================================================ */
+.reconcile-section {
+  margin-top: 10px;
+  border-top: 1px solid #1e2329;
+  padding-top: 10px;
+}
+
+/* Primary reconcile button */
+.reconcile-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 6px;
+  color: #a78bfa;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  justify-content: center;
+}
+.reconcile-btn:hover {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: rgba(124, 58, 237, 0.5);
+  color: #c4b5fd;
+}
+
+/* Confirm prompt */
+.reconcile-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reconcile-confirm-text {
+  font-size: 10px;
+  color: #848e9c;
+  margin: 0;
+  line-height: 1.5;
+}
+.reconcile-confirm-text small {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.reconcile-confirm-actions {
+  display: flex;
+  gap: 6px;
+}
+.reconcile-btn-yes {
+  flex: 1;
+  background: #7C3AED;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.reconcile-btn-yes:hover { background: #6D28D9; }
+
+.reconcile-btn-no {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  color: #848e9c;
+  font-size: 11px;
+  padding: 5px 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.reconcile-btn-no:hover { border-color: rgba(255,255,255,0.2); color: #eaecef; }
+
+/* Running state */
+.reconcile-running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #848e9c;
+}
+.reconcile-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(124, 58, 237, 0.2);
+  border-top-color: #7C3AED;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Result card */
+.reconcile-result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.reconcile-ok {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #0ecb81;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.reconcile-diff-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #eaecef;
+}
+.reconcile-label {
+  color: #848e9c;
+}
+.reconcile-old {
+  color: #f6465d;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+.reconcile-new {
+  color: #0ecb81;
+  font-weight: 600;
+}
+.reconcile-dismiss {
+  margin-top: 4px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 5px;
+  color: #848e9c;
+  font-size: 10px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.reconcile-dismiss:hover {
+  border-color: rgba(255,255,255,0.15);
+  color: #eaecef;
+}
+
+/* Error state */
+.reconcile-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 10px;
+  color: #f6465d;
+  line-height: 1.4;
+}
+.reconcile-error svg { flex-shrink: 0; margin-top: 1px; }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
-import { MAX_LEVERAGE } from './tradingService'
+import { MAX_LEVERAGE, reconcileDemoAccount } from './tradingService'
 import './MarketsPage.css'
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId }) {
@@ -24,6 +24,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [orderSubmitting, setOrderSubmitting] = useState(false)
   const [availablePairs, setAvailablePairs] = useState([])
   const [pairsLoading, setPairsLoading] = useState(true)
+  // Reconcile balance state
+  const [reconcileState, setReconcileState] = useState('idle') // 'idle' | 'confirm' | 'running' | 'done' | 'error'
+  const [reconcileResult, setReconcileResult] = useState(null)
   const chartContainerRef = useRef(null)
   const tvWidgetRef = useRef(null)
   const mobileChartRef = useRef(null)
@@ -337,6 +340,29 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     if (val === null || val === undefined || isNaN(val)) return null
     const sign = val >= 0 ? '+' : ''
     return { text: `${sign}$${val.toFixed(2)}`, cls: val >= 0 ? 'positive' : 'negative' }
+  }
+
+  // ---- Reconcile balance handler ----
+  const handleReconcile = async () => {
+    if (reconcileState === 'idle' || reconcileState === 'done' || reconcileState === 'error') {
+      setReconcileState('confirm')
+      setReconcileResult(null)
+      return
+    }
+    if (reconcileState === 'confirm') {
+      setReconcileState('running')
+      try {
+        const result = await reconcileDemoAccount(userId)
+        setReconcileResult(result)
+        setReconcileState('done')
+        // Refresh all account state so UI reflects the corrected balance immediately
+        await trading.refreshState()
+      } catch (err) {
+        console.error('[Reconcile] Failed:', err)
+        setReconcileResult({ error: err.message })
+        setReconcileState('error')
+      }
+    }
   }
 
   return (
@@ -954,6 +980,95 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
                 {account?.status?.toUpperCase() || '—'}
               </span>
             </div>
+          </div>
+
+          {/* ── Reconcile Balance ── */}
+          <div className="reconcile-section">
+
+            {/* Idle / done / error — show button */}
+            {(reconcileState === 'idle' || reconcileState === 'done' || reconcileState === 'error') && (
+              <button className="reconcile-btn" onClick={handleReconcile}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Reconcile Balance
+              </button>
+            )}
+
+            {/* Confirmation prompt */}
+            {reconcileState === 'confirm' && (
+              <div className="reconcile-confirm">
+                <p className="reconcile-confirm-text">
+                  Recalculate balance from trade history?<br />
+                  <small>No data will be deleted.</small>
+                </p>
+                <div className="reconcile-confirm-actions">
+                  <button className="reconcile-btn-yes" onClick={handleReconcile}>Run</button>
+                  <button className="reconcile-btn-no" onClick={() => setReconcileState('idle')}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Running spinner */}
+            {reconcileState === 'running' && (
+              <div className="reconcile-running">
+                <div className="reconcile-spinner" />
+                <span>Reconciling…</span>
+              </div>
+            )}
+
+            {/* Success result */}
+            {reconcileState === 'done' && reconcileResult && !reconcileResult.error && (
+              <div className="reconcile-result">
+                {reconcileResult.alreadyCorrect ? (
+                  <div className="reconcile-ok">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Balance already correct
+                  </div>
+                ) : (
+                  <>
+                    <div className="reconcile-ok">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M20 6L9 17l-5-5"/>
+                      </svg>
+                      Balance corrected
+                    </div>
+                    <div className="reconcile-diff-row">
+                      <span className="reconcile-label">Was</span>
+                      <span className="reconcile-old">${reconcileResult.oldBalance.toFixed(2)}</span>
+                    </div>
+                    <div className="reconcile-diff-row">
+                      <span className="reconcile-label">Now</span>
+                      <span className="reconcile-new">${reconcileResult.newBalance.toFixed(2)}</span>
+                    </div>
+                    <div className="reconcile-diff-row">
+                      <span className="reconcile-label">Realized PNL</span>
+                      <span className={reconcileResult.totalRealizedPnl >= 0 ? 'positive' : 'negative'}>
+                        {reconcileResult.totalRealizedPnl >= 0 ? '+' : ''}${reconcileResult.totalRealizedPnl.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="reconcile-diff-row">
+                      <span className="reconcile-label">Closed trades</span>
+                      <span>{reconcileResult.totalClosedTrades}</span>
+                    </div>
+                  </>
+                )}
+                <button className="reconcile-dismiss" onClick={() => setReconcileState('idle')}>Dismiss</button>
+              </div>
+            )}
+
+            {/* Error state */}
+            {reconcileState === 'error' && reconcileResult?.error && (
+              <div className="reconcile-error">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {reconcileResult.error}
+              </div>
+            )}
           </div>
         </div>
       </div>

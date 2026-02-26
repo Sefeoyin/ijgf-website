@@ -711,3 +711,90 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .delete().eq('user_id', userId).eq('challenge_type', challengeType)
   return getOrCreateDemoAccount(userId, challengeType)
 }
+
+// ---------------------------------------------------------------------------
+// Reconcile Balance
+// Rebuilds account.current_balance from the ground truth in demo_trades,
+// without deleting any history. Safe to run at any time.
+//
+// Formula:
+//   correct_balance = initial_balance
+//                     + Σ realized_pnl (all closed positions)
+//                     - Σ margin       (all currently open positions)
+//
+// This repairs any balance desync caused by the old fire-and-forget bug
+// where closePosition logged the trade but failed to update the balance row.
+// ---------------------------------------------------------------------------
+export async function reconcileDemoAccount(userId, challengeType = '10k') {
+  const account = await getOrCreateDemoAccount(userId, challengeType)
+
+  // 1. All closing trades — these are the source of truth for realized PNL
+  const { data: closingTrades, error: tradesErr } = await supabase
+    .from('demo_trades')
+    .select('realized_pnl')
+    .eq('demo_account_id', account.id)
+    .eq('is_close', true)
+
+  if (tradesErr) throw new Error(`Failed to fetch trade history: ${tradesErr.message}`)
+
+  const totalRealizedPnl = (closingTrades || []).reduce(
+    (sum, t) => sum + (t.realized_pnl || 0), 0
+  )
+  const totalClosedTrades = (closingTrades || []).length
+  const winningTrades     = (closingTrades || []).filter(t => (t.realized_pnl || 0) > 0).length
+
+  // 2. Open positions — margin is currently locked (not in free balance)
+  const { data: openPositions, error: posErr } = await supabase
+    .from('demo_positions')
+    .select('margin')
+    .eq('demo_account_id', account.id)
+    .eq('status', 'open')
+
+  if (posErr) throw new Error(`Failed to fetch open positions: ${posErr.message}`)
+
+  const totalMarginLocked = (openPositions || []).reduce(
+    (sum, p) => sum + (p.margin || 0), 0
+  )
+
+  // 3. Recompute
+  const correctBalance = account.initial_balance + totalRealizedPnl - totalMarginLocked
+  const safeBalance    = Math.max(0, correctBalance)
+  const oldBalance     = account.current_balance
+
+  // 4. Commit — only write if there's an actual difference (avoids spurious updated_at bumps)
+  const delta = Math.abs(safeBalance - oldBalance)
+  if (delta > 0.001) {
+    const { error: updateErr } = await supabase
+      .from('demo_accounts')
+      .update({
+        current_balance: safeBalance,
+        equity:          safeBalance,
+        total_trades:    totalClosedTrades,
+        winning_trades:  winningTrades,
+        updated_at:      new Date().toISOString(),
+      })
+      .eq('id', account.id)
+
+    if (updateErr) throw new Error(`Balance update failed: ${updateErr.message}`)
+  }
+
+  console.log(
+    '[Reconcile] Account:', account.id,
+    '| Old balance:', oldBalance.toFixed(2),
+    '| Realized PNL:', totalRealizedPnl.toFixed(2),
+    '| Margin locked:', totalMarginLocked.toFixed(2),
+    '| New balance:', safeBalance.toFixed(2),
+    '| Delta:', delta.toFixed(2),
+  )
+
+  return {
+    oldBalance,
+    newBalance:        safeBalance,
+    delta,
+    totalRealizedPnl,
+    totalMarginLocked,
+    totalClosedTrades,
+    winningTrades,
+    alreadyCorrect:    delta <= 0.001,
+  }
+}
