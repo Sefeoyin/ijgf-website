@@ -44,26 +44,47 @@ function DashboardOverview({ userId, onNavigate }) {
 
   // Real-time market data from Binance Futures — all USDT perps
   // Pre-populated with top coins so list is never empty while fetch loads
-  const [markets, setMarkets] = useState([
-    { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0, favorite: true },
-    { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0, favorite: true },
-    { symbol: 'SOLUSDT', name: 'Solana', price: 0, change: 0, favorite: false },
-    { symbol: 'BNBUSDT', name: 'Binance Coin', price: 0, change: 0, favorite: false },
-    { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0, favorite: false },
-    { symbol: 'ADAUSDT', name: 'Cardano', price: 0, change: 0, favorite: false },
-    { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0, change: 0, favorite: false },
-    { symbol: 'AVAXUSDT', name: 'Avalanche', price: 0, change: 0, favorite: false },
-    { symbol: 'DOTUSDT', name: 'Polkadot', price: 0, change: 0, favorite: false },
-    { symbol: 'MATICUSDT', name: 'Polygon', price: 0, change: 0, favorite: false },
-    { symbol: 'LINKUSDT', name: 'Chainlink', price: 0, change: 0, favorite: false },
-    { symbol: 'UNIUSDT', name: 'Uniswap', price: 0, change: 0, favorite: false },
-    { symbol: 'ATOMUSDT', name: 'Cosmos', price: 0, change: 0, favorite: false },
-    { symbol: 'LTCUSDT', name: 'Litecoin', price: 0, change: 0, favorite: false },
-    { symbol: 'NEARUSDT', name: 'NEAR Protocol', price: 0, change: 0, favorite: false },
-    { symbol: 'APTUSDT', name: 'Aptos', price: 0, change: 0, favorite: false },
-    { symbol: 'ARBUSDT', name: 'Arbitrum', price: 0, change: 0, favorite: false },
-    { symbol: 'OPUSDT', name: 'Optimism', price: 0, change: 0, favorite: false },
-  ])
+  const [markets, setMarkets] = useState(() => {
+    // Full token list — no REST call needed, prices seeded via CoinGecko below
+    const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
+    const ALL_MARKETS = [
+      // Large caps
+      ['BTCUSDT','Bitcoin'],['ETHUSDT','Ethereum'],['BNBUSDT','BNB'],['SOLUSDT','Solana'],
+      ['XRPUSDT','XRP'],['DOGEUSDT','Dogecoin'],['ADAUSDT','Cardano'],['AVAXUSDT','Avalanche'],
+      ['DOTUSDT','Polkadot'],['LINKUSDT','Chainlink'],['MATICUSDT','Polygon'],['LTCUSDT','Litecoin'],
+      ['ATOMUSDT','Cosmos'],['NEARUSDT','NEAR Protocol'],['APTUSDT','Aptos'],['TONUSDT','Toncoin'],
+      ['TRXUSDT','TRON'],['BCHUSDT','Bitcoin Cash'],['XLMUSDT','Stellar'],['ETCUSDT','Ethereum Classic'],
+      // Mid caps
+      ['UNIUSDT','Uniswap'],['OPUSDT','Optimism'],['ARBUSDT','Arbitrum'],['INJUSDT','Injective'],
+      ['SUIUSDT','Sui'],['SEIUSDT','Sei'],['TIAUSDT','Celestia'],['WLDUSDT','Worldcoin'],
+      ['PEPEUSDT','Pepe'],['SHIBUSDT','Shiba Inu'],['WIFUSDT','dogwifhat'],['BONKUSDT','Bonk'],
+      ['FLOKIUSDT','Floki'],['ORDIUSDT','Ordinals'],['RUNEUSDT','THORChain'],['LDOUSDT','Lido'],
+      ['ICPUSDT','Internet Computer'],['HBARUSDT','Hedera'],['FILUSDT','Filecoin'],['ALGOUSDT','Algorand'],
+      ['KASUSDT','Kaspa'],['JUPUSDT','Jupiter'],['FTMUSDT','Fantom'],['EOSUSDT','EOS'],
+      ['VETUSDT','VeChain'],['EGLDUSDT','MultiversX'],['FLOWUSDT','Flow'],['XTZUSDT','Tezos'],
+      ['ZILUSDT','Zilliqa'],['KAVAUSDT','Kava'],
+      // DeFi
+      ['AAVEUSDT','Aave'],['CRVUSDT','Curve DAO'],['MKRUSDT','Maker'],['COMPUSDT','Compound'],
+      ['GRTUSDT','The Graph'],['DYDXUSDT','dYdX'],['PENDLEUSDT','Pendle'],['GMXUSDT','GMX'],
+      ['STRKUSDT','Starknet'],['SNXUSDT','Synthetix'],['SUSHIUSDT','SushiSwap'],
+      ['1INCHUSDT','1inch'],['BALUSDT','Balancer'],['YFIUSDT','Yearn Finance'],['LRCUSDT','Loopring'],
+      // AI / Infra
+      ['FETUSDT','Fetch.ai'],['RENDERUSDT','Render'],['TAOUSDT','Bittensor'],['PYTHUSDT','Pyth'],
+      ['AGIXUSDT','SingularityNET'],['OCEANUSDT','Ocean Protocol'],['ARKMUSDT','Arkham'],
+      // Gaming / Metaverse
+      ['AXSUSDT','Axie Infinity'],['SANDUSDT','The Sandbox'],['MANAUSDT','Decentraland'],
+      ['GALAUSDT','Gala'],['IMXUSDT','Immutable X'],['POPCATUSDT','Popcat'],['APEUSDT','ApeCoin'],
+      ['BLURUSDT','Blur'],['YGGUSDT','Yield Guild Games'],
+      // Other
+      ['ENAUSDT','Ethena'],['STRKUSDT','Starknet'],['COTIUSDT','COTI'],['ANKRUSDT','Ankr'],
+      ['STORJUSDT','Storj'],['BANDUSDT','Band Protocol'],['CELRUSDT','Celer'],
+      ['CKBUSDT','Nervos'],['SCUSDT','Siacoin'],['ONTUSDT','Ontology'],
+      ['CHZUSDT','Chiliz'],['ENJUSDT','Enjin'],['CHRUSDT','Chromia'],
+    ]
+    return ALL_MARKETS.map(([symbol, name]) => ({
+      symbol, name, price: 0, change: 0, favorite: FAVORITES.has(symbol),
+    }))
+  })
 
   const [realTrades, setRealTrades] = useState([])
 
@@ -216,82 +237,72 @@ function DashboardOverview({ userId, onNavigate }) {
     })
   }, [markets, priceAlerts, addNotification, removePriceAlert])
 
-  // Human-readable names for top coins — others fall back to ticker base
-  const COIN_NAMES = {
-    BTCUSDT:'Bitcoin', ETHUSDT:'Ethereum', BNBUSDT:'BNB', SOLUSDT:'Solana',
-    XRPUSDT:'XRP', ADAUSDT:'Cardano', DOGEUSDT:'Dogecoin', AVAXUSDT:'Avalanche',
-    DOTUSDT:'Polkadot', MATICUSDT:'Polygon', LINKUSDT:'Chainlink', UNIUSDT:'Uniswap',
-    ATOMUSDT:'Cosmos', LTCUSDT:'Litecoin', NEARUSDT:'NEAR Protocol', APTUSDT:'Aptos',
-    ARBUSDT:'Arbitrum', OPUSDT:'Optimism', SUIUSDT:'Sui', INJUSDT:'Injective',
-    SEIUSDT:'Sei', WLDUSDT:'Worldcoin', PEPEUSDT:'Pepe', SHIBUSDT:'Shiba Inu',
-    TONUSDT:'Toncoin', TRXUSDT:'TRON', BCHUSDT:'Bitcoin Cash', XLMUSDT:'Stellar',
-    ETCUSDT:'Ethereum Classic', FILUSDT:'Filecoin', ICPUSDT:'Internet Computer',
-    HBARUSDT:'Hedera', AAVEUSDT:'Aave', LDOUSDT:'Lido', WIFUSDT:'dogwifhat',
-    BONKUSDT:'Bonk', FLOKIUSDT:'Floki', RUNEUSDT:'THORChain', FETUSDT:'Fetch.ai',
-    RENDERUSDT:'Render', IMXUSDT:'Immutable X', KASUSDT:'Kaspa', JUPUSDT:'Jupiter',
-    TAOUSDT:'Bittensor', SANDUSDT:'The Sandbox', MANAUSDT:'Decentraland',
-    GALAUSDT:'Gala', AXSUSDT:'Axie Infinity', GMXUSDT:'GMX', PENDLEUSDT:'Pendle',
-    TIAUSDT:'Celestia', STRKUSDT:'Starknet', CRVUSDT:'Curve DAO', MKRUSDT:'Maker',
-    COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
-  }
-
-  // Fetch all Binance Futures USDT pairs sorted by 24h volume
+  // Seed market prices via CoinGecko — globally accessible, no geo-restrictions
+  // Token list is hardcoded in initial state above, prices refresh every 60s
   useEffect(() => {
-    const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
-
-    // CoinGecko map for the 18 default coins — used as quick price seed
-    const COINGECKO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,cardano,dogecoin,avalanche-2,polkadot,polygon-ecosystem-token,chainlink,uniswap,cosmos,litecoin,near,aptos,arbitrum,optimism'
-    const COINGECKO_SYMBOL_MAP = {
-      bitcoin:'BTCUSDT', ethereum:'ETHUSDT', solana:'SOLUSDT', binancecoin:'BNBUSDT',
-      ripple:'XRPUSDT', cardano:'ADAUSDT', dogecoin:'DOGEUSDT', 'avalanche-2':'AVAXUSDT',
-      polkadot:'DOTUSDT', 'polygon-ecosystem-token':'MATICUSDT', chainlink:'LINKUSDT',
-      uniswap:'UNIUSDT', cosmos:'ATOMUSDT', litecoin:'LTCUSDT', near:'NEARUSDT',
-      aptos:'APTUSDT', arbitrum:'ARBUSDT', optimism:'OPUSDT',
+    const COINGECKO_IDS = [
+      'bitcoin','ethereum','binancecoin','solana','ripple','dogecoin','cardano',
+      'avalanche-2','polkadot','chainlink','matic-network','litecoin','cosmos',
+      'near','aptos','the-open-network','tron','bitcoin-cash','stellar','ethereum-classic',
+      'uniswap','optimism','arbitrum','injective-protocol','sui','sei-network','celestia',
+      'worldcoin-wld','pepe','shiba-inu','dogwifcoin','bonk','floki','ordinals','thorchain',
+      'lido-dao','internet-computer','hedera-hashgraph','filecoin','algorand','kaspa',
+      'jupiter-exchange-solana','fantom','eos','vechain','elrond-erd-2','flow','tezos',
+      'zilliqa','kava','aave','curve-dao-token','maker','compound-governance-token',
+      'the-graph','dydx','pendle','gmx','starknet','havven','sushi','1inch',
+      'balancer','yearn-finance','loopring','fetch-ai','render-token','bittensor',
+      'pyth-network','artificial-superintelligence-alliance','ocean-protocol','arkham',
+      'axie-infinity','the-sandbox','decentraland','gala','immutable-x','apecoin',
+      'popcat','blur','yield-guild-games','ethena','coti','ankr','storj',
+      'band-protocol','celer-network','nervos-network','siacoin','ontology','chiliz','enjin',
+    ]
+    const SYMBOL_MAP = {
+      'bitcoin':'BTCUSDT','ethereum':'ETHUSDT','binancecoin':'BNBUSDT','solana':'SOLUSDT',
+      'ripple':'XRPUSDT','dogecoin':'DOGEUSDT','cardano':'ADAUSDT','avalanche-2':'AVAXUSDT',
+      'polkadot':'DOTUSDT','chainlink':'LINKUSDT','matic-network':'MATICUSDT','litecoin':'LTCUSDT',
+      'cosmos':'ATOMUSDT','near':'NEARUSDT','aptos':'APTUSDT','the-open-network':'TONUSDT',
+      'tron':'TRXUSDT','bitcoin-cash':'BCHUSDT','stellar':'XLMUSDT','ethereum-classic':'ETCUSDT',
+      'uniswap':'UNIUSDT','optimism':'OPUSDT','arbitrum':'ARBUSDT','injective-protocol':'INJUSDT',
+      'sui':'SUIUSDT','sei-network':'SEIUSDT','celestia':'TIAUSDT','worldcoin-wld':'WLDUSDT',
+      'pepe':'PEPEUSDT','shiba-inu':'SHIBUSDT','dogwifcoin':'WIFUSDT','bonk':'BONKUSDT',
+      'floki':'FLOKIUSDT','ordinals':'ORDIUSDT','thorchain':'RUNEUSDT','lido-dao':'LDOUSDT',
+      'internet-computer':'ICPUSDT','hedera-hashgraph':'HBARUSDT','filecoin':'FILUSDT',
+      'algorand':'ALGOUSDT','kaspa':'KASUSDT','jupiter-exchange-solana':'JUPUSDT',
+      'fantom':'FTMUSDT','eos':'EOSUSDT','vechain':'VETUSDT','elrond-erd-2':'EGLDUSDT',
+      'flow':'FLOWUSDT','tezos':'XTZUSDT','zilliqa':'ZILUSDT','kava':'KAVAUSDT',
+      'aave':'AAVEUSDT','curve-dao-token':'CRVUSDT','maker':'MKRUSDT',
+      'compound-governance-token':'COMPUSDT','the-graph':'GRTUSDT','dydx':'DYDXUSDT',
+      'pendle':'PENDLEUSDT','gmx':'GMXUSDT','starknet':'STRKUSDT','havven':'SNXUSDT',
+      'sushi':'SUSHIUSDT','1inch':'1INCHUSDT','balancer':'BALUSDT',
+      'yearn-finance':'YFIUSDT','loopring':'LRCUSDT','fetch-ai':'FETUSDT',
+      'render-token':'RENDERUSDT','bittensor':'TAOUSDT','pyth-network':'PYTHUSDT',
+      'artificial-superintelligence-alliance':'AGIXUSDT','ocean-protocol':'OCEANUSDT',
+      'arkham':'ARKMUSDT','axie-infinity':'AXSUSDT','the-sandbox':'SANDUSDT',
+      'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT',
+      'apecoin':'APEUSDT','popcat':'POPCATUSDT','blur':'BLURUSDT',
+      'yield-guild-games':'YGGUSDT','ethena':'ENAUSDT','coti':'COTIUSDT',
+      'ankr':'ANKRUSDT','storj':'STORJUSDT','band-protocol':'BANDUSDT',
+      'celer-network':'CELRUSDT','nervos-network':'CKBUSDT','siacoin':'SCUSDT',
+      'ontology':'ONTUSDT','chiliz':'CHZUSDT','enjin':'ENJUSDT',
     }
 
-    // Step 1: seed default 18 coins from CoinGecko immediately (fast, no CORS issues)
-    const seedPrices = async () => {
+    const fetchPrices = async () => {
       try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS}&vs_currencies=usd&include_24hr_change=true`)
+        const ids = COINGECKO_IDS.join(',')
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
         if (!res.ok) return
         const data = await res.json()
         setMarkets(prev => prev.map(m => {
-          const cgId = Object.entries(COINGECKO_SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
-          const d = cgId && data[cgId]
+          const geckoId = Object.entries(SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
+          const d = geckoId && data[geckoId]
           return d ? { ...m, price: d.usd || 0, change: d.usd_24h_change || 0 } : m
         }))
         setIsLoadingPrices(false)
       } catch { /* silent */ }
     }
 
-    // Step 2: replace full list from Binance Futures (all 200+ pairs with live prices)
-    const fetchAllMarkets = async () => {
-      try {
-        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
-        const parsed = (data?.result?.list || [])
-          .filter(t => t.symbol.endsWith('USDT'))
-          .sort((a, b) => parseFloat(b.turnover24h || 0) - parseFloat(a.turnover24h || 0))
-          .map(t => ({
-            symbol: t.symbol,
-            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
-            price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.price24hPcnt) * 100 || 0,
-            favorite: FAVORITES.has(t.symbol),
-          }))
-        if (parsed.length > 0) {
-          setMarkets(parsed)
-          setIsLoadingPrices(false)
-        }
-      } catch (err) {
-        console.error('Bybit ticker fetch failed:', err)
-      }
-    }
-
-    seedPrices()         // fires immediately — populates defaults with real prices
-    fetchAllMarkets()    // fires immediately — replaces with full list once done
-    const interval = setInterval(fetchAllMarkets, 30000)
+    fetchPrices()
+    const interval = setInterval(fetchPrices, 60000)
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

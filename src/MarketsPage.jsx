@@ -5,17 +5,77 @@ import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPS
 import './MarketsPage.css'
 
 // Module-level constant — never changes, no need to be inside the component
+// Comprehensive USDT perpetual pairs — ordered by market cap / volume
+// Update this list periodically when major new tokens launch
 const FALLBACK_PAIRS = [
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
-  'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
-  'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
-  'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
-  'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
+  // Large caps
+  'BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'SOLUSDT',  'XRPUSDT',
+  'DOGEUSDT', 'ADAUSDT',  'AVAXUSDT', 'DOTUSDT',  'LINKUSDT',
+  'MATICUSDT','LTCUSDT',  'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+  'TONUSDT',  'TRXUSDT',  'BCHUSDT',  'XLMUSDT',  'ETCUSDT',
+  // Mid caps
+  'UNIUSDT',  'OPUSDT',   'ARBUSDT',  'INJUSDT',  'SUIUSDT',
+  'SEIUSDT',  'TIAUSDT',  'WLDUSDT',  'PEPEUSDT', 'SHIBUSDT',
+  'WIFUSDT',  'BONKUSDT', 'FLOKIUSDT','ORDIUSDT', 'RUNEUSDT',
+  'LDOUSDT',  'ICPUSDT',  'HBARUSDT', 'FILUSDT',  'ALGOUSDT',
+  'KASUSDT',  'JUPUSDT',  'FTMUSDT',  'EOSUSDT',  'VETUSDT',
+  'EGLDUSDT', 'FLOWUSDT', 'XTZUSDT',  'ZILUSDT',  'KAVAUSDT',
+  // DeFi
+  'AAVEUSDT', 'CRVUSDT',  'MKRUSDT',  'COMPUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'PENDLEUSDT','GMXUSDT', 'STRKUSDT', 'SNXUSDT',
+  'SUSHIUSDT','1INCHUSDT','BALUSDT',  'YFIUSDT',  'LRCUSDT',
+  // AI / Infra
+  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT', 'AGIXUSDT',
+  'OCEANUSDT','ARKMUSDT',  'AIUSDT',  'WUSDT',    'ENAUSDT',
+  // Gaming / Metaverse
+  'AXSUSDT',  'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
+  'POPCATUSDT','APEUSDT', 'BLURUSDT', 'PIXELUSDT','YGGUSDT',
+  // Other
+  'LDOUSDT',  'COTIUSDT', 'ANKRUSDT', 'STORJUSDT','BANDUSDT',
+  'CELRUSDT', 'CKBUSDT',  'SCUSDT',   'ONTUSDT',  'WAVESUSDT',
+  'ZENUSDT',  'CTSIUSDT', 'REEFUSDT', 'ALICEUSDT','SUPERUSDT',
+  'CHZUSDT',  'ENJUSDT',  'CHRUSDT',  'CVCUSDT',  'DGBUSDT',
 ]
+
+// CoinGecko IDs for snapshot price seeding (globally accessible, no geo-restrictions)
+const SNAPSHOT_COINGECKO_IDS = [
+  'bitcoin','ethereum','binancecoin','solana','ripple','dogecoin','cardano',
+  'avalanche-2','polkadot','chainlink','matic-network','litecoin','cosmos',
+  'near','aptos','the-open-network','tron','bitcoin-cash','stellar',
+  'ethereum-classic','uniswap','optimism','arbitrum','injective-protocol',
+  'sui','sei-network','celestia','worldcoin-wld','pepe','shiba-inu',
+  'dogwifcoin','bonk','floki','ordinals','thorchain','lido-dao',
+  'internet-computer','hedera-hashgraph','filecoin','algorand','kaspa',
+  'jupiter-exchange-solana','fantom','eos','vechain','elrond-erd-2',
+  'flow','tezos','zilliqa','kava','aave','curve-dao-token','maker',
+  'compound-governance-token','the-graph','dydx','pendle','gmx',
+  'starknet','havven','fetch-ai','render-token','bittensor','pyth-network',
+  'artificial-superintelligence-alliance','ocean-protocol','axie-infinity',
+  'the-sandbox','decentraland','gala','immutable-x','apecoin',
+]
+
+const SNAPSHOT_SYMBOL_MAP = {
+  'bitcoin':'BTCUSDT','ethereum':'ETHUSDT','binancecoin':'BNBUSDT','solana':'SOLUSDT',
+  'ripple':'XRPUSDT','dogecoin':'DOGEUSDT','cardano':'ADAUSDT','avalanche-2':'AVAXUSDT',
+  'polkadot':'DOTUSDT','chainlink':'LINKUSDT','matic-network':'MATICUSDT','litecoin':'LTCUSDT',
+  'cosmos':'ATOMUSDT','near':'NEARUSDT','aptos':'APTUSDT','the-open-network':'TONUSDT',
+  'tron':'TRXUSDT','bitcoin-cash':'BCHUSDT','stellar':'XLMUSDT','ethereum-classic':'ETCUSDT',
+  'uniswap':'UNIUSDT','optimism':'OPUSDT','arbitrum':'ARBUSDT','injective-protocol':'INJUSDT',
+  'sui':'SUIUSDT','sei-network':'SEIUSDT','celestia':'TIAUSDT','worldcoin-wld':'WLDUSDT',
+  'pepe':'PEPEUSDT','shiba-inu':'SHIBUSDT','dogwifcoin':'WIFUSDT','bonk':'BONKUSDT',
+  'floki':'FLOKIUSDT','ordinals':'ORDIUSDT','thorchain':'RUNEUSDT','lido-dao':'LDOUSDT',
+  'internet-computer':'ICPUSDT','hedera-hashgraph':'HBARUSDT','filecoin':'FILUSDT',
+  'algorand':'ALGOUSDT','kaspa':'KASUSDT','jupiter-exchange-solana':'JUPUSDT',
+  'fantom':'FTMUSDT','eos':'EOSUSDT','vechain':'VETUSDT','elrond-erd-2':'EGLDUSDT',
+  'flow':'FLOWUSDT','tezos':'XTZUSDT','zilliqa':'ZILUSDT','kava':'KAVAUSDT',
+  'aave':'AAVEUSDT','curve-dao-token':'CRVUSDT','maker':'MKRUSDT',
+  'compound-governance-token':'COMPUSDT','the-graph':'GRTUSDT','dydx':'DYDXUSDT',
+  'pendle':'PENDLEUSDT','gmx':'GMXUSDT','starknet':'STRKUSDT','havven':'SNXUSDT',
+  'fetch-ai':'FETUSDT','render-token':'RENDERUSDT','bittensor':'TAOUSDT',
+  'pyth-network':'PYTHUSDT','artificial-superintelligence-alliance':'AGIXUSDT',
+  'ocean-protocol':'OCEANUSDT','axie-infinity':'AXSUSDT','the-sandbox':'SANDUSDT',
+  'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT','apecoin':'APEUSDT',
+}
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
@@ -35,8 +95,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   const [mobileChartView, setMobileChartView] = useState(false)
   const [orderSubmitting, setOrderSubmitting] = useState(false)
-  const [availablePairs, setAvailablePairs] = useState([])
-  const [pairsLoading, setPairsLoading] = useState(true)
+  const [availablePairs, setAvailablePairs] = useState(FALLBACK_PAIRS)
+  const [pairsLoading, setPairsLoading] = useState(false)
   const [snapshotPrices, setSnapshotPrices] = useState({}) // { BTCUSDT: { price, change } }
   // Reconcile balance state
   const [reconcileState, setReconcileState] = useState('idle') // 'idle' | 'confirm' | 'running' | 'done' | 'error'
@@ -84,35 +144,23 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const bids = obMode === 'ws' ? liveBids : simOb.bids
   const asks = obMode === 'ws' ? liveAsks : simOb.asks
 
-  // Fetch all Binance USDT perpetual futures sorted by 24h quote volume (highest first)
-  // This gives BTC, ETH, SOL etc at top — same order traders expect
+  // Seed dropdown snapshot prices via CoinGecko — no geo-restrictions, globally accessible
   useEffect(() => {
-    const fetchAllPairs = async () => {
+    const seedSnapshotPrices = async () => {
       try {
-        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const ids = SNAPSHOT_COINGECKO_IDS.join(',')
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
+        if (!res.ok) return
         const data = await res.json()
-        const items = (data?.result?.list || []).filter(t => t.symbol.endsWith('USDT'))
-        const pairs = items
-          .sort((a, b) => parseFloat(b.turnover24h || 0) - parseFloat(a.turnover24h || 0))
-          .map(t => t.symbol)
         const snap = {}
-        items.forEach(t => {
-          snap[t.symbol] = {
-            price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.price24hPcnt) * 100 || 0,
-          }
-        })
+        for (const [geckoId, symbol] of Object.entries(SNAPSHOT_SYMBOL_MAP)) {
+          const d = data[geckoId]
+          if (d) snap[symbol] = { price: d.usd || 0, change: d.usd_24h_change || 0 }
+        }
         setSnapshotPrices(snap)
-        setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-      } catch (err) {
-        console.warn('Bybit pairs fetch failed, using fallback:', err.message)
-        setAvailablePairs(FALLBACK_PAIRS)
-      } finally {
-        setPairsLoading(false)
-      }
+      } catch { /* silent — WebSocket will provide live prices once connected */ }
     }
-    fetchAllPairs()
+    seedSnapshotPrices()
   }, [])
 
   const filteredPairs = pairSearch.trim()
