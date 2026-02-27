@@ -30,7 +30,7 @@ const COINGECKO_MAP = {
   DOGEUSDT:    'dogecoin',
   AVAXUSDT:    'avalanche-2',
   DOTUSDT:     'polkadot',
-  MATICUSDT:   'matic-network',
+  MATICUSDT:   'polygon-ecosystem-token',
   LINKUSDT:    'chainlink',
   UNIUSDT:     'uniswap',
   ATOMUSDT:    'cosmos',
@@ -97,7 +97,6 @@ const COINGECKO_MAP = {
   BALUSDT:     'balancer',
   YFIUSDT:     'yearn-finance',
   LRCUSDT:     'loopring',
-  AGIXUSDT:    'singularitynet',
   OCEANUSDT:   'ocean-protocol',
   ARKMUSDT:    'arkham',
   APEUSDT:     'apecoin',
@@ -113,19 +112,19 @@ const COINGECKO_MAP = {
   SCUSDT:      'siacoin',
   ONTUSDT:     'ontology',
   CHZUSDT:     'chiliz',
-  ENJUSDT:     'enjin-coin',
-  CHRUSDT:     'chromia',
+  ENJUSDT:     'enjincoin',
+  CHRUSDT:     'chromaway',
   ALICEUSDT:   'my-neighbor-alice',
   CTSIUSDT:    'cartesi',
   REEFUSDT:    'reef',
   SUPERUSDT:   'superfarm',
   WAVESUSDT:   'waves',
-  ZENUSDT:     'horizen',
+  ZENUSDT:     'zencash',
   DGBUSDT:     'digibyte',
   CVCUSDT:     'civic',
 }
 
-const WS_CONNECT_TIMEOUT = 6000
+const WS_CONNECT_TIMEOUT = 2000
 const POLL_INTERVAL = 10000
 
 // ---------------------------------------------------------------------------

@@ -25,7 +25,7 @@ const FALLBACK_PAIRS = [
   'DYDXUSDT', 'PENDLEUSDT','GMXUSDT', 'STRKUSDT', 'SNXUSDT',
   'SUSHIUSDT','1INCHUSDT','BALUSDT',  'YFIUSDT',  'LRCUSDT',
   // AI / Infra
-  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT', 'AGIXUSDT',
+  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT',
   'OCEANUSDT','ARKMUSDT',  'ENAUSDT',
   // Gaming / Metaverse
   'AXSUSDT',  'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
@@ -40,7 +40,7 @@ const FALLBACK_PAIRS = [
 // CoinGecko IDs for snapshot price seeding (globally accessible, no geo-restrictions)
 const SNAPSHOT_COINGECKO_IDS = [
   'bitcoin','ethereum','binancecoin','solana','ripple','dogecoin','cardano',
-  'avalanche-2','polkadot','chainlink','matic-network','litecoin','cosmos',
+  'avalanche-2','polkadot','chainlink','polygon-ecosystem-token','litecoin','cosmos',
   'near','aptos','the-open-network','tron','bitcoin-cash','stellar',
   'ethereum-classic','uniswap','optimism','arbitrum','injective-protocol',
   'sui','sei-network','celestia','worldcoin-wld','pepe','shiba-inu',
@@ -50,20 +50,20 @@ const SNAPSHOT_COINGECKO_IDS = [
   'flow','tezos','zilliqa','kava','aave','curve-dao-token','maker',
   'compound-governance-token','the-graph','dydx','pendle','gmx',
   'starknet','havven','fetch-ai','render-token','bittensor','pyth-network',
-  'artificial-superintelligence-alliance','ocean-protocol','axie-infinity',
+  'ocean-protocol','axie-infinity',
   'the-sandbox','decentraland','gala','immutable-x','apecoin',
-  'ontology','waves','horizen','cartesi','reef','my-neighbor-alice',
-  'superfarm','chiliz','enjin-coin','chromia','civic','digibyte',
+  'ontology','waves','zencash','cartesi','reef','my-neighbor-alice',
+  'superfarm','chiliz','enjincoin','chromaway','civic','digibyte',
   'sushi','1inch','balancer','yearn-finance','loopring',
   'blur','yield-guild-games','ethena','coti','ankr','storj',
   'band-protocol','celer-network','nervos-network','siacoin',
-  'singularitynet','arkham','popcat',
+  arkham','popcat',
 ]
 
 const SNAPSHOT_SYMBOL_MAP = {
   'bitcoin':'BTCUSDT','ethereum':'ETHUSDT','binancecoin':'BNBUSDT','solana':'SOLUSDT',
   'ripple':'XRPUSDT','dogecoin':'DOGEUSDT','cardano':'ADAUSDT','avalanche-2':'AVAXUSDT',
-  'polkadot':'DOTUSDT','chainlink':'LINKUSDT','matic-network':'MATICUSDT','litecoin':'LTCUSDT',
+  'polkadot':'DOTUSDT','chainlink':'LINKUSDT','polygon-ecosystem-token':'MATICUSDT','litecoin':'LTCUSDT',
   'cosmos':'ATOMUSDT','near':'NEARUSDT','aptos':'APTUSDT','the-open-network':'TONUSDT',
   'tron':'TRXUSDT','bitcoin-cash':'BCHUSDT','stellar':'XLMUSDT','ethereum-classic':'ETCUSDT',
   'uniswap':'UNIUSDT','optimism':'OPUSDT','arbitrum':'ARBUSDT','injective-protocol':'INJUSDT',
@@ -78,18 +78,18 @@ const SNAPSHOT_SYMBOL_MAP = {
   'compound-governance-token':'COMPUSDT','the-graph':'GRTUSDT','dydx':'DYDXUSDT',
   'pendle':'PENDLEUSDT','gmx':'GMXUSDT','starknet':'STRKUSDT','havven':'SNXUSDT',
   'fetch-ai':'FETUSDT','render-token':'RENDERUSDT','bittensor':'TAOUSDT',
-  'pyth-network':'PYTHUSDT','artificial-superintelligence-alliance':'AGIXUSDT',
+  'pyth-network':'PYTHUSDT',
   'ocean-protocol':'OCEANUSDT','axie-infinity':'AXSUSDT','the-sandbox':'SANDUSDT',
   'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT','apecoin':'APEUSDT',
-  'ontology':'ONTUSDT','waves':'WAVESUSDT','horizen':'ZENUSDT','cartesi':'CTSIUSDT',
+  'ontology':'ONTUSDT','waves':'WAVESUSDT','zencash':'ZENUSDT','cartesi':'CTSIUSDT',
   'reef':'REEFUSDT','my-neighbor-alice':'ALICEUSDT','superfarm':'SUPERUSDT',
-  'chiliz':'CHZUSDT','enjin-coin':'ENJUSDT','chromia':'CHRUSDT','civic':'CVCUSDT',
+  'chiliz':'CHZUSDT','enjincoin':'ENJUSDT','chromaway':'CHRUSDT','civic':'CVCUSDT',
   'digibyte':'DGBUSDT','sushi':'SUSHIUSDT','1inch':'1INCHUSDT','balancer':'BALUSDT',
   'yearn-finance':'YFIUSDT','loopring':'LRCUSDT','blur':'BLURUSDT',
   'yield-guild-games':'YGGUSDT','ethena':'ENAUSDT','coti':'COTIUSDT',
   'ankr':'ANKRUSDT','storj':'STORJUSDT','band-protocol':'BANDUSDT',
   'celer-network':'CELRUSDT','nervos-network':'CKBUSDT','siacoin':'SCUSDT',
-  'singularitynet':'AGIXUSDT','arkham':'ARKMUSDT','popcat':'POPCATUSDT',
+'arkham':'ARKMUSDT','popcat':'POPCATUSDT',
 }
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
