@@ -13451,3 +13451,106 @@ body[data-theme="day"] .dashboard-main::after {
 body[data-theme="day"] .dashboard-overview::before {
   opacity: 0.05;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX 1 — PREVENT MOBILE ZOOM ON ALL DASHBOARD & SITE INPUTS
+   iOS Safari zooms any input/textarea with font-size < 16px on focus.
+   Applied only on mobile; desktop keeps original sizes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .order-input,
+  .input-row input,
+  .input-with-unit input,
+  .alert-input,
+  .profile-input,
+  .auth-input,
+  .email-input,
+  .story-textarea,
+  .support-input,
+  .support-textarea,
+  .dashboard-search input,
+  .search-input {
+    font-size: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX 2 — DASHBOARD BACKGROUND: ANIMATED PURPLE GRADIENT ORBS
+   Targets .dash-layout (correct class) not .dashboard-main.
+   Uses position:absolute so overflow:hidden on parent correctly contains orbs.
+   Undoes the broken .dashboard-main rule from the previous append.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Undo broken override from previous session */
+.dashboard-main {
+  position: static;
+  background: transparent;
+  overflow: visible;
+}
+.dashboard-main::before,
+.dashboard-main::after {
+  display: none;
+}
+.dashboard-main > * {
+  position: static;
+  z-index: auto;
+}
+.dashboard-overview::before {
+  display: none;
+}
+
+/* Correct: apply to .dash-layout which is the true root (height:100vh, overflow:hidden) */
+.dash-layout {
+  position: relative;
+  background: #05050a;
+}
+
+.dash-layout::before,
+.dash-layout::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(90px);
+}
+
+/* Top-left orb — purple */
+.dash-layout::before {
+  width: 700px;
+  height: 700px;
+  top: -200px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(124,58,237,0.55) 0%, rgba(168,85,247,0.3) 40%, transparent 70%);
+  animation: dashOrb1 20s ease-in-out infinite;
+}
+
+/* Bottom-right orb — indigo */
+.dash-layout::after {
+  width: 600px;
+  height: 600px;
+  bottom: -150px;
+  right: -80px;
+  background: radial-gradient(circle, rgba(79,70,229,0.5) 0%, rgba(124,58,237,0.25) 40%, transparent 70%);
+  animation: dashOrb2 25s ease-in-out infinite;
+}
+
+/* Ensure sidebar and main content sit above the orbs */
+.dash-sidebar,
+.dash-main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Light mode: muted lavender tint */
+body[data-theme="day"] .dash-layout {
+  background: #f4f3ff;
+}
+body[data-theme="day"] .dash-layout::before {
+  filter: blur(100px);
+  background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 65%);
+}
+body[data-theme="day"] .dash-layout::after {
+  filter: blur(100px);
+  background: radial-gradient(circle, rgba(79,70,229,0.1) 0%, transparent 65%);
+}

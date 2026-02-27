@@ -317,7 +317,7 @@ export default function TradeHistoryPage({ userId }) {
                     <td className="history-symbol">{trade.symbol}</td>
                     <td>
                       <span className={`history-side-badge ${trade.side?.toLowerCase() === 'long' ? 'long' : 'short'}`}>
-                        {trade.side}
+                        {trade.side?.toLowerCase() === 'long' ? 'Buy' : 'Sell'}
                       </span>
                     </td>
                     <td>{fmt(trade.entry_price)}</td>

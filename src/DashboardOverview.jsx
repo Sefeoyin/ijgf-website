@@ -808,7 +808,7 @@ function DashboardOverview({ userId, onNavigate }) {
                   <div title={trade.id}>{trade.id.slice(0, 8)}…</div>
                   <div>{new Date(trade.executed_at).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
                   <div>{trade.symbol}</div>
-                  <div className={`trade-side ${trade.side.toLowerCase()}`}>{trade.side}</div>
+                  <div className={`trade-side ${trade.side.toLowerCase()}`}>{trade.side?.toLowerCase() === 'long' ? 'Buy' : 'Sell'}</div>
                   <div>{trade.leverage}x</div>
                   <div className={(trade.realized_pnl ?? 0) >= 0 ? 'positive' : 'negative'}>
                     {trade.realized_pnl != null
