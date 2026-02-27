@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
-import { MAX_LEVERAGE, reconcileDemoAccount, getTradingDays, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
+import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
 // Module-level constant — never changes, no need to be inside the component
