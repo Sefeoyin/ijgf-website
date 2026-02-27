@@ -148,10 +148,18 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   useEffect(() => {
     const seedSnapshotPrices = async () => {
       try {
-        const ids = SNAPSHOT_COINGECKO_IDS.join(',')
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
-        if (!res.ok) return
-        const data = await res.json()
+        const CHUNK_SIZE = 50
+        const chunks = []
+        for (let i = 0; i < SNAPSHOT_COINGECKO_IDS.length; i += CHUNK_SIZE) {
+          chunks.push(SNAPSHOT_COINGECKO_IDS.slice(i, i + CHUNK_SIZE))
+        }
+        const results = await Promise.all(chunks.map(chunk => {
+          const ids = chunk.join(',')
+          return fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
+            .then(r => r.ok ? r.json() : {})
+            .catch(() => ({}))
+        }))
+        const data = Object.assign({}, ...results)
         const snap = {}
         for (const [geckoId, symbol] of Object.entries(SNAPSHOT_SYMBOL_MAP)) {
           const d = data[geckoId]

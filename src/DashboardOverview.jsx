@@ -288,10 +288,18 @@ function DashboardOverview({ userId, onNavigate }) {
 
     const fetchPrices = async () => {
       try {
-        const ids = COINGECKO_IDS.join(',')
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
-        if (!res.ok) return
-        const data = await res.json()
+        const CHUNK_SIZE = 50
+        const chunks = []
+        for (let i = 0; i < COINGECKO_IDS.length; i += CHUNK_SIZE) {
+          chunks.push(COINGECKO_IDS.slice(i, i + CHUNK_SIZE))
+        }
+        const results = await Promise.all(chunks.map(chunk => {
+          const ids = chunk.join(',')
+          return fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
+            .then(r => r.ok ? r.json() : {})
+            .catch(() => ({}))
+        }))
+        const data = Object.assign({}, ...results)
         setMarkets(prev => prev.map(m => {
           const geckoId = Object.entries(SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
           const d = geckoId && data[geckoId]
