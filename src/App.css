@@ -13579,3 +13579,17 @@ body[data-theme="day"] .dash-header {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX — RESTORE SIDEBAR POSITION FIXED
+   Previous append set position:relative on .dash-sidebar, overriding
+   position:fixed and pulling it into normal flow, shifting content right.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dash-sidebar {
+  position: fixed !important;
+}
+
+.dash-main {
+  position: relative;
+  z-index: 1;
+}
