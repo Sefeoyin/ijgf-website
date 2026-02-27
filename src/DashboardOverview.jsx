@@ -44,47 +44,105 @@ function DashboardOverview({ userId, onNavigate }) {
 
   // Real-time market data from Binance Futures — all USDT perps
   // Pre-populated with top coins so list is never empty while fetch loads
-  const [markets, setMarkets] = useState(() => {
-    // Full token list — no REST call needed, prices seeded via CoinGecko below
-    const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
-    const ALL_MARKETS = [
-      // Large caps
-      ['BTCUSDT','Bitcoin'],['ETHUSDT','Ethereum'],['BNBUSDT','BNB'],['SOLUSDT','Solana'],
-      ['XRPUSDT','XRP'],['DOGEUSDT','Dogecoin'],['ADAUSDT','Cardano'],['AVAXUSDT','Avalanche'],
-      ['DOTUSDT','Polkadot'],['LINKUSDT','Chainlink'],['MATICUSDT','Polygon'],['LTCUSDT','Litecoin'],
-      ['ATOMUSDT','Cosmos'],['NEARUSDT','NEAR Protocol'],['APTUSDT','Aptos'],['TONUSDT','Toncoin'],
-      ['TRXUSDT','TRON'],['BCHUSDT','Bitcoin Cash'],['XLMUSDT','Stellar'],['ETCUSDT','Ethereum Classic'],
-      // Mid caps
-      ['UNIUSDT','Uniswap'],['OPUSDT','Optimism'],['ARBUSDT','Arbitrum'],['INJUSDT','Injective'],
-      ['SUIUSDT','Sui'],['SEIUSDT','Sei'],['TIAUSDT','Celestia'],['WLDUSDT','Worldcoin'],
-      ['PEPEUSDT','Pepe'],['SHIBUSDT','Shiba Inu'],['WIFUSDT','dogwifhat'],['BONKUSDT','Bonk'],
-      ['FLOKIUSDT','Floki'],['ORDIUSDT','Ordinals'],['RUNEUSDT','THORChain'],['LDOUSDT','Lido'],
-      ['ICPUSDT','Internet Computer'],['HBARUSDT','Hedera'],['FILUSDT','Filecoin'],['ALGOUSDT','Algorand'],
-      ['KASUSDT','Kaspa'],['JUPUSDT','Jupiter'],['FTMUSDT','Fantom'],['EOSUSDT','EOS'],
-      ['VETUSDT','VeChain'],['EGLDUSDT','MultiversX'],['FLOWUSDT','Flow'],['XTZUSDT','Tezos'],
-      ['ZILUSDT','Zilliqa'],['KAVAUSDT','Kava'],
-      // DeFi
-      ['AAVEUSDT','Aave'],['CRVUSDT','Curve DAO'],['MKRUSDT','Maker'],['COMPUSDT','Compound'],
-      ['GRTUSDT','The Graph'],['DYDXUSDT','dYdX'],['PENDLEUSDT','Pendle'],['GMXUSDT','GMX'],
-      ['STRKUSDT','Starknet'],['SNXUSDT','Synthetix'],['SUSHIUSDT','SushiSwap'],
-      ['1INCHUSDT','1inch'],['BALUSDT','Balancer'],['YFIUSDT','Yearn Finance'],['LRCUSDT','Loopring'],
-      // AI / Infra
-      ['FETUSDT','Fetch.ai'],['RENDERUSDT','Render'],['TAOUSDT','Bittensor'],['PYTHUSDT','Pyth'],
-      ['AGIXUSDT','SingularityNET'],['OCEANUSDT','Ocean Protocol'],['ARKMUSDT','Arkham'],
-      // Gaming / Metaverse
-      ['AXSUSDT','Axie Infinity'],['SANDUSDT','The Sandbox'],['MANAUSDT','Decentraland'],
-      ['GALAUSDT','Gala'],['IMXUSDT','Immutable X'],['POPCATUSDT','Popcat'],['APEUSDT','ApeCoin'],
-      ['BLURUSDT','Blur'],['YGGUSDT','Yield Guild Games'],
-      // Other
-      ['ENAUSDT','Ethena'],['STRKUSDT','Starknet'],['COTIUSDT','COTI'],['ANKRUSDT','Ankr'],
-      ['STORJUSDT','Storj'],['BANDUSDT','Band Protocol'],['CELRUSDT','Celer'],
-      ['CKBUSDT','Nervos'],['SCUSDT','Siacoin'],['ONTUSDT','Ontology'],
-      ['CHZUSDT','Chiliz'],['ENJUSDT','Enjin'],['CHRUSDT','Chromia'],
-    ]
-    return ALL_MARKETS.map(([symbol, name]) => ({
-      symbol, name, price: 0, change: 0, favorite: FAVORITES.has(symbol),
-    }))
-  })
+  const [markets, setMarkets] = useState([
+    // Large caps
+    { symbol: 'BTCUSDT',   name: 'Bitcoin',          price: 0, change: 0, favorite: true  },
+    { symbol: 'ETHUSDT',   name: 'Ethereum',          price: 0, change: 0, favorite: true  },
+    { symbol: 'SOLUSDT',   name: 'Solana',            price: 0, change: 0, favorite: false },
+    { symbol: 'BNBUSDT',   name: 'BNB',               price: 0, change: 0, favorite: false },
+    { symbol: 'XRPUSDT',   name: 'XRP',               price: 0, change: 0, favorite: false },
+    { symbol: 'ADAUSDT',   name: 'Cardano',           price: 0, change: 0, favorite: false },
+    { symbol: 'DOGEUSDT',  name: 'Dogecoin',          price: 0, change: 0, favorite: false },
+    { symbol: 'AVAXUSDT',  name: 'Avalanche',         price: 0, change: 0, favorite: false },
+    { symbol: 'DOTUSDT',   name: 'Polkadot',          price: 0, change: 0, favorite: false },
+    { symbol: 'MATICUSDT', name: 'Polygon',           price: 0, change: 0, favorite: false },
+    { symbol: 'LINKUSDT',  name: 'Chainlink',         price: 0, change: 0, favorite: false },
+    { symbol: 'UNIUSDT',   name: 'Uniswap',           price: 0, change: 0, favorite: false },
+    { symbol: 'ATOMUSDT',  name: 'Cosmos',            price: 0, change: 0, favorite: false },
+    { symbol: 'LTCUSDT',   name: 'Litecoin',          price: 0, change: 0, favorite: false },
+    { symbol: 'NEARUSDT',  name: 'NEAR Protocol',     price: 0, change: 0, favorite: false },
+    { symbol: 'APTUSDT',   name: 'Aptos',             price: 0, change: 0, favorite: false },
+    { symbol: 'ARBUSDT',   name: 'Arbitrum',          price: 0, change: 0, favorite: false },
+    { symbol: 'OPUSDT',    name: 'Optimism',          price: 0, change: 0, favorite: false },
+    { symbol: 'TONUSDT',   name: 'Toncoin',           price: 0, change: 0, favorite: false },
+    { symbol: 'TRXUSDT',   name: 'TRON',              price: 0, change: 0, favorite: false },
+    { symbol: 'BCHUSDT',   name: 'Bitcoin Cash',      price: 0, change: 0, favorite: false },
+    { symbol: 'XLMUSDT',   name: 'Stellar',           price: 0, change: 0, favorite: false },
+    { symbol: 'ETCUSDT',   name: 'Ethereum Classic',  price: 0, change: 0, favorite: false },
+    // Mid caps
+    { symbol: 'SUIUSDT',   name: 'Sui',               price: 0, change: 0, favorite: false },
+    { symbol: 'INJUSDT',   name: 'Injective',         price: 0, change: 0, favorite: false },
+    { symbol: 'SEIUSDT',   name: 'Sei',               price: 0, change: 0, favorite: false },
+    { symbol: 'TIAUSDT',   name: 'Celestia',          price: 0, change: 0, favorite: false },
+    { symbol: 'WLDUSDT',   name: 'Worldcoin',         price: 0, change: 0, favorite: false },
+    { symbol: 'PEPEUSDT',  name: 'Pepe',              price: 0, change: 0, favorite: false },
+    { symbol: 'SHIBUSDT',  name: 'Shiba Inu',         price: 0, change: 0, favorite: false },
+    { symbol: 'WIFUSDT',   name: 'dogwifhat',         price: 0, change: 0, favorite: false },
+    { symbol: 'BONKUSDT',  name: 'Bonk',              price: 0, change: 0, favorite: false },
+    { symbol: 'FLOKIUSDT', name: 'Floki',             price: 0, change: 0, favorite: false },
+    { symbol: 'ORDIUSDT',  name: 'Ordinals',          price: 0, change: 0, favorite: false },
+    { symbol: 'RUNEUSDT',  name: 'THORChain',         price: 0, change: 0, favorite: false },
+    { symbol: 'LDOUSDT',   name: 'Lido',              price: 0, change: 0, favorite: false },
+    { symbol: 'ICPUSDT',   name: 'Internet Computer', price: 0, change: 0, favorite: false },
+    { symbol: 'HBARUSDT',  name: 'Hedera',            price: 0, change: 0, favorite: false },
+    { symbol: 'FILUSDT',   name: 'Filecoin',          price: 0, change: 0, favorite: false },
+    { symbol: 'ALGOUSDT',  name: 'Algorand',          price: 0, change: 0, favorite: false },
+    { symbol: 'KASUSDT',   name: 'Kaspa',             price: 0, change: 0, favorite: false },
+    { symbol: 'JUPUSDT',   name: 'Jupiter',           price: 0, change: 0, favorite: false },
+    { symbol: 'FTMUSDT',   name: 'Fantom',            price: 0, change: 0, favorite: false },
+    { symbol: 'VETUSDT',   name: 'VeChain',           price: 0, change: 0, favorite: false },
+    // DeFi
+    { symbol: 'AAVEUSDT',  name: 'Aave',              price: 0, change: 0, favorite: false },
+    { symbol: 'CRVUSDT',   name: 'Curve DAO',         price: 0, change: 0, favorite: false },
+    { symbol: 'MKRUSDT',   name: 'Maker',             price: 0, change: 0, favorite: false },
+    { symbol: 'COMPUSDT',  name: 'Compound',          price: 0, change: 0, favorite: false },
+    { symbol: 'GRTUSDT',   name: 'The Graph',         price: 0, change: 0, favorite: false },
+    { symbol: 'DYDXUSDT',  name: 'dYdX',              price: 0, change: 0, favorite: false },
+    { symbol: 'PENDLEUSDT',name: 'Pendle',            price: 0, change: 0, favorite: false },
+    { symbol: 'GMXUSDT',   name: 'GMX',               price: 0, change: 0, favorite: false },
+    { symbol: 'STRKUSDT',  name: 'Starknet',          price: 0, change: 0, favorite: false },
+    { symbol: 'SNXUSDT',   name: 'Synthetix',         price: 0, change: 0, favorite: false },
+    { symbol: 'SUSHIUSDT', name: 'SushiSwap',         price: 0, change: 0, favorite: false },
+    // AI / Infra
+    { symbol: 'FETUSDT',   name: 'Fetch.ai',          price: 0, change: 0, favorite: false },
+    { symbol: 'RENDERUSDT',name: 'Render',            price: 0, change: 0, favorite: false },
+    { symbol: 'TAOUSDT',   name: 'Bittensor',         price: 0, change: 0, favorite: false },
+    { symbol: 'PYTHUSDT',  name: 'Pyth Network',      price: 0, change: 0, favorite: false },
+    { symbol: 'OCEANUSDT', name: 'Ocean Protocol',    price: 0, change: 0, favorite: false },
+    { symbol: 'ARKMUSDT',  name: 'Arkham',            price: 0, change: 0, favorite: false },
+    // Gaming / Metaverse
+    { symbol: 'AXSUSDT',   name: 'Axie Infinity',     price: 0, change: 0, favorite: false },
+    { symbol: 'SANDUSDT',  name: 'The Sandbox',       price: 0, change: 0, favorite: false },
+    { symbol: 'MANAUSDT',  name: 'Decentraland',      price: 0, change: 0, favorite: false },
+    { symbol: 'GALAUSDT',  name: 'Gala',              price: 0, change: 0, favorite: false },
+    { symbol: 'IMXUSDT',   name: 'Immutable X',       price: 0, change: 0, favorite: false },
+    { symbol: 'APEUSDT',   name: 'ApeCoin',           price: 0, change: 0, favorite: false },
+    // Other
+    { symbol: 'ENAUSDT',   name: 'Ethena',            price: 0, change: 0, favorite: false },
+    { symbol: 'ANKRUSDT',  name: 'Ankr',              price: 0, change: 0, favorite: false },
+    { symbol: 'CHZUSDT',   name: 'Chiliz',            price: 0, change: 0, favorite: false },
+    { symbol: 'ENJUSDT',   name: 'Enjin',             price: 0, change: 0, favorite: false },
+    { symbol: 'CHRUSDT',   name: 'Chromia',           price: 0, change: 0, favorite: false },
+    { symbol: 'YGGUSDT',   name: 'Yield Guild',       price: 0, change: 0, favorite: false },
+    { symbol: 'BLURUSDT',  name: 'Blur',              price: 0, change: 0, favorite: false },
+    { symbol: 'COTIUSDT',  name: 'COTI',              price: 0, change: 0, favorite: false },
+    { symbol: 'STORJUSDT', name: 'Storj',             price: 0, change: 0, favorite: false },
+    { symbol: 'BANDUSDT',  name: 'Band Protocol',     price: 0, change: 0, favorite: false },
+    { symbol: 'CELRUSDT',  name: 'Celer Network',     price: 0, change: 0, favorite: false },
+    { symbol: 'CKBUSDT',   name: 'Nervos Network',    price: 0, change: 0, favorite: false },
+    { symbol: 'SCUSDT',    name: 'Siacoin',           price: 0, change: 0, favorite: false },
+    { symbol: 'ONTUSDT',   name: 'Ontology',          price: 0, change: 0, favorite: false },
+    { symbol: 'WAVESUSDT', name: 'Waves',             price: 0, change: 0, favorite: false },
+    { symbol: 'ZENUSDT',   name: 'Horizen',           price: 0, change: 0, favorite: false },
+    { symbol: 'CTSIUSDT',  name: 'Cartesi',           price: 0, change: 0, favorite: false },
+    { symbol: 'REEFUSDT',  name: 'Reef',              price: 0, change: 0, favorite: false },
+    { symbol: 'ALICEUSDT', name: 'My Neighbor Alice', price: 0, change: 0, favorite: false },
+    { symbol: 'SUPERUSDT', name: 'SuperFarm',         price: 0, change: 0, favorite: false },
+    { symbol: 'CVCUSDT',   name: 'Civic',             price: 0, change: 0, favorite: false },
+    { symbol: 'DGBUSDT',   name: 'DigiByte',          price: 0, change: 0, favorite: false },
+    { symbol: 'LRCUSDT',   name: 'Loopring',          price: 0, change: 0, favorite: false },
+    { symbol: 'POPCATUSDT',name: 'Popcat',            price: 0, change: 0, favorite: false },
+  ])
 
   const [realTrades, setRealTrades] = useState([])
 
@@ -237,82 +295,113 @@ function DashboardOverview({ userId, onNavigate }) {
     })
   }, [markets, priceAlerts, addNotification, removePriceAlert])
 
-  // Seed market prices via CoinGecko — globally accessible, no geo-restrictions
-  // Token list is hardcoded in initial state above, prices refresh every 60s
+  // Human-readable names for top coins — others fall back to ticker base
+  const COIN_NAMES = {
+    BTCUSDT:'Bitcoin', ETHUSDT:'Ethereum', BNBUSDT:'BNB', SOLUSDT:'Solana',
+    XRPUSDT:'XRP', ADAUSDT:'Cardano', DOGEUSDT:'Dogecoin', AVAXUSDT:'Avalanche',
+    DOTUSDT:'Polkadot', MATICUSDT:'Polygon', LINKUSDT:'Chainlink', UNIUSDT:'Uniswap',
+    ATOMUSDT:'Cosmos', LTCUSDT:'Litecoin', NEARUSDT:'NEAR Protocol', APTUSDT:'Aptos',
+    ARBUSDT:'Arbitrum', OPUSDT:'Optimism', SUIUSDT:'Sui', INJUSDT:'Injective',
+    SEIUSDT:'Sei', WLDUSDT:'Worldcoin', PEPEUSDT:'Pepe', SHIBUSDT:'Shiba Inu',
+    TONUSDT:'Toncoin', TRXUSDT:'TRON', BCHUSDT:'Bitcoin Cash', XLMUSDT:'Stellar',
+    ETCUSDT:'Ethereum Classic', FILUSDT:'Filecoin', ICPUSDT:'Internet Computer',
+    HBARUSDT:'Hedera', AAVEUSDT:'Aave', LDOUSDT:'Lido', WIFUSDT:'dogwifhat',
+    BONKUSDT:'Bonk', FLOKIUSDT:'Floki', RUNEUSDT:'THORChain', FETUSDT:'Fetch.ai',
+    RENDERUSDT:'Render', IMXUSDT:'Immutable X', KASUSDT:'Kaspa', JUPUSDT:'Jupiter',
+    TAOUSDT:'Bittensor', SANDUSDT:'The Sandbox', MANAUSDT:'Decentraland',
+    GALAUSDT:'Gala', AXSUSDT:'Axie Infinity', GMXUSDT:'GMX', PENDLEUSDT:'Pendle',
+    TIAUSDT:'Celestia', STRKUSDT:'Starknet', CRVUSDT:'Curve DAO', MKRUSDT:'Maker',
+    COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
+  }
+
+  // Fetch all Binance Futures USDT pairs sorted by 24h volume
   useEffect(() => {
-    const COINGECKO_IDS = [
-      'bitcoin','ethereum','binancecoin','solana','ripple','dogecoin','cardano',
-      'avalanche-2','polkadot','chainlink','matic-network','litecoin','cosmos',
-      'near','aptos','the-open-network','tron','bitcoin-cash','stellar','ethereum-classic',
-      'uniswap','optimism','arbitrum','injective-protocol','sui','sei-network','celestia',
-      'worldcoin-wld','pepe','shiba-inu','dogwifcoin','bonk','floki','ordinals','thorchain',
-      'lido-dao','internet-computer','hedera-hashgraph','filecoin','algorand','kaspa',
-      'jupiter-exchange-solana','fantom','eos','vechain','elrond-erd-2','flow','tezos',
-      'zilliqa','kava','aave','curve-dao-token','maker','compound-governance-token',
-      'the-graph','dydx','pendle','gmx','starknet','havven','sushi','1inch',
-      'balancer','yearn-finance','loopring','fetch-ai','render-token','bittensor',
-      'pyth-network','artificial-superintelligence-alliance','ocean-protocol','arkham',
-      'axie-infinity','the-sandbox','decentraland','gala','immutable-x','apecoin',
-      'popcat','blur','yield-guild-games','ethena','coti','ankr','storj',
-      'band-protocol','celer-network','nervos-network','siacoin','ontology','chiliz','enjin',
-    ]
-    const SYMBOL_MAP = {
-      'bitcoin':'BTCUSDT','ethereum':'ETHUSDT','binancecoin':'BNBUSDT','solana':'SOLUSDT',
-      'ripple':'XRPUSDT','dogecoin':'DOGEUSDT','cardano':'ADAUSDT','avalanche-2':'AVAXUSDT',
-      'polkadot':'DOTUSDT','chainlink':'LINKUSDT','matic-network':'MATICUSDT','litecoin':'LTCUSDT',
-      'cosmos':'ATOMUSDT','near':'NEARUSDT','aptos':'APTUSDT','the-open-network':'TONUSDT',
+    const FAVORITES = new Set(['BTCUSDT', 'ETHUSDT'])
+
+    // CoinGecko chunked seed — covers all tokens, no geo-block issues
+    const COINGECKO_SYMBOL_MAP = {
+      'bitcoin':'BTCUSDT','ethereum':'ETHUSDT','solana':'SOLUSDT','binancecoin':'BNBUSDT',
+      'ripple':'XRPUSDT','cardano':'ADAUSDT','dogecoin':'DOGEUSDT','avalanche-2':'AVAXUSDT',
+      'polkadot':'DOTUSDT','polygon-ecosystem-token':'MATICUSDT','chainlink':'LINKUSDT',
+      'uniswap':'UNIUSDT','cosmos':'ATOMUSDT','litecoin':'LTCUSDT','near':'NEARUSDT',
+      'aptos':'APTUSDT','arbitrum':'ARBUSDT','optimism':'OPUSDT','the-open-network':'TONUSDT',
       'tron':'TRXUSDT','bitcoin-cash':'BCHUSDT','stellar':'XLMUSDT','ethereum-classic':'ETCUSDT',
-      'uniswap':'UNIUSDT','optimism':'OPUSDT','arbitrum':'ARBUSDT','injective-protocol':'INJUSDT',
-      'sui':'SUIUSDT','sei-network':'SEIUSDT','celestia':'TIAUSDT','worldcoin-wld':'WLDUSDT',
-      'pepe':'PEPEUSDT','shiba-inu':'SHIBUSDT','dogwifcoin':'WIFUSDT','bonk':'BONKUSDT',
-      'floki':'FLOKIUSDT','ordinals':'ORDIUSDT','thorchain':'RUNEUSDT','lido-dao':'LDOUSDT',
-      'internet-computer':'ICPUSDT','hedera-hashgraph':'HBARUSDT','filecoin':'FILUSDT',
-      'algorand':'ALGOUSDT','kaspa':'KASUSDT','jupiter-exchange-solana':'JUPUSDT',
-      'fantom':'FTMUSDT','eos':'EOSUSDT','vechain':'VETUSDT','elrond-erd-2':'EGLDUSDT',
-      'flow':'FLOWUSDT','tezos':'XTZUSDT','zilliqa':'ZILUSDT','kava':'KAVAUSDT',
+      'sui':'SUIUSDT','injective-protocol':'INJUSDT','sei-network':'SEIUSDT','celestia':'TIAUSDT',
+      'worldcoin-wld':'WLDUSDT','pepe':'PEPEUSDT','shiba-inu':'SHIBUSDT','dogwifcoin':'WIFUSDT',
+      'bonk':'BONKUSDT','floki':'FLOKIUSDT','ordinals':'ORDIUSDT','thorchain':'RUNEUSDT',
+      'lido-dao':'LDOUSDT','internet-computer':'ICPUSDT','hedera-hashgraph':'HBARUSDT',
+      'filecoin':'FILUSDT','algorand':'ALGOUSDT','kaspa':'KASUSDT',
+      'jupiter-exchange-solana':'JUPUSDT','fantom':'FTMUSDT','vechain':'VETUSDT',
       'aave':'AAVEUSDT','curve-dao-token':'CRVUSDT','maker':'MKRUSDT',
       'compound-governance-token':'COMPUSDT','the-graph':'GRTUSDT','dydx':'DYDXUSDT',
       'pendle':'PENDLEUSDT','gmx':'GMXUSDT','starknet':'STRKUSDT','havven':'SNXUSDT',
-      'sushi':'SUSHIUSDT','1inch':'1INCHUSDT','balancer':'BALUSDT',
-      'yearn-finance':'YFIUSDT','loopring':'LRCUSDT','fetch-ai':'FETUSDT',
-      'render-token':'RENDERUSDT','bittensor':'TAOUSDT','pyth-network':'PYTHUSDT',
-      'artificial-superintelligence-alliance':'AGIXUSDT','ocean-protocol':'OCEANUSDT',
+      'sushi':'SUSHIUSDT','fetch-ai':'FETUSDT','render-token':'RENDERUSDT',
+      'bittensor':'TAOUSDT','pyth-network':'PYTHUSDT','ocean-protocol':'OCEANUSDT',
       'arkham':'ARKMUSDT','axie-infinity':'AXSUSDT','the-sandbox':'SANDUSDT',
-      'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT',
-      'apecoin':'APEUSDT','popcat':'POPCATUSDT','blur':'BLURUSDT',
-      'yield-guild-games':'YGGUSDT','ethena':'ENAUSDT','coti':'COTIUSDT',
-      'ankr':'ANKRUSDT','storj':'STORJUSDT','band-protocol':'BANDUSDT',
+      'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT','apecoin':'APEUSDT',
+      'ethena':'ENAUSDT','ankr':'ANKRUSDT','chiliz':'CHZUSDT','enjincoin':'ENJUSDT',
+      'chromaway':'CHRUSDT','yield-guild-games':'YGGUSDT','blur':'BLURUSDT',
+      'coti':'COTIUSDT','storj':'STORJUSDT','band-protocol':'BANDUSDT',
       'celer-network':'CELRUSDT','nervos-network':'CKBUSDT','siacoin':'SCUSDT',
-      'ontology':'ONTUSDT','chiliz':'CHZUSDT','enjin':'ENJUSDT',
+      'ontology':'ONTUSDT','waves':'WAVESUSDT','zencash':'ZENUSDT','cartesi':'CTSIUSDT',
+      'reef':'REEFUSDT','my-neighbor-alice':'ALICEUSDT','superfarm':'SUPERUSDT',
+      'civic':'CVCUSDT','digibyte':'DGBUSDT','loopring':'LRCUSDT','popcat':'POPCATUSDT',
     }
+    const COINGECKO_IDS = Object.keys(COINGECKO_SYMBOL_MAP)
+    const CHUNK_SIZE = 50
 
-    const fetchPrices = async () => {
+    // Step 1: seed all coins from CoinGecko (chunked to avoid silent truncation)
+    const seedPrices = async () => {
       try {
-        const CHUNK_SIZE = 50
         const chunks = []
         for (let i = 0; i < COINGECKO_IDS.length; i += CHUNK_SIZE) {
           chunks.push(COINGECKO_IDS.slice(i, i + CHUNK_SIZE))
         }
-        const results = await Promise.all(chunks.map(chunk => {
-          const ids = chunk.join(',')
-          return fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
+        const results = await Promise.all(chunks.map(chunk =>
+          fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${chunk.join(',')}&vs_currencies=usd&include_24hr_change=true`)
             .then(r => r.ok ? r.json() : {})
             .catch(() => ({}))
-        }))
+        ))
         const data = Object.assign({}, ...results)
         setMarkets(prev => prev.map(m => {
-          const geckoId = Object.entries(SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
-          const d = geckoId && data[geckoId]
+          const cgId = Object.entries(COINGECKO_SYMBOL_MAP).find(([, sym]) => sym === m.symbol)?.[0]
+          const d = cgId && data[cgId]
           return d ? { ...m, price: d.usd || 0, change: d.usd_24h_change || 0 } : m
         }))
         setIsLoadingPrices(false)
       } catch { /* silent */ }
     }
 
-    fetchPrices()
-    const interval = setInterval(fetchPrices, 60000)
+    // Step 2: replace full list from Binance Futures (all 200+ pairs with live prices)
+    const fetchAllMarkets = async () => {
+      try {
+        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const tickers = await res.json()
+        const parsed = tickers
+          .filter(t => t.symbol.endsWith('USDT'))
+          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+          .map(t => ({
+            symbol: t.symbol,
+            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
+            price: parseFloat(t.lastPrice) || 0,
+            change: parseFloat(t.priceChangePercent) || 0,
+            favorite: FAVORITES.has(t.symbol),
+          }))
+        if (parsed.length > 0) {
+          setMarkets(parsed)
+          setIsLoadingPrices(false)
+        }
+      } catch (err) {
+        console.error('Binance Futures ticker fetch failed:', err)
+      }
+    }
+
+    seedPrices()         // fires immediately — populates defaults with real prices
+    fetchAllMarkets()    // fires immediately — replaces with full list once done
+    const interval = setInterval(fetchAllMarkets, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build equity chart from real trade history
   const buildChartFromTrades = useCallback((trades, hoursBack) => {
