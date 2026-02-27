@@ -24,31 +24,24 @@ import {
 
 const ALL_PAIRS = [
   // Large caps
-  'BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'SOLUSDT',  'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT',  'AVAXUSDT', 'DOTUSDT',  'LINKUSDT',
-  'MATICUSDT','LTCUSDT',  'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-  'TONUSDT',  'TRXUSDT',  'BCHUSDT',  'XLMUSDT',  'ETCUSDT',
-  // Mid caps
-  'UNIUSDT',  'OPUSDT',   'ARBUSDT',  'INJUSDT',  'SUIUSDT',
-  'SEIUSDT',  'TIAUSDT',  'WLDUSDT',  'PEPEUSDT', 'SHIBUSDT',
-  'WIFUSDT',  'BONKUSDT', 'FLOKIUSDT','ORDIUSDT', 'RUNEUSDT',
-  'LDOUSDT',  'ICPUSDT',  'HBARUSDT', 'FILUSDT',  'ALGOUSDT',
-  'KASUSDT',  'JUPUSDT',  'FTMUSDT',  'EOSUSDT',  'VETUSDT',
-  'EGLDUSDT', 'FLOWUSDT', 'XTZUSDT',  'ZILUSDT',  'KAVAUSDT',
+  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+  'TONUSDT', 'TRXUSDT', 'BCHUSDT', 'XLMUSDT', 'ETCUSDT',
+  // Mid cap
+  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
+  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PEPEUSDT', 'SHIBUSDT',
+  'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT', 'ORDIUSDT', 'RUNEUSDT',
+  'LDOUSDT', 'ICPUSDT', 'HBARUSDT', 'FILUSDT', 'ALGOUSDT',
   // DeFi
-  'AAVEUSDT', 'CRVUSDT',  'MKRUSDT',  'COMPUSDT', 'GRTUSDT',
-  'DYDXUSDT', 'PENDLEUSDT','GMXUSDT', 'STRKUSDT', 'SNXUSDT',
-  'SUSHIUSDT','1INCHUSDT','BALUSDT',  'YFIUSDT',  'LRCUSDT',
+  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'PENDLEUSDT', 'GMXUSDT', 'STRKUSDT', 'SNXUSDT',
   // AI / Infra
-  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT',
-  'OCEANUSDT','ARKMUSDT',
+  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'PYTHUSDT',
   // Gaming / Metaverse
-  'AXSUSDT',  'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
-  'POPCATUSDT','APEUSDT', 'BLURUSDT', 'YGGUSDT',
+  'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
   // Other
-  'ENAUSDT',  'COTIUSDT', 'ANKRUSDT', 'STORJUSDT','BANDUSDT',
-  'CELRUSDT', 'CKBUSDT',  'SCUSDT',   'ONTUSDT',
-  'CHZUSDT',  'ENJUSDT',  'CHRUSDT',
+  'KASUSDT', 'JUPUSDT', 'POPCATUSDT', 'FTMUSDT', 'EOSUSDT',
 ]
 
 export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
@@ -57,6 +50,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [positions, setPositions] = useState([])
   const [openOrders, setOpenOrders] = useState([])
   const [recentTrades, setRecentTrades] = useState([])
+  const [tradingDays, setTradingDays] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notifications, setNotifications] = useState([])
@@ -97,6 +91,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setPositions(state.positions)
       setOpenOrders(state.orders)
       setRecentTrades(state.recentTrades)
+      setTradingDays(state.tradingDays ?? 0)
       setError(null)
     } catch (err) {
       console.error('Error loading account state:', err)
@@ -366,6 +361,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     obMode,
 
     // Derived
+    tradingDays,
     equity,
     accountValue,
     equityProfit,
