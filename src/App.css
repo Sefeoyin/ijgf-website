@@ -13554,3 +13554,28 @@ body[data-theme="day"] .dash-layout::after {
   filter: blur(100px);
   background: radial-gradient(circle, rgba(79,70,229,0.1) 0%, transparent 65%);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX — DASHBOARD GRADIENT VISIBILITY
+   .dash-content and .dash-header had solid backgrounds covering the orbs
+   on .dash-layout. Make them transparent so gradient shows through.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dash-content {
+  background: transparent !important;
+}
+
+.dash-header {
+  background: rgba(5, 5, 10, 0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body[data-theme="day"] .dash-content {
+  background: transparent !important;
+}
+
+body[data-theme="day"] .dash-header {
+  background: rgba(244, 243, 255, 0.75) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
