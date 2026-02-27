@@ -57,7 +57,7 @@ const SNAPSHOT_COINGECKO_IDS = [
   'sushi','1inch','balancer','yearn-finance','loopring',
   'blur','yield-guild-games','ethena','coti','ankr','storj',
   'band-protocol','celer-network','nervos-network','siacoin',
-  arkham','popcat',
+  'arkham','popcat',
 ]
 
 const SNAPSHOT_SYMBOL_MAP = {
