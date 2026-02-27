@@ -52,6 +52,12 @@ const SNAPSHOT_COINGECKO_IDS = [
   'starknet','havven','fetch-ai','render-token','bittensor','pyth-network',
   'artificial-superintelligence-alliance','ocean-protocol','axie-infinity',
   'the-sandbox','decentraland','gala','immutable-x','apecoin',
+  'ontology','waves','horizen','cartesi','reef','my-neighbor-alice',
+  'superfarm','chiliz','enjin-coin','chromia','civic','digibyte',
+  'sushi','1inch','balancer','yearn-finance','loopring',
+  'blur','yield-guild-games','ethena','coti','ankr','storj',
+  'band-protocol','celer-network','nervos-network','siacoin',
+  'singularitynet','arkham','popcat',
 ]
 
 const SNAPSHOT_SYMBOL_MAP = {
@@ -75,6 +81,15 @@ const SNAPSHOT_SYMBOL_MAP = {
   'pyth-network':'PYTHUSDT','artificial-superintelligence-alliance':'AGIXUSDT',
   'ocean-protocol':'OCEANUSDT','axie-infinity':'AXSUSDT','the-sandbox':'SANDUSDT',
   'decentraland':'MANAUSDT','gala':'GALAUSDT','immutable-x':'IMXUSDT','apecoin':'APEUSDT',
+  'ontology':'ONTUSDT','waves':'WAVESUSDT','horizen':'ZENUSDT','cartesi':'CTSIUSDT',
+  'reef':'REEFUSDT','my-neighbor-alice':'ALICEUSDT','superfarm':'SUPERUSDT',
+  'chiliz':'CHZUSDT','enjin-coin':'ENJUSDT','chromia':'CHRUSDT','civic':'CVCUSDT',
+  'digibyte':'DGBUSDT','sushi':'SUSHIUSDT','1inch':'1INCHUSDT','balancer':'BALUSDT',
+  'yearn-finance':'YFIUSDT','loopring':'LRCUSDT','blur':'BLURUSDT',
+  'yield-guild-games':'YGGUSDT','ethena':'ENAUSDT','coti':'COTIUSDT',
+  'ankr':'ANKRUSDT','storj':'STORJUSDT','band-protocol':'BANDUSDT',
+  'celer-network':'CELRUSDT','nervos-network':'CKBUSDT','siacoin':'SCUSDT',
+  'singularitynet':'AGIXUSDT','arkham':'ARKMUSDT','popcat':'POPCATUSDT',
 }
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
