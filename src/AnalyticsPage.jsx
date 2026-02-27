@@ -218,19 +218,20 @@ export default function AnalyticsPage({ userId }) {
           .order('executed_at', { ascending: true })
         if (!cancelled) setTrades(activeTrades || [])
 
-        // All accounts for this user — to show completed challenge history
+        // All accounts for this user — to show completed challenge history.
+        // Include passed/failed regardless of whether they've been archived yet
+        // (archiving only happens when the user starts a new challenge).
         const { data: allAccounts } = await supabase
           .from('demo_accounts')
           .select('*')
           .eq('user_id', userId)
           .order('updated_at', { ascending: false })
 
-        const archived = (allAccounts || []).filter(a =>
-          a.challenge_type.includes('_archived_') &&
+        const completed = (allAccounts || []).filter(a =>
           (a.status === 'passed' || a.status === 'failed')
         )
 
-        const archivedWithStats = await Promise.all(archived.map(async (acc) => {
+        const archivedWithStats = await Promise.all(completed.map(async (acc) => {
           const { data: accTrades } = await supabase
             .from('demo_trades')
             .select('realized_pnl, executed_at, is_close')
