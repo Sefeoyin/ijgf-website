@@ -24,24 +24,31 @@ import {
 
 const ALL_PAIRS = [
   // Large caps
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-  'TONUSDT', 'TRXUSDT', 'BCHUSDT', 'XLMUSDT', 'ETCUSDT',
-  // Mid cap
-  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'PEPEUSDT', 'SHIBUSDT',
-  'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT', 'ORDIUSDT', 'RUNEUSDT',
-  'LDOUSDT', 'ICPUSDT', 'HBARUSDT', 'FILUSDT', 'ALGOUSDT',
+  'BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'SOLUSDT',  'XRPUSDT',
+  'DOGEUSDT', 'ADAUSDT',  'AVAXUSDT', 'DOTUSDT',  'LINKUSDT',
+  'MATICUSDT','LTCUSDT',  'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
+  'TONUSDT',  'TRXUSDT',  'BCHUSDT',  'XLMUSDT',  'ETCUSDT',
+  // Mid caps
+  'UNIUSDT',  'OPUSDT',   'ARBUSDT',  'INJUSDT',  'SUIUSDT',
+  'SEIUSDT',  'TIAUSDT',  'WLDUSDT',  'PEPEUSDT', 'SHIBUSDT',
+  'WIFUSDT',  'BONKUSDT', 'FLOKIUSDT','ORDIUSDT', 'RUNEUSDT',
+  'LDOUSDT',  'ICPUSDT',  'HBARUSDT', 'FILUSDT',  'ALGOUSDT',
+  'KASUSDT',  'JUPUSDT',  'FTMUSDT',  'EOSUSDT',  'VETUSDT',
+  'EGLDUSDT', 'FLOWUSDT', 'XTZUSDT',  'ZILUSDT',  'KAVAUSDT',
   // DeFi
-  'AAVEUSDT', 'CRVUSDT', 'MKRUSDT', 'COMPUSDT', 'GRTUSDT',
-  'DYDXUSDT', 'PENDLEUSDT', 'GMXUSDT', 'STRKUSDT', 'SNXUSDT',
+  'AAVEUSDT', 'CRVUSDT',  'MKRUSDT',  'COMPUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'PENDLEUSDT','GMXUSDT', 'STRKUSDT', 'SNXUSDT',
+  'SUSHIUSDT','1INCHUSDT','BALUSDT',  'YFIUSDT',  'LRCUSDT',
   // AI / Infra
-  'FETUSDT', 'RENDERUSDT', 'TAOUSDT', 'PYTHUSDT',
+  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT', 'AGIXUSDT',
+  'OCEANUSDT','ARKMUSDT',
   // Gaming / Metaverse
-  'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
+  'AXSUSDT',  'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',
+  'POPCATUSDT','APEUSDT', 'BLURUSDT', 'YGGUSDT',
   // Other
-  'KASUSDT', 'JUPUSDT', 'POPCATUSDT', 'FTMUSDT', 'EOSUSDT',
+  'ENAUSDT',  'COTIUSDT', 'ANKRUSDT', 'STORJUSDT','BANDUSDT',
+  'CELRUSDT', 'CKBUSDT',  'SCUSDT',   'ONTUSDT',
+  'CHZUSDT',  'ENJUSDT',  'CHRUSDT',
 ]
 
 export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
@@ -53,7 +60,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notifications, setNotifications] = useState([])
-  const [tradingDays, setTradingDays] = useState(0)
 
   // --------------- WebSocket / CoinGecko prices ---------------
   // If the selected pair isn't in our base list, add it so it always gets a price
@@ -91,7 +97,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setPositions(state.positions)
       setOpenOrders(state.orders)
       setRecentTrades(state.recentTrades)
-      setTradingDays(state.tradingDays || 0)
       setError(null)
     } catch (err) {
       console.error('Error loading account state:', err)
@@ -370,9 +375,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     profitTargetProgress,
     drawdownUsed,
     drawdownPercent,
-
-    // Trading days
-    tradingDays,
 
     // Actions
     submitMarketOrder,
