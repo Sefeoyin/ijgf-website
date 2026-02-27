@@ -100,8 +100,41 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
   return account
 }
 
+// Returns the user's actual active account — whichever challenge type they chose.
+// Must NOT default to a specific challenge type or it will create a ghost account
+// for users on any tier other than the default.
+async function findActiveAccount(userId) {
+  // 1. Most recently updated active account (any challenge type)
+  const { data: active } = await supabase
+    .from('demo_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .not('challenge_type', 'like', '%_archived_%')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (active) return active
+
+  // 2. Any non-archived account (passed/failed — still show its data)
+  const { data: any } = await supabase
+    .from('demo_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .not('challenge_type', 'like', '%_archived_%')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (any) return any
+
+  // 3. No account at all — create a default 10k to bootstrap
+  return getOrCreateDemoAccount(userId, '10k')
+}
+
 export async function getAccountState(userId) {
-  const account = await getOrCreateDemoAccount(userId)
+  const account = await findActiveAccount(userId)
 
   const [posRes, ordRes, tradeRes] = await Promise.all([
     supabase
@@ -157,7 +190,7 @@ export async function placeMarketOrder({
   const maxLev = MAX_LEVERAGE[symbol] ?? MAX_LEVERAGE.DEFAULT
   if (leverage > maxLev) throw new Error(`Max leverage for ${symbol} is ${maxLev}x`)
 
-  const account = await getOrCreateDemoAccount(userId)
+  const account = await findActiveAccount(userId)
   if (account.status !== 'active') throw new Error(`Challenge is ${account.status}`)
 
   const quantity = sizeUsdt / currentPrice
@@ -182,7 +215,7 @@ export async function placeMarketOrder({
   if (existingPos && existingPos.side !== positionSide) {
     console.log('[Trading] Closing opposite position:', existingPos.id)
     await closePosition({ userId, positionId: existingPos.id, currentPrice, reason: 'reversed' })
-    const refreshed = await getOrCreateDemoAccount(userId)
+    const refreshed = await findActiveAccount(userId)
     if (margin > refreshed.current_balance) {
       throw new Error('Insufficient balance after closing opposite position')
     }
@@ -258,7 +291,7 @@ export async function placeLimitOrder({
     throw new Error('Stop price required for stop-limit orders')
   }
 
-  const account = await getOrCreateDemoAccount(userId)
+  const account = await findActiveAccount(userId)
   if (account.status !== 'active') throw new Error(`Challenge is ${account.status}`)
 
   const quantity = sizeUsdt / price
@@ -375,7 +408,7 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
     console.error('[Trading] CRITICAL: Balance NOT updated for position', positionId, 'PNL:', pnl)
     // Attempt a best-effort balance recovery via userId
     try {
-      const fallback = await getOrCreateDemoAccount(userId)
+      const fallback = await findActiveAccount(userId)
       const recoveredBalance = fallback.current_balance + (pos.margin || 0) + pnl
       await supabase.from('demo_accounts').update({
         current_balance: Math.max(0, recoveredBalance),
