@@ -95,8 +95,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const [activePositionsTab, setActivePositionsTab] = useState('positions')
   const [mobileChartView, setMobileChartView] = useState(false)
   const [orderSubmitting, setOrderSubmitting] = useState(false)
-  const [availablePairs, setAvailablePairs] = useState(FALLBACK_PAIRS)
-  const [pairsLoading, setPairsLoading] = useState(false)
+  const [availablePairs] = useState(FALLBACK_PAIRS)
+  const [pairsLoading] = useState(false)
   const [snapshotPrices, setSnapshotPrices] = useState({}) // { BTCUSDT: { price, change } }
   // Reconcile balance state
   const [reconcileState, setReconcileState] = useState('idle') // 'idle' | 'confirm' | 'running' | 'done' | 'error'

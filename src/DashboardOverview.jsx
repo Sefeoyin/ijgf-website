@@ -304,7 +304,7 @@ function DashboardOverview({ userId, onNavigate }) {
     fetchPrices()
     const interval = setInterval(fetchPrices, 60000)
     return () => clearInterval(interval)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Build equity chart from real trade history
   const buildChartFromTrades = useCallback((trades, hoursBack) => {
