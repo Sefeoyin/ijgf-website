@@ -20,7 +20,6 @@ import {
   checkPositionTPSL,
   computeUnrealizedPNL,
   resetDemoAccount,
-  getTradingDays,
 } from './tradingService'
 
 const ALL_PAIRS = [
@@ -92,6 +91,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setPositions(state.positions)
       setOpenOrders(state.orders)
       setRecentTrades(state.recentTrades)
+      setTradingDays(state.tradingDays || 0)
       setError(null)
     } catch (err) {
       console.error('Error loading account state:', err)
@@ -104,11 +104,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   useEffect(() => {
     refreshState()
   }, [refreshState])
-
-  useEffect(() => {
-    if (!account?.id) return
-    getTradingDays(account.id).then(setTradingDays).catch(() => {})
-  }, [account?.id, recentTrades.length])
 
   // --------------- Real-time unrealized PNL ---------------
   const positionsWithPNL = computeUnrealizedPNL(positions, priceMap)
