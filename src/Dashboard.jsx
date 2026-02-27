@@ -25,6 +25,7 @@ function Dashboard() {
   const [activeAlertCount, setActiveAlertCount] = useState(0)
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
+  const [challengeModal, setChallengeModal] = useState(null) // { result: 'passed'|'failed', account, tradingDays }
 
   const checkUserAndLoadProfile = useCallback(async () => {
     try {
@@ -217,7 +218,7 @@ function Dashboard() {
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard' && <DashboardOverview userId={userId} onNavigate={setActiveTab} />}
-          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
+          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} onChallengeResult={(result, acct, days) => setChallengeModal({ result, account: acct, tradingDays: days })} />}
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
@@ -241,6 +242,48 @@ function Dashboard() {
           {activeTab === 'settings'  && <SettingsPage />}
         </div>
       </div>
+
+      {/* ── Challenge Result Modal ── */}
+      {challengeModal && (
+        <div className="challenge-result-overlay" onClick={() => setChallengeModal(null)}>
+          <div className="challenge-result-modal" onClick={e => e.stopPropagation()}>
+            {challengeModal.result === 'passed' ? (
+              <>
+                <div className="challenge-result-icon passed">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                </div>
+                <h2 className="challenge-result-heading passed">Challenge Passed!</h2>
+                <p className="challenge-result-sub">
+                  You hit your profit target across {challengeModal.tradingDays} trading day{challengeModal.tradingDays !== 1 ? 's' : ''}. This result has been saved to your challenge history.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="challenge-result-icon failed">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </div>
+                <h2 className="challenge-result-heading failed">Challenge Failed</h2>
+                <p className="challenge-result-sub">
+                  You exceeded the maximum drawdown limit. This result has been saved to your challenge history — every attempt is a lesson.
+                </p>
+              </>
+            )}
+            <div className="challenge-result-actions">
+              <button className="challenge-result-btn-primary" onClick={() => { setChallengeModal(null); setActiveTab('analytics') }}>
+                View Analytics
+              </button>
+              <button className="challenge-result-btn-secondary" onClick={() => setChallengeModal(null)}>
+                {challengeModal.result === 'passed' ? 'Start New Challenge' : 'Try Again'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

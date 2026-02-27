@@ -85,7 +85,6 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
       profit_target: config.profitTarget,
       max_daily_loss: config.dailyLoss,
       max_total_drawdown: config.maxDrawdown,
-      min_trading_days: config.minTradingDays,
       high_water_mark: config.initial,
     })
     .select()
@@ -123,11 +122,12 @@ export async function getAccountState(userId) {
       .limit(50),
   ])
 
-  // Count distinct calendar days the trader has traded on this account
+  // Count distinct calendar days where the trader CLOSED at least one trade.
+  // Opening a position does not count — the day is only marked after closing.
   let tradingDays = 0
   try {
     tradingDays = new Set(
-      (tradeRes.data || []).map(t => t.executed_at.split('T')[0])
+      (tradeRes.data || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
     ).size
   } catch { /* non-critical */ }
 
@@ -677,10 +677,10 @@ async function checkChallengeRules(accountId, userId) {
       .eq('demo_account_id', accountId)
 
     const tradingDays = new Set(
-      (allTrades || []).map(t => t.executed_at.split('T')[0])
+      (allTrades || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
     ).size
 
-    const minDays = account.min_trading_days || MIN_TRADING_DAYS
+    const minDays = CHALLENGE_CONFIGS[account.challenge_type]?.minTradingDays ?? MIN_TRADING_DAYS
 
     if (tradingDays >= minDays) {
       // All conditions met — mark as passed
@@ -698,10 +698,10 @@ async function checkChallengeRules(accountId, userId) {
   // Count trading days for state tracking even if target not yet hit
   const { data: daysTrades } = await supabase
     .from('demo_trades')
-    .select('executed_at')
+    .select('executed_at, is_close')
     .eq('demo_account_id', accountId)
   const tradingDays = new Set(
-    (daysTrades || []).map(t => t.executed_at.split('T')[0])
+    (daysTrades || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
   ).size
 
   // High water mark
@@ -742,14 +742,23 @@ export async function updatePositionTPSL(positionId, userId, { takeProfit, stopL
 }
 
 export async function resetDemoAccount(userId, challengeType = '10k') {
+  // Close any open positions and orders on the current account
   await supabase.from('demo_positions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })
     .eq('user_id', userId).eq('status', 'open')
   await supabase.from('demo_orders')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('user_id', userId).eq('status', 'open')
+
+  // Archive the old account by renaming its challenge_type with a timestamp suffix.
+  // This preserves all trade history and analytics while allowing a fresh account
+  // with the original challenge_type to be created.
+  const archiveSuffix = `_archived_${Date.now()}`
   await supabase.from('demo_accounts')
-    .delete().eq('user_id', userId).eq('challenge_type', challengeType)
+    .update({ challenge_type: `${challengeType}${archiveSuffix}`, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('challenge_type', challengeType)
+
   return getOrCreateDemoAccount(userId, challengeType)
 }
 
@@ -778,7 +787,7 @@ export async function getTradingDays(accountId) {
     .eq('demo_account_id', accountId)
 
   if (error || !data) return 0
-  return new Set(data.map(t => t.executed_at.split('T')[0])).size
+  return new Set(data.filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])).size
 }
 
 export async function reconcileDemoAccount(userId, challengeType = '10k') {

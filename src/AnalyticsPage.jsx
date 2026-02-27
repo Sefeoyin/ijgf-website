@@ -194,9 +194,10 @@ function DailyPnlChart({ data }) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 export default function AnalyticsPage({ userId }) {
-  const [trades, setTrades]   = useState([])
-  const [account, setAccount] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [trades, setTrades]           = useState([])
+  const [account, setAccount]         = useState(null)
+  const [completedAccounts, setCompletedAccounts] = useState([])
+  const [loading, setLoading]         = useState(true)
   const [equityRange, setEquityRange] = useState('1M')
 
   useEffect(() => {
@@ -208,12 +209,45 @@ export default function AnalyticsPage({ userId }) {
         const state = await getAccountState(userId)
         if (cancelled) return
         setAccount(state.account)
-        const { data } = await supabase
+
+        // Trades for the active account
+        const { data: activeTrades } = await supabase
           .from('demo_trades')
           .select('*')
           .eq('demo_account_id', state.account.id)
           .order('executed_at', { ascending: true })
-        if (!cancelled) setTrades(data || [])
+        if (!cancelled) setTrades(activeTrades || [])
+
+        // All accounts for this user — to show completed challenge history
+        const { data: allAccounts } = await supabase
+          .from('demo_accounts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+
+        const archived = (allAccounts || []).filter(a =>
+          a.challenge_type.includes('_archived_') &&
+          (a.status === 'passed' || a.status === 'failed')
+        )
+
+        const archivedWithStats = await Promise.all(archived.map(async (acc) => {
+          const { data: accTrades } = await supabase
+            .from('demo_trades')
+            .select('realized_pnl, executed_at, is_close')
+            .eq('demo_account_id', acc.id)
+          const closed = (accTrades || []).filter(t => t.realized_pnl != null)
+          const totalPnl = closed.reduce((s, t) => s + (t.realized_pnl || 0), 0)
+          const winners = closed.filter(t => t.realized_pnl > 0)
+          const winRate = closed.length ? (winners.length / closed.length) * 100 : 0
+          const tradingDays = new Set(
+            (accTrades || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
+          ).size
+          const baseType = acc.challenge_type.replace(/_archived_\d+$/, '')
+          const completedAt = new Date(acc.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          return { ...acc, baseType, totalPnl, winRate, tradingDays, tradeCount: closed.length, completedAt }
+        }))
+
+        if (!cancelled) setCompletedAccounts(archivedWithStats)
       } catch (e) {
         console.error(e)
       } finally {
@@ -380,6 +414,55 @@ export default function AnalyticsPage({ userId }) {
           </div>
         ))}
       </div>
+
+      {/* ── Completed Challenge History ── */}
+      {completedAccounts.length > 0 && (
+        <div className="analytics-completed-section">
+          <div className="analytics-completed-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 21l4-4 4 4M12 3v14"/><path d="M5 8l7-5 7 5"/>
+            </svg>
+            Challenge History
+          </div>
+          <div className="analytics-completed-grid">
+            {completedAccounts.map((acc) => (
+              <div key={acc.id} className={`analytics-completed-card ${acc.status === 'passed' ? 'completed-passed' : 'completed-failed'}`}>
+                <div className="completed-card-header">
+                  <div className="completed-badge">
+                    {acc.status === 'passed'
+                      ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                      : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    }
+                    {acc.status === 'passed' ? 'Passed' : 'Failed'}
+                  </div>
+                  <span className="completed-type">${acc.baseType?.replace('k','K') || acc.challenge_type} Challenge</span>
+                </div>
+                <div className="completed-stats">
+                  <div className="completed-stat">
+                    <span className="completed-stat-label">Net PNL</span>
+                    <span className={`completed-stat-val ${acc.totalPnl >= 0 ? 'stat-green' : 'stat-red'}`}>
+                      {fmtUsd(acc.totalPnl)}
+                    </span>
+                  </div>
+                  <div className="completed-stat">
+                    <span className="completed-stat-label">Win Rate</span>
+                    <span className="completed-stat-val">{fmt(acc.winRate, 1)}%</span>
+                  </div>
+                  <div className="completed-stat">
+                    <span className="completed-stat-label">Trades</span>
+                    <span className="completed-stat-val">{acc.tradeCount}</span>
+                  </div>
+                  <div className="completed-stat">
+                    <span className="completed-stat-label">Days Active</span>
+                    <span className="completed-stat-val">{acc.tradingDays}</span>
+                  </div>
+                </div>
+                <div className="completed-date">Completed {acc.completedAt}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
     </div>
   )
