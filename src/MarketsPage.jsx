@@ -88,29 +88,42 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // This gives BTC, ETH, SOL etc at top — same order traders expect
   useEffect(() => {
     const fetchAllPairs = async () => {
-      try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const tickers = await res.json()
-        const pairs = tickers
-          .filter(t => t.symbol.endsWith('USDT'))
+      const parseTickers = (tickers) => {
+        const filtered = tickers.filter(t => t.symbol.endsWith('USDT'))
+        const pairs = filtered
           .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
           .map(t => t.symbol)
-        // Build snapshot price map for dropdown display
         const snap = {}
-        tickers.forEach(t => {
-          if (t.symbol.endsWith('USDT')) {
-            snap[t.symbol] = {
-              price: parseFloat(t.lastPrice) || 0,
-              change: parseFloat(t.priceChangePercent) || 0,
-            }
+        filtered.forEach(t => {
+          snap[t.symbol] = {
+            price: parseFloat(t.lastPrice) || 0,
+            change: parseFloat(t.priceChangePercent) || 0,
           }
         })
+        return { pairs, snap }
+      }
+
+      try {
+        // Try Binance Futures first
+        let res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
+        if (!res.ok) throw new Error(`Futures HTTP ${res.status}`)
+        const tickers = await res.json()
+        const { pairs, snap } = parseTickers(tickers)
         setSnapshotPrices(snap)
         setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-      } catch (err) {
-        console.warn('Binance pairs fetch failed, using fallback:', err.message)
-        setAvailablePairs(FALLBACK_PAIRS)
+      } catch {
+        try {
+          // Fallback to Binance Spot (globally accessible, same data shape)
+          const res = await fetch('https://api.binance.com/api/v3/ticker/24hr')
+          if (!res.ok) throw new Error(`Spot HTTP ${res.status}`)
+          const tickers = await res.json()
+          const { pairs, snap } = parseTickers(tickers)
+          setSnapshotPrices(snap)
+          setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
+        } catch (err) {
+          console.warn('Binance pairs fetch failed, using fallback:', err.message)
+          setAvailablePairs(FALLBACK_PAIRS)
+        }
       } finally {
         setPairsLoading(false)
       }
