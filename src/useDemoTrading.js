@@ -20,6 +20,7 @@ import {
   checkPositionTPSL,
   computeUnrealizedPNL,
   resetDemoAccount,
+  getTradingDays,
 } from './tradingService'
 
 const ALL_PAIRS = [
@@ -53,6 +54,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notifications, setNotifications] = useState([])
+  const [tradingDays, setTradingDays] = useState(0)
 
   // --------------- WebSocket / CoinGecko prices ---------------
   // If the selected pair isn't in our base list, add it so it always gets a price
@@ -102,6 +104,11 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   useEffect(() => {
     refreshState()
   }, [refreshState])
+
+  useEffect(() => {
+    if (!account?.id) return
+    getTradingDays(account.id).then(setTradingDays).catch(() => {})
+  }, [account?.id, recentTrades.length])
 
   // --------------- Real-time unrealized PNL ---------------
   const positionsWithPNL = computeUnrealizedPNL(positions, priceMap)
@@ -368,6 +375,9 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     profitTargetProgress,
     drawdownUsed,
     drawdownPercent,
+
+    // Trading days
+    tradingDays,
 
     // Actions
     submitMarketOrder,
