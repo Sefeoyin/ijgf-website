@@ -144,6 +144,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
           if (pairs.length > 0) {
             setSnapshotPrices(snap)
             setAvailablePairs(pairs)
+            setPairsLoading(false)
             return
           }
         } catch { /* try next source */ }
@@ -151,6 +152,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
 
       console.warn('All pair sources failed, using fallback')
       setAvailablePairs(FALLBACK_PAIRS)
+      setPairsLoading(false)
     }
     fetchAllPairs()
   }, [])
