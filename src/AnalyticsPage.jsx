@@ -92,7 +92,9 @@ function EquityChart({ data, initialBalance }) {
         {yTicks.map((v, i) => (
           <text key={i} x={PAD.left - 6} y={yScale(v) + 4}
             className="chart-axis-text" fontSize="10" textAnchor="end">
-            {v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+            {range < 500
+              ? `$${v.toFixed(0)}`
+              : v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
           </text>
         ))}
 

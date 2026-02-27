@@ -56,17 +56,12 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     challengeResult,
+    tradingDays,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
   } = trading
 
-  // Trading days — loaded directly since useDemoTrading doesn't expose them
-  const [tradingDays, setTradingDays] = useState(0)
   const minTradingDays = MIN_TRADING_DAYS
-  useEffect(() => {
-    if (!account?.id) return
-    getTradingDays(account.id).then(setTradingDays).catch(() => {})
-  }, [account?.id, recentTrades?.length])
 
   // Inline TP/SL editing state: { [posId]: { tp: string, sl: string, saving: bool } }
   const [tpSlEdit, setTpSlEdit] = useState({})
