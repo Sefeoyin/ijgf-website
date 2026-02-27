@@ -88,45 +88,69 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // This gives BTC, ETH, SOL etc at top — same order traders expect
   useEffect(() => {
     const fetchAllPairs = async () => {
-      const parseTickers = (tickers) => {
+      // Try Binance Futures, then Binance Spot, then Bybit (handles geo-restrictions)
+      const tryBinanceFutures = async () => {
+        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const tickers = await res.json()
         const filtered = tickers.filter(t => t.symbol.endsWith('USDT'))
         const pairs = filtered
           .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
           .map(t => t.symbol)
         const snap = {}
         filtered.forEach(t => {
+          snap[t.symbol] = { price: parseFloat(t.lastPrice) || 0, change: parseFloat(t.priceChangePercent) || 0 }
+        })
+        return { pairs, snap }
+      }
+
+      const tryBinanceSpot = async () => {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/24hr')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const tickers = await res.json()
+        const filtered = tickers.filter(t => t.symbol.endsWith('USDT'))
+        const pairs = filtered
+          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+          .map(t => t.symbol)
+        const snap = {}
+        filtered.forEach(t => {
+          snap[t.symbol] = { price: parseFloat(t.lastPrice) || 0, change: parseFloat(t.priceChangePercent) || 0 }
+        })
+        return { pairs, snap }
+      }
+
+      const tryBybit = async () => {
+        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        const items = (data?.result?.list || []).filter(t => t.symbol.endsWith('USDT'))
+        const pairs = items
+          .sort((a, b) => parseFloat(b.turnover24h || 0) - parseFloat(a.turnover24h || 0))
+          .map(t => t.symbol)
+        const snap = {}
+        items.forEach(t => {
           snap[t.symbol] = {
             price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.priceChangePercent) || 0,
+            change: parseFloat(t.price24hPcnt) * 100 || 0,
           }
         })
         return { pairs, snap }
       }
 
-      try {
-        // Try Binance Futures first
-        let res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
-        if (!res.ok) throw new Error(`Futures HTTP ${res.status}`)
-        const tickers = await res.json()
-        const { pairs, snap } = parseTickers(tickers)
-        setSnapshotPrices(snap)
-        setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-      } catch {
+      const sources = [tryBinanceFutures, tryBinanceSpot, tryBybit]
+      for (const source of sources) {
         try {
-          // Fallback to Binance Spot (globally accessible, same data shape)
-          const res = await fetch('https://api.binance.com/api/v3/ticker/24hr')
-          if (!res.ok) throw new Error(`Spot HTTP ${res.status}`)
-          const tickers = await res.json()
-          const { pairs, snap } = parseTickers(tickers)
-          setSnapshotPrices(snap)
-          setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-        } catch (err) {
-          console.warn('Binance pairs fetch failed, using fallback:', err.message)
-          setAvailablePairs(FALLBACK_PAIRS)
-        }
-      } finally {
-        setPairsLoading(false)
+          const { pairs, snap } = await source()
+          if (pairs.length > 0) {
+            setSnapshotPrices(snap)
+            setAvailablePairs(pairs)
+            return
+          }
+        } catch { /* try next source */ }
       }
+
+      console.warn('All pair sources failed, using fallback')
+      setAvailablePairs(FALLBACK_PAIRS)
     }
     fetchAllPairs()
   }, [])
