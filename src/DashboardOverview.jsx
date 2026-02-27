@@ -266,42 +266,11 @@ function DashboardOverview({ userId, onNavigate }) {
 
     // Step 2: replace full list from Binance Futures (all 200+ pairs with live prices)
     const fetchAllMarkets = async () => {
-      // Try Binance Futures, then Binance Spot, then Bybit (handles geo-restrictions)
-      const tryBinanceFutures = async () => {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return (await res.json())
-          .filter(t => t.symbol.endsWith('USDT'))
-          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-          .map(t => ({
-            symbol: t.symbol,
-            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
-            price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.priceChangePercent) || 0,
-            favorite: FAVORITES.has(t.symbol),
-          }))
-      }
-
-      const tryBinanceSpot = async () => {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/24hr')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return (await res.json())
-          .filter(t => t.symbol.endsWith('USDT'))
-          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-          .map(t => ({
-            symbol: t.symbol,
-            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
-            price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.priceChangePercent) || 0,
-            favorite: FAVORITES.has(t.symbol),
-          }))
-      }
-
-      const tryBybit = async () => {
+      try {
         const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
-        return (data?.result?.list || [])
+        const parsed = (data?.result?.list || [])
           .filter(t => t.symbol.endsWith('USDT'))
           .sort((a, b) => parseFloat(b.turnover24h || 0) - parseFloat(a.turnover24h || 0))
           .map(t => ({
@@ -311,21 +280,13 @@ function DashboardOverview({ userId, onNavigate }) {
             change: parseFloat(t.price24hPcnt) * 100 || 0,
             favorite: FAVORITES.has(t.symbol),
           }))
+        if (parsed.length > 0) {
+          setMarkets(parsed)
+          setIsLoadingPrices(false)
+        }
+      } catch (err) {
+        console.error('Bybit ticker fetch failed:', err)
       }
-
-      const sources = [tryBinanceFutures, tryBinanceSpot, tryBybit]
-      for (const source of sources) {
-        try {
-          const parsed = await source()
-          if (parsed.length > 0) {
-            setMarkets(parsed)
-            setIsLoadingPrices(false)
-            return
-          }
-        } catch { /* try next source */ }
-      }
-
-      console.error('All market sources failed')
     }
 
     seedPrices()         // fires immediately — populates defaults with real prices
