@@ -13593,3 +13593,23 @@ body[data-theme="day"] .dash-header {
   position: relative;
   z-index: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX — RESTORE SIDEBAR Z-INDEX AND SOLID BACKGROUND
+   Earlier append set .dash-sidebar z-index:1, overriding the original z-index:200.
+   This caused content to bleed through and menu items to be unclickable.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dash-sidebar {
+  position: fixed !important;
+  z-index: 500 !important;
+  background: #0d0d14 !important;
+}
+
+.dash-sidebar-backdrop {
+  z-index: 499 !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+body[data-theme="day"] .dash-sidebar {
+  background: #f4f2ff !important;
+}
