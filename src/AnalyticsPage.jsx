@@ -316,18 +316,6 @@ export default function AnalyticsPage({ userId }) {
     </div>
   )
 
-  if (!trades.length) return (
-    <div className="analytics-empty">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-        stroke="rgba(139,92,246,0.4)" strokeWidth="1.5">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-        <polyline points="17 6 23 6 23 12"/>
-      </svg>
-      <h3>No trade data yet</h3>
-      <p>Complete some trades to see your analytics.</p>
-    </div>
-  )
-
   const statCards = [
     { label: 'Total PNL',          sub: 'Net performance',
       value: fmtPct(stats.totalPnlPct),
@@ -345,6 +333,8 @@ export default function AnalyticsPage({ userId }) {
   return (
     <div className="analytics-page">
 
+      {trades.length > 0 ? (
+        <>
       <div className="analytics-stat-grid">
         {statCards.map((card, i) => (
           <div key={i} className="analytics-stat-card">
@@ -414,6 +404,19 @@ export default function AnalyticsPage({ userId }) {
           </div>
         ))}
       </div>
+
+        </>
+      ) : (
+        <div className="analytics-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+            stroke="rgba(139,92,246,0.4)" strokeWidth="1.5">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+            <polyline points="17 6 23 6 23 12"/>
+          </svg>
+          <h3>No trades yet on this challenge</h3>
+          <p>Complete some trades to see your analytics.</p>
+        </div>
+      )}
 
       {/* ── Completed Challenge History ── */}
       {completedAccounts.length > 0 && (

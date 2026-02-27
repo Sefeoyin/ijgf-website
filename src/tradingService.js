@@ -7,12 +7,14 @@ import { supabase } from './supabase'
 
 // No trading fees — revenue comes from challenge fees
 
+// dailyLoss: 0 means "no daily loss limit enforced" — satisfies the NOT NULL
+// constraint on demo_accounts.max_daily_loss while keeping the rule inactive.
 const CHALLENGE_CONFIGS = {
-  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: null, maxDrawdown: 400,  minTradingDays: 5 },
-  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: null, maxDrawdown: 800,  minTradingDays: 5 },
-  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: null, maxDrawdown: 2000, minTradingDays: 5 },
-  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: null, maxDrawdown: 4000, minTradingDays: 5 },
-  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: null, maxDrawdown: 8000, minTradingDays: 5 },
+  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 0, maxDrawdown: 400,  minTradingDays: 5 },
+  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: 0, maxDrawdown: 800,  minTradingDays: 5 },
+  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: 0, maxDrawdown: 2000, minTradingDays: 5 },
+  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: 0, maxDrawdown: 4000, minTradingDays: 5 },
+  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 0, maxDrawdown: 8000, minTradingDays: 5 },
 }
 
 // Platform-wide minimum — fallback if column absent from DB row
@@ -649,7 +651,7 @@ async function checkChallengeRules(accountId, userId) {
   } catch { /* use initial_balance */ }
 
   const dailyLoss = dayStart - trueEquity
-  if (dailyLoss >= account.max_daily_loss) {
+  if (account.max_daily_loss > 0 && dailyLoss >= account.max_daily_loss) {
     try {
       await supabase.from('challenge_violations').insert({
         demo_account_id: accountId, user_id: userId,
