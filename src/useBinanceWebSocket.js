@@ -1,39 +1,45 @@
 /**
  * useBinanceWebSocket.js
  *
- * Price feed — three-tier cascade:
- *   1. MEXC Futures WebSocket  — primary (not on Nigeria NCC blocked list)
- *   2. Bybit Linear WebSocket  — secondary
- *   3. CoinGecko REST polling  — final fallback
+ * Price feed — four-tier cascade:
+ *   1. /api/prices      — Vercel proxy (same domain, bypasses ISP blocks)
+ *   2. MEXC Futures WS  — direct WebSocket, not on Nigeria NCC blocked list
+ *   3. Bybit Linear WS  — direct WebSocket fallback
+ *   4. CoinGecko REST   — final polling fallback
  *
- * Order book — same cascade:
- *   MEXC depth → Bybit orderbook.50 → Simulated
+ * Order book — three-tier cascade:
+ *   1. /api/orderbook   — Vercel proxy REST snapshot, polls every 3s
+ *   2. Bybit orderbook.50 WebSocket — if proxy unavailable
+ *   3. Simulated        — mathematical fallback, always works
  *
- * Symbol format:
- *   MEXC uses  BTC_USDT  (underscore before USDT)
- *   Bybit uses BTCUSDT   (same as Binance — no conversion needed)
+ * The proxy runs on the same Vercel domain as the frontend.
+ * ISPs cannot block it without taking down the entire platform.
  */
 
 import { useState, useEffect, useRef } from 'react'
 
-// ── WebSocket endpoints ───────────────────────────────────────────────────────
+// ── Proxy endpoints (relative URLs — same Vercel domain) ──────────────────────
+const PROXY_PRICES    = '/api/prices'
+const PROXY_ORDERBOOK = '/api/orderbook'
+
+// ── Direct WebSocket endpoints ────────────────────────────────────────────────
 const MEXC_WS  = 'wss://contract.mexc.com/edge'
 const BYBIT_WS = 'wss://stream.bybit.com/v5/public/linear'
 
 // ── Timing ────────────────────────────────────────────────────────────────────
-const WS_TIMEOUT    = 3000   // ms before trying next provider
-const MEXC_PING_MS  = 15000  // MEXC disconnects if no ping within 20s
-const BYBIT_PING_MS = 20000  // Bybit disconnects if no ping within 30s
-const POLL_MS       = 10000  // CoinGecko polling interval
+const PROXY_POLL_MS    = 3000
+const WS_TIMEOUT_MS    = 3000
+const MEXC_PING_MS     = 15000
+const BYBIT_PING_MS    = 20000
+const CG_POLL_MS       = 10000
+const OB_PROXY_POLL_MS = 3000
 
-// ── Symbol format helpers ─────────────────────────────────────────────────────
-const toMEXC   = (s) => s.replace('USDT', '_USDT')  // BTCUSDT  → BTC_USDT
-const fromMEXC = (s) => s.replace('_USDT', 'USDT')  // BTC_USDT → BTCUSDT
-
-// Bybit subscribe args are batched (their documented recommendation)
+// ── Symbol helpers ────────────────────────────────────────────────────────────
+const toMEXC      = (s) => s.replace('USDT', '_USDT')
+const fromMEXC    = (s) => s.replace('_USDT', 'USDT')
 const BYBIT_BATCH = 10
 
-// ── CoinGecko ID map — used only when both WS providers fail ─────────────────
+// ── CoinGecko ID map ──────────────────────────────────────────────────────────
 export const COINGECKO_MAP = {
   BTCUSDT:     'bitcoin',
   ETHUSDT:     'ethereum',
@@ -138,7 +144,7 @@ export const COINGECKO_MAP = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useBinanceWebSocket — price feed with three-tier cascade
+// useBinanceWebSocket — price feed, four-tier cascade
 // ─────────────────────────────────────────────────────────────────────────────
 export function useBinanceWebSocket(symbols = []) {
   const [prices, setPrices]           = useState({})
@@ -150,14 +156,12 @@ export function useBinanceWebSocket(symbols = []) {
   const pollRef = useRef(null)
   const mounted = useRef(true)
 
-  // Reconnect only when the actual symbol list changes
   const symbolsKey = symbols.slice().sort().join(',')
 
   useEffect(() => {
     mounted.current = true
     if (symbols.length === 0) return
 
-    // ── Shared helpers ────────────────────────────────────────────────────────
     const closeWS = () => {
       if (pingRef.current) { clearInterval(pingRef.current); pingRef.current = null }
       if (wsRef.current) {
@@ -170,8 +174,8 @@ export function useBinanceWebSocket(symbols = []) {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
 
-    // ── Tier 3: CoinGecko REST polling ───────────────────────────────────────
-    const startPolling = () => {
+    // ── Tier 4: CoinGecko REST ────────────────────────────────────────────────
+    const startCoinGecko = () => {
       if (!mounted.current || pollRef.current) return
       setMode('polling')
       setIsConnected(true)
@@ -182,13 +186,11 @@ export function useBinanceWebSocket(symbols = []) {
             symbols.map(s => COINGECKO_MAP[s]).filter(Boolean)
           )].join(',')
           if (!ids) return
-
           const res = await fetch(
             `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
           )
           if (!res.ok || !mounted.current) return
           const data = await res.json()
-
           setPrices(prev => {
             const next = { ...prev }
             for (const sym of symbols) {
@@ -211,23 +213,22 @@ export function useBinanceWebSocket(symbols = []) {
       }
 
       poll()
-      pollRef.current = setInterval(poll, POLL_MS)
+      pollRef.current = setInterval(poll, CG_POLL_MS)
     }
 
-    // ── Tier 2: Bybit Linear WebSocket ───────────────────────────────────────
+    // ── Tier 3: Bybit Linear WebSocket ───────────────────────────────────────
     const tryBybit = () => {
       if (!mounted.current) return
       closeWS()
 
       let timedOut = false
-
       const timeout = setTimeout(() => {
         timedOut = true
         if (wsRef.current?.readyState !== WebSocket.OPEN) {
           closeWS()
-          startPolling()
+          startCoinGecko()
         }
-      }, WS_TIMEOUT)
+      }, WS_TIMEOUT_MS)
 
       try {
         const ws = new WebSocket(BYBIT_WS)
@@ -237,22 +238,15 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
-
-          // Subscribe in batches of 10
           for (let i = 0; i < symbols.length; i += BYBIT_BATCH) {
-            const args = symbols
-              .slice(i, i + BYBIT_BATCH)
-              .map(s => `tickers.${s}`)
-            ws.send(JSON.stringify({ op: 'subscribe', args }))
+            ws.send(JSON.stringify({
+              op:   'subscribe',
+              args: symbols.slice(i, i + BYBIT_BATCH).map(s => `tickers.${s}`),
+            }))
           }
-
-          // Heartbeat ping
           pingRef.current = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ op: 'ping' }))
-            }
+            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 'ping' }))
           }, BYBIT_PING_MS)
-
           setIsConnected(true)
           setMode('ws')
         }
@@ -260,24 +254,18 @@ export function useBinanceWebSocket(symbols = []) {
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data)
-            // Ignore pong and subscription confirmations
             if (!msg.topic?.startsWith('tickers.')) return
             const d = msg.data
             if (!d?.symbol) return
-
-            const price  = parseFloat(d.lastPrice) || 0
-            // Bybit price24hPcnt is a decimal: "0.0156" = +1.56%
-            const change = (parseFloat(d.price24hPcnt) || 0) * 100
-
             setPrices(prev => ({
               ...prev,
               [d.symbol]: {
-                price,
-                change,
-                high:        parseFloat(d.highPrice24h) || 0,
-                low:         parseFloat(d.lowPrice24h)  || 0,
-                volume:      parseFloat(d.volume24h)    || 0,
-                quoteVolume: parseFloat(d.turnover24h)  || 0,
+                price:       parseFloat(d.lastPrice)     || 0,
+                change:      (parseFloat(d.price24hPcnt) || 0) * 100,
+                high:        parseFloat(d.highPrice24h)  || 0,
+                low:         parseFloat(d.lowPrice24h)   || 0,
+                volume:      parseFloat(d.volume24h)     || 0,
+                quoteVolume: parseFloat(d.turnover24h)   || 0,
                 lastUpdate:  Date.now(),
               },
             }))
@@ -290,19 +278,20 @@ export function useBinanceWebSocket(symbols = []) {
           clearInterval(pingRef.current); pingRef.current = null
           wsRef.current = null
           setIsConnected(false)
-          if (!timedOut) startPolling()
+          if (!timedOut) startCoinGecko()
         }
 
         ws.onerror = () => { clearTimeout(timeout); ws.close() }
       } catch {
         clearTimeout(timeout)
-        startPolling()
+        startCoinGecko()
       }
     }
 
-    // ── Tier 1: MEXC Futures WebSocket ───────────────────────────────────────
+    // ── Tier 2: MEXC Futures WebSocket ───────────────────────────────────────
     const tryMEXC = () => {
       if (!mounted.current) return
+      closeWS()
 
       let timedOut = false
       let didOpen  = false
@@ -313,7 +302,7 @@ export function useBinanceWebSocket(symbols = []) {
           closeWS()
           tryBybit()
         }
-      }, WS_TIMEOUT)
+      }, WS_TIMEOUT_MS)
 
       try {
         const ws = new WebSocket(MEXC_WS)
@@ -324,19 +313,12 @@ export function useBinanceWebSocket(symbols = []) {
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
           didOpen = true
-
-          // MEXC requires one subscription message per symbol
           for (const sym of symbols) {
             ws.send(JSON.stringify({ method: 'sub.ticker', param: { symbol: toMEXC(sym) } }))
           }
-
-          // Heartbeat ping
           pingRef.current = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ method: 'ping' }))
-            }
+            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ method: 'ping' }))
           }, MEXC_PING_MS)
-
           setIsConnected(true)
           setMode('ws')
         }
@@ -347,20 +329,15 @@ export function useBinanceWebSocket(symbols = []) {
             if (msg.channel !== 'push.ticker' || !msg.data) return
             const d   = msg.data
             const sym = fromMEXC(d.symbol)
-
-            const price  = parseFloat(d.lastPrice) || 0
-            // riseFallRate is a decimal: 0.0156 = +1.56%
-            const change = (parseFloat(d.riseFallRate) || 0) * 100
-
             setPrices(prev => ({
               ...prev,
               [sym]: {
-                price,
-                change,
-                high:        parseFloat(d.high24Price) || 0,
-                low:         parseFloat(d.low24Price)  || 0,
-                volume:      parseFloat(d.volume24)    || 0,
-                quoteVolume: parseFloat(d.amount24)    || 0,
+                price:       parseFloat(d.lastPrice)     || 0,
+                change:      (parseFloat(d.riseFallRate) || 0) * 100,
+                high:        parseFloat(d.high24Price)   || 0,
+                low:         parseFloat(d.low24Price)    || 0,
+                volume:      parseFloat(d.volume24)      || 0,
+                quoteVolume: parseFloat(d.amount24)      || 0,
                 lastUpdate:  Date.now(),
               },
             }))
@@ -373,7 +350,6 @@ export function useBinanceWebSocket(symbols = []) {
           clearInterval(pingRef.current); pingRef.current = null
           wsRef.current = null
           setIsConnected(false)
-          // Was live then dropped — fall to Bybit
           if (didOpen || !timedOut) tryBybit()
         }
 
@@ -384,7 +360,58 @@ export function useBinanceWebSocket(symbols = []) {
       }
     }
 
-    tryMEXC()
+    // ── Tier 1: Vercel proxy polling ─────────────────────────────────────────
+    // Fires immediately. Simultaneously attempts a direct WS in the background.
+    // If the WS connects and starts writing prices, mode flips to 'ws'.
+    const startProxy = () => {
+      if (!mounted.current) return
+
+      let wsStarted = false
+
+      const poll = async () => {
+        // Skip proxy poll if a live WS is already running
+        if (wsRef.current?.readyState === WebSocket.OPEN) return
+
+        try {
+          const res = await fetch(
+            `${PROXY_PRICES}?symbols=${symbols.join(',')}`,
+            { signal: AbortSignal.timeout(4000) }
+          )
+          if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+          const { prices: data } = await res.json()
+          if (!mounted.current) return
+
+          setIsConnected(true)
+          if (mode !== 'ws') setMode('proxy')
+
+          setPrices(prev => {
+            const next = { ...prev }
+            for (const [sym, p] of Object.entries(data)) {
+              next[sym] = { ...p, lastUpdate: Date.now() }
+            }
+            return next
+          })
+
+          // Attempt direct WS once proxy confirms the network is reachable
+          if (!wsStarted) {
+            wsStarted = true
+            tryMEXC()
+          }
+        } catch {
+          // Proxy itself failed — go direct immediately
+          if (!wsStarted) {
+            wsStarted = true
+            stopPolling()
+            tryMEXC()
+          }
+        }
+      }
+
+      poll()
+      pollRef.current = setInterval(poll, PROXY_POLL_MS)
+    }
+
+    startProxy()
 
     return () => {
       mounted.current = false
@@ -402,8 +429,8 @@ export function useBinanceWebSocket(symbols = []) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useBinanceOrderBook — order book with three-tier cascade
-// MEXC depth → Bybit orderbook.50 → Simulated
+// useBinanceOrderBook — order book, three-tier cascade
+// Proxy REST → Bybit WS → Simulated
 // ─────────────────────────────────────────────────────────────────────────────
 export function useBinanceOrderBook(symbol, depth = 10) {
   const [bids, setBids]               = useState([])
@@ -413,13 +440,12 @@ export function useBinanceOrderBook(symbol, depth = 10) {
 
   const wsRef    = useRef(null)
   const pingRef  = useRef(null)
+  const pollRef  = useRef(null)
   const mounted  = useRef(true)
 
-  // Local order book — price string → qty float
   const localBids = useRef(new Map())
   const localAsks = useRef(new Map())
 
-  // Apply a levels array to a side map, removing zero-qty entries
   const applyLevels = (levels, map) => {
     for (const [p, q] of levels) {
       const qty = parseFloat(q)
@@ -428,28 +454,18 @@ export function useBinanceOrderBook(symbol, depth = 10) {
     }
   }
 
-  // Flush local maps into React state (sorted, depth-limited, running totals)
   const flushBook = () => {
-    const makeBids = (map) => {
+    const makeSide = (map, descending) => {
       let total = 0
       return [...map.entries()]
         .map(([p, q]) => ({ price: parseFloat(p), qty: q }))
         .filter(r => r.qty > 0)
-        .sort((a, b) => b.price - a.price)
+        .sort((a, b) => descending ? b.price - a.price : a.price - b.price)
         .slice(0, depth)
         .map(r => { total += r.qty; return { ...r, total } })
     }
-    const makeAsks = (map) => {
-      let total = 0
-      return [...map.entries()]
-        .map(([p, q]) => ({ price: parseFloat(p), qty: q }))
-        .filter(r => r.qty > 0)
-        .sort((a, b) => a.price - b.price)
-        .slice(0, depth)
-        .map(r => { total += r.qty; return { ...r, total } })
-    }
-    setBids(makeBids(localBids.current))
-    setAsks(makeAsks(localAsks.current))
+    setBids(makeSide(localBids.current, true))
+    setAsks(makeSide(localAsks.current, false))
   }
 
   useEffect(() => {
@@ -466,26 +482,31 @@ export function useBinanceOrderBook(symbol, depth = 10) {
       }
     }
 
+    const stopPolling = () => {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    }
+
     const goSimulated = () => {
       if (!mounted.current) return
+      closeWS()
+      stopPolling()
       setIsConnected(false)
       setMode('simulated')
     }
 
-    // ── Tier 2: Bybit orderbook.50 ───────────────────────────────────────────
+    // ── Tier 2: Bybit orderbook.50 WebSocket ─────────────────────────────────
     const tryBybit = () => {
       if (!mounted.current) return
       closeWS()
 
       let timedOut = false
-
       const timeout = setTimeout(() => {
         timedOut = true
         if (wsRef.current?.readyState !== WebSocket.OPEN) {
           closeWS()
           goSimulated()
         }
-      }, WS_TIMEOUT)
+      }, WS_TIMEOUT_MS)
 
       try {
         const ws = new WebSocket(BYBIT_WS)
@@ -495,15 +516,10 @@ export function useBinanceOrderBook(symbol, depth = 10) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
-
           ws.send(JSON.stringify({ op: 'subscribe', args: [`orderbook.50.${symbol}`] }))
-
           pingRef.current = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ op: 'ping' }))
-            }
+            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 'ping' }))
           }, BYBIT_PING_MS)
-
           setIsConnected(true)
           setMode('ws')
         }
@@ -514,19 +530,15 @@ export function useBinanceOrderBook(symbol, depth = 10) {
             if (!msg.topic?.startsWith('orderbook.')) return
             const { type, data: d } = msg
             if (!d) return
-
             if (type === 'snapshot') {
-              // Full reset
               localBids.current = new Map()
               localAsks.current = new Map()
               for (const [p, q] of (d.b || [])) localBids.current.set(String(p), parseFloat(q))
               for (const [p, q] of (d.a || [])) localAsks.current.set(String(p), parseFloat(q))
             } else if (type === 'delta') {
-              // Incremental — apply changes
               applyLevels(d.b || [], localBids.current)
               applyLevels(d.a || [], localAsks.current)
             }
-
             if (mounted.current) flushBook()
           } catch { /* ignore */ }
         }
@@ -547,79 +559,63 @@ export function useBinanceOrderBook(symbol, depth = 10) {
       }
     }
 
-    // ── Tier 1: MEXC Futures depth ───────────────────────────────────────────
-    const tryMEXC = () => {
+    // ── Tier 1: Vercel proxy REST snapshot ───────────────────────────────────
+    // Polls every 3s. Simultaneously attempts Bybit WS in the background.
+    // If WS connects, proxy polling stops and WS takes over.
+    const startProxyPolling = () => {
       if (!mounted.current) return
 
-      let timedOut = false
-      let didOpen  = false
+      let wsStarted  = false
+      let proxyWorks = false
 
-      const timeout = setTimeout(() => {
-        timedOut = true
-        if (wsRef.current?.readyState !== WebSocket.OPEN) {
-          closeWS()
-          tryBybit()
-        }
-      }, WS_TIMEOUT)
+      const poll = async () => {
+        // Skip poll if live WS is already running
+        if (wsRef.current?.readyState === WebSocket.OPEN) return
 
-      try {
-        const ws = new WebSocket(MEXC_WS)
-        wsRef.current = ws
-
-        ws.onopen = () => {
-          if (!mounted.current) { ws.close(); return }
-          clearTimeout(timeout)
-          if (timedOut) { ws.close(); return }
-          didOpen = true
-
-          ws.send(JSON.stringify({ method: 'sub.depth', param: { symbol: toMEXC(symbol) } }))
-
-          pingRef.current = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ method: 'ping' }))
-            }
-          }, MEXC_PING_MS)
-
-          setIsConnected(true)
-          setMode('ws')
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const msg = JSON.parse(event.data)
-            if (msg.channel !== 'push.depth' || !msg.data) return
-            const d = msg.data
-
-            // MEXC sends full snapshot first, then incremental updates
-            // Same Map approach handles both — zero qty = remove entry
-            applyLevels((d.bids || []).map(([p, q]) => [p, q]), localBids.current)
-            applyLevels((d.asks || []).map(([p, q]) => [p, q]), localAsks.current)
-
-            if (mounted.current) flushBook()
-          } catch { /* ignore */ }
-        }
-
-        ws.onclose = () => {
-          clearTimeout(timeout)
+        try {
+          const res = await fetch(
+            `${PROXY_ORDERBOOK}?symbol=${symbol}&depth=${depth}`,
+            { signal: AbortSignal.timeout(4000) }
+          )
+          if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+          const { bids: rawBids, asks: rawAsks } = await res.json()
           if (!mounted.current) return
-          clearInterval(pingRef.current); pingRef.current = null
-          wsRef.current = null
-          setIsConnected(false)
-          if (didOpen || !timedOut) tryBybit()
-        }
 
-        ws.onerror = () => { clearTimeout(timeout); ws.close() }
-      } catch {
-        clearTimeout(timeout)
-        tryBybit()
+          localBids.current = new Map()
+          localAsks.current = new Map()
+          for (const [p, q] of rawBids) localBids.current.set(String(p), parseFloat(q))
+          for (const [p, q] of rawAsks) localAsks.current.set(String(p), parseFloat(q))
+          flushBook()
+
+          if (!proxyWorks) {
+            proxyWorks = true
+            setIsConnected(true)
+            setMode('proxy')
+          }
+
+          if (!wsStarted) {
+            wsStarted = true
+            tryBybit()
+          }
+        } catch {
+          if (!wsStarted) {
+            wsStarted = true
+            stopPolling()
+            tryBybit()
+          }
+        }
       }
+
+      poll()
+      pollRef.current = setInterval(poll, OB_PROXY_POLL_MS)
     }
 
-    tryMEXC()
+    startProxyPolling()
 
     return () => {
       mounted.current = false
       closeWS()
+      stopPolling()
     }
   }, [symbol, depth]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -628,7 +624,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // generateSimulatedOrderBook
-// Realistic bids/asks around a price — rendered when all live providers fail
+// Mathematical fallback — rendered when all live providers fail
 // ─────────────────────────────────────────────────────────────────────────────
 export function generateSimulatedOrderBook(currentPrice, depth = 8) {
   if (!currentPrice || currentPrice <= 0) return { bids: [], asks: [] }
