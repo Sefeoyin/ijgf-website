@@ -173,7 +173,7 @@ function ProfilePage({ isSetup = false }) {
     if (!country)          { setError('Please select your country'); return }
     setLoading(true); setError(''); setSuccess('')
     try {
-      const { error } = await supabase.from('profiles').upsert({
+      const payload = {
         id:                 user.id,
         email,
         first_name:         firstName.trim(),
@@ -184,13 +184,17 @@ function ProfilePage({ isSetup = false }) {
         date_of_birth:      dateOfBirth     || null,
         phone:              phone.trim()    || null,
         preferred_language: preferredLanguage,
-        years_experience:   yearsExperience || null,
-        instruments_traded: instrumentsTraded,
         payout_currency:    payoutCurrency,
         payout_network:     payoutNetwork,
         wallet_address:     walletAddress.trim() || null,
         updated_at:         new Date().toISOString()
-      }, { onConflict: 'id' }).select()
+      }
+      // Only include trading fields on setup
+      if (isSetup) {
+        payload.years_experience   = yearsExperience || null
+        payload.instruments_traded = instrumentsTraded
+      }
+      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select()
       if (error) throw error
       setSuccess('Profile saved successfully!')
       if (isSetup) navigate('/dashboard')
@@ -209,125 +213,16 @@ function ProfilePage({ isSetup = false }) {
     if (isSetup) { await supabase.auth.signOut(); navigate('/') }
   }
 
+  // Max DOB = 18 years ago, Min DOB = sane lower bound
   const maxDob = new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0]
+  const minDob = '1900-01-01'
 
   const displayName = (firstName || lastName)
     ? `${firstName} ${lastName}`.trim()
     : 'Your Name'
 
-  // ── Shared form blocks ────────────────────────────────────────────────────
-  const FormBasicInfo = () => (
-    <>
-      <div className="profile-form-row">
-        <div className="profile-input-group">
-          <label>First Name <span className="required">*</span></label>
-          <input type="text" placeholder="Dexter" value={firstName} onChange={e => setFirstName(e.target.value)} className="profile-input" />
-        </div>
-        <div className="profile-input-group">
-          <label>Last Name <span className="required">*</span></label>
-          <input type="text" placeholder="Ho" value={lastName} onChange={e => setLastName(e.target.value)} className="profile-input" />
-        </div>
-      </div>
-      <div className="profile-form-row">
-        <div className="profile-input-group" style={{ marginBottom: 0 }}>
-          <label>Username <span className="required">*</span></label>
-          <input type="text" placeholder="dexterho" value={username}
-            onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-            className="profile-input" maxLength={30} />
-          <p className="profile-input-note">Shown on leaderboards. Lowercase, min. 3 chars.</p>
-        </div>
-        <div className="profile-input-group" style={{ marginBottom: 0 }}>
-          <label>Email</label>
-          <input type="email" value={email} className="profile-input" readOnly />
-          <p className="profile-input-note">Cannot be changed here.</p>
-        </div>
-      </div>
-    </>
-  )
-
-  const FormPersonalDetails = () => (
-    <>
-      <div className="profile-form-row">
-        <div className="profile-input-group">
-          <label>Country <span className="required">*</span></label>
-          <select value={country} onChange={e => setCountry(e.target.value)} className="profile-input profile-select">
-            <option value="">Select country</option>
-            {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="profile-input-group">
-          <label>Date of Birth</label>
-          <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="profile-input" max={maxDob} />
-          <p className="profile-input-note">Must be 18 or older.</p>
-        </div>
-      </div>
-      <div className="profile-form-row">
-        <div className="profile-input-group" style={{ marginBottom: 0 }}>
-          <label>Phone Number</label>
-          <input type="tel" placeholder="+1 234 567 8900" value={phone} onChange={e => setPhone(e.target.value)} className="profile-input" />
-        </div>
-        <div className="profile-input-group" style={{ marginBottom: 0 }}>
-          <label>Preferred Language</label>
-          <select value={preferredLanguage} onChange={e => setPreferredLanguage(e.target.value)} className="profile-input profile-select">
-            {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </div>
-      </div>
-    </>
-  )
-
-  const FormTrading = () => (
-    <>
-      <div className="profile-input-group">
-        <label>Years of Experience</label>
-        <select value={yearsExperience} onChange={e => setYearsExperience(e.target.value)} className="profile-input profile-select" style={{ maxWidth: 300 }}>
-          <option value="">Select level</option>
-          {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
-      <div className="profile-input-group" style={{ marginBottom: 0 }}>
-        <label>Instruments Previously Traded</label>
-        <div className="profile-checkbox-group">
-          {INSTRUMENTS.map(inst => (
-            <label key={inst} className="profile-checkbox-item">
-              <input type="checkbox" checked={instrumentsTraded.includes(inst)} onChange={() => handleInstrumentToggle(inst)} className="profile-checkbox" />
-              <span>{inst}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-    </>
-  )
-
-  const FormPayout = () => (
-    <>
-      <div className="profile-form-row">
-        <div className="profile-input-group">
-          <label>Payout Currency</label>
-          <select value={payoutCurrency} onChange={e => setPayoutCurrency(e.target.value)} className="profile-input profile-select">
-            <option value="USDC">USDC</option>
-            <option value="USDT">USDT</option>
-          </select>
-        </div>
-        <div className="profile-input-group">
-          <label>Network</label>
-          <select value={payoutNetwork} onChange={e => setPayoutNetwork(e.target.value)} className="profile-input profile-select">
-            <option value="TRC-20">TRC-20 (Tron)</option>
-            <option value="ERC-20">ERC-20 (Ethereum)</option>
-            <option value="BEP-20">BEP-20 (BSC)</option>
-          </select>
-        </div>
-      </div>
-      <div className="profile-input-group" style={{ marginBottom: 0 }}>
-        <label>Wallet Address</label>
-        <input type="text" placeholder="Your USDC / USDT wallet address" value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className="profile-input" />
-        <p className="profile-input-note">Double-check — payouts sent here cannot be recovered.</p>
-      </div>
-    </>
-  )
-
-  // ── Setup view (standalone page, centered) ───────────────────────────────
+  // ── SETUP VIEW ────────────────────────────────────────────────────────────
   if (isSetup) {
     return (
       <div className="profile-setup-page">
@@ -383,27 +278,194 @@ function ProfilePage({ isSetup = false }) {
 
           {/* Two-column grid */}
           <div className="psetup-grid">
+
+            {/* Col 1 */}
             <div className="psetup-col">
               <div className="psetup-card">
                 <h3 className="psetup-card-title">Basic Information</h3>
-                <FormBasicInfo />
+
+                <div className="profile-form-row">
+                  <div className="profile-input-group">
+                    <label>First Name <span className="required">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Dexter"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      className="profile-input"
+                    />
+                  </div>
+                  <div className="profile-input-group">
+                    <label>Last Name <span className="required">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Ho"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      className="profile-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-form-row">
+                  <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                    <label>Username <span className="required">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="dexterho"
+                      value={username}
+                      onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                      className="profile-input"
+                      maxLength={30}
+                    />
+                    <p className="profile-input-note">Shown on leaderboards. Lowercase, min. 3 chars.</p>
+                  </div>
+                  <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                    <label>Email</label>
+                    <input type="email" value={email} className="profile-input" readOnly />
+                    <p className="profile-input-note">Cannot be changed here.</p>
+                  </div>
+                </div>
               </div>
+
               <div className="psetup-card">
                 <h3 className="psetup-card-title">Trading Background</h3>
-                <FormTrading />
+
+                <div className="profile-input-group">
+                  <label>Years of Trading Experience</label>
+                  <select
+                    value={yearsExperience}
+                    onChange={e => setYearsExperience(e.target.value)}
+                    className="profile-input profile-select"
+                    style={{ maxWidth: 300 }}
+                  >
+                    <option value="">Select level</option>
+                    {EXPERIENCE_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                  <label>Instruments Previously Traded</label>
+                  <div className="profile-checkbox-group">
+                    {INSTRUMENTS.map(inst => (
+                      <label key={inst} className="profile-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={instrumentsTraded.includes(inst)}
+                          onChange={() => handleInstrumentToggle(inst)}
+                          className="profile-checkbox"
+                        />
+                        <span>{inst}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Col 2 */}
             <div className="psetup-col">
               <div className="psetup-card">
                 <h3 className="psetup-card-title">Personal Details</h3>
-                <FormPersonalDetails />
+
+                <div className="profile-form-row">
+                  <div className="profile-input-group">
+                    <label>Country <span className="required">*</span></label>
+                    <select
+                      value={country}
+                      onChange={e => setCountry(e.target.value)}
+                      className="profile-input profile-select"
+                    >
+                      <option value="">Select country</option>
+                      {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="profile-input-group">
+                    <label>Date of Birth</label>
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={e => setDateOfBirth(e.target.value)}
+                      className="profile-input"
+                      min={minDob}
+                      max={maxDob}
+                    />
+                    <p className="profile-input-note">Must be 18 or older.</p>
+                  </div>
+                </div>
+
+                <div className="profile-form-row">
+                  <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                    <label>Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="+1 234 567 8900"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="profile-input"
+                    />
+                  </div>
+                  <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                    <label>Preferred Language</label>
+                    <select
+                      value={preferredLanguage}
+                      onChange={e => setPreferredLanguage(e.target.value)}
+                      className="profile-input profile-select"
+                    >
+                      {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
               </div>
+
               <div className="psetup-card">
                 <h3 className="psetup-card-title">Payout Information</h3>
-                <p className="profile-input-note" style={{ marginBottom: '1.25rem', marginTop: '-0.5rem' }}>Required before your first withdrawal.</p>
-                <FormPayout />
+                <p className="profile-input-note" style={{ marginBottom: '1.25rem', marginTop: '-0.5rem' }}>
+                  Required before your first withdrawal.
+                </p>
+
+                <div className="profile-form-row">
+                  <div className="profile-input-group">
+                    <label>Payout Currency</label>
+                    <select
+                      value={payoutCurrency}
+                      onChange={e => setPayoutCurrency(e.target.value)}
+                      className="profile-input profile-select"
+                    >
+                      <option value="USDC">USDC</option>
+                      <option value="USDT">USDT</option>
+                    </select>
+                  </div>
+                  <div className="profile-input-group">
+                    <label>Network</label>
+                    <select
+                      value={payoutNetwork}
+                      onChange={e => setPayoutNetwork(e.target.value)}
+                      className="profile-input profile-select"
+                    >
+                      <option value="TRC-20">TRC-20 (Tron)</option>
+                      <option value="ERC-20">ERC-20 (Ethereum)</option>
+                      <option value="BEP-20">BEP-20 (BSC)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                  <label>Wallet Address</label>
+                  <input
+                    type="text"
+                    placeholder="Your USDC / USDT wallet address"
+                    value={walletAddress}
+                    onChange={e => setWalletAddress(e.target.value)}
+                    className="profile-input"
+                  />
+                  <p className="profile-input-note">Double-check — payouts sent here cannot be recovered.</p>
+                </div>
               </div>
             </div>
+
           </div>
 
           <div className="psetup-actions">
@@ -417,7 +479,7 @@ function ProfilePage({ isSetup = false }) {
     )
   }
 
-  // ── Dashboard profile view (full width, two-column) ───────────────────────
+  // ── DASHBOARD PROFILE VIEW ─────────────────────────────────────────────────
   return (
     <div className="profile-dash-page">
 
@@ -426,7 +488,7 @@ function ProfilePage({ isSetup = false }) {
 
       <div className="profile-dash-layout">
 
-        {/* Left panel */}
+        {/* Left sidebar */}
         <aside className="profile-dash-sidebar">
           <div className="profile-dash-avatar-wrap">
             <div className="profile-dash-avatar">
@@ -473,14 +535,6 @@ function ProfilePage({ isSetup = false }) {
                 <span className="profile-dash-meta-val">{preferredLanguage}</span>
               </div>
             )}
-            {yearsExperience && (
-              <div className="profile-dash-meta-item">
-                <span className="profile-dash-meta-label">Experience</span>
-                <span className="profile-dash-meta-val">
-                  {EXPERIENCE_OPTIONS.find(o => o.value === yearsExperience)?.label || yearsExperience}
-                </span>
-              </div>
-            )}
             {payoutCurrency && (
               <div className="profile-dash-meta-item">
                 <span className="profile-dash-meta-label">Payout</span>
@@ -492,29 +546,150 @@ function ProfilePage({ isSetup = false }) {
 
         {/* Right form area */}
         <div className="profile-dash-form">
+
+          {/* Basic Information */}
           <div className="profile-dash-card">
             <h3 className="profile-dash-card-title">Basic Information</h3>
-            <FormBasicInfo />
+            <div className="profile-form-row">
+              <div className="profile-input-group">
+                <label>First Name <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Dexter"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  className="profile-input"
+                />
+              </div>
+              <div className="profile-input-group">
+                <label>Last Name <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Ho"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  className="profile-input"
+                />
+              </div>
+            </div>
+            <div className="profile-form-row">
+              <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                <label>Username <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="dexterho"
+                  value={username}
+                  onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                  className="profile-input"
+                  maxLength={30}
+                />
+                <p className="profile-input-note">Shown on leaderboards. Min. 3 chars.</p>
+              </div>
+              <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                <label>Email</label>
+                <input type="email" value={email} className="profile-input" readOnly />
+                <p className="profile-input-note">Cannot be changed here.</p>
+              </div>
+            </div>
           </div>
 
+          {/* Personal Details */}
           <div className="profile-dash-card">
             <h3 className="profile-dash-card-title">Personal Details</h3>
-            <FormPersonalDetails />
+            <div className="profile-form-row">
+              <div className="profile-input-group">
+                <label>Country <span className="required">*</span></label>
+                <select
+                  value={country}
+                  onChange={e => setCountry(e.target.value)}
+                  className="profile-input profile-select"
+                >
+                  <option value="">Select country</option>
+                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="profile-input-group">
+                <label>Date of Birth</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={e => setDateOfBirth(e.target.value)}
+                  className="profile-input"
+                  min={minDob}
+                  max={maxDob}
+                />
+                <p className="profile-input-note">Must be 18 or older.</p>
+              </div>
+            </div>
+            <div className="profile-form-row">
+              <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="+1 234 567 8900"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="profile-input"
+                />
+              </div>
+              <div className="profile-input-group" style={{ marginBottom: 0 }}>
+                <label>Preferred Language</label>
+                <select
+                  value={preferredLanguage}
+                  onChange={e => setPreferredLanguage(e.target.value)}
+                  className="profile-input profile-select"
+                >
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="profile-dash-card">
-            <h3 className="profile-dash-card-title">Trading Background</h3>
-            <FormTrading />
-          </div>
-
+          {/* Payout Information */}
           <div className="profile-dash-card">
             <h3 className="profile-dash-card-title">Payout Information</h3>
             <p className="profile-input-note" style={{ marginBottom: '1.5rem', marginTop: '-0.5rem' }}>
               Required before your first withdrawal request.
             </p>
-            <FormPayout />
+            <div className="profile-form-row">
+              <div className="profile-input-group">
+                <label>Payout Currency</label>
+                <select
+                  value={payoutCurrency}
+                  onChange={e => setPayoutCurrency(e.target.value)}
+                  className="profile-input profile-select"
+                >
+                  <option value="USDC">USDC</option>
+                  <option value="USDT">USDT</option>
+                </select>
+              </div>
+              <div className="profile-input-group">
+                <label>Network</label>
+                <select
+                  value={payoutNetwork}
+                  onChange={e => setPayoutNetwork(e.target.value)}
+                  className="profile-input profile-select"
+                >
+                  <option value="TRC-20">TRC-20 (Tron)</option>
+                  <option value="ERC-20">ERC-20 (Ethereum)</option>
+                  <option value="BEP-20">BEP-20 (BSC)</option>
+                </select>
+              </div>
+            </div>
+            <div className="profile-input-group" style={{ marginBottom: 0 }}>
+              <label>Wallet Address</label>
+              <input
+                type="text"
+                placeholder="Your USDC / USDT wallet address"
+                value={walletAddress}
+                onChange={e => setWalletAddress(e.target.value)}
+                className="profile-input"
+              />
+              <p className="profile-input-note">Double-check — payouts sent here cannot be recovered.</p>
+            </div>
           </div>
 
+          {/* Security */}
           <div className="profile-dash-card">
             <h3 className="profile-dash-card-title">Security</h3>
             <div className="profile-password-section" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
@@ -536,6 +711,7 @@ function ProfilePage({ isSetup = false }) {
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+
         </div>
       </div>
     </div>
