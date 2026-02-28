@@ -4,9 +4,9 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
-// Fallback used only when ALL network sources fail.
-// Contains only tokens with confirmed active USDT perp contracts on Binance.
-// Low-liquidity or delisted tokens are excluded — the proxy populates the full list.
+// Fallback used ONLY when ALL network sources fail (proxy + Binance direct).
+// Restricted to tokens with confirmed active USDT perp contracts on Binance futures.
+// Tokens only on Binance spot (BAL, YFI, OCEAN, SUSHI etc.) are excluded.
 const FALLBACK_PAIRS = [
   'BTCUSDT',   'ETHUSDT',   'BNBUSDT',   'SOLUSDT',   'XRPUSDT',
   'ADAUSDT',   'DOGEUSDT',  'AVAXUSDT',  'DOTUSDT',   'MATICUSDT',
@@ -94,7 +94,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // Fetch all USDT perpetual futures sorted by 24h quote volume.
   // Tier 1: /api/pairs Vercel proxy (server-side — bypasses ISP geo-block)
   // Tier 2: Binance fapi direct (works in non-blocked regions)
-  // Tier 3: FALLBACK_PAIRS constant (always works, no network required)
+  // Tier 3: FALLBACK_PAIRS constant (offline safety net — no network required)
   useEffect(() => {
     const parseBinanceTickers = (tickers) => {
       const pairs = []
@@ -113,9 +113,9 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     }
 
     const fetchAllPairs = async () => {
-      // Tier 1: Vercel proxy
+      // Tier 1: Vercel proxy (runs server-side, not subject to ISP geo-block)
       try {
-        const res = await fetch('/api/pairs', { signal: AbortSignal.timeout(5000) })
+        const res = await fetch('/api/pairs', { signal: AbortSignal.timeout(9000) })
         if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
         const body = await res.json()
         if (Array.isArray(body.pairs) && body.pairs.length > 0) {
@@ -132,7 +132,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
       // Tier 2: Binance fapi direct
       try {
         const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr', {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(9000),
         })
         if (!res.ok) throw new Error(`Binance HTTP ${res.status}`)
         const tickers = await res.json()
