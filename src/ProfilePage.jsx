@@ -157,7 +157,7 @@ function ProfilePage({ isSetup = false }) {
         .eq('id', user.id)
       if (updateError) throw updateError
       setSuccess('Profile image removed.')
-    } catch (err) {
+    } catch {
       setError('Failed to remove image. Please try again.')
     } finally {
       setUploading(false)
