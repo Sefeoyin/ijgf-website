@@ -13854,6 +13854,10 @@ body[data-theme="day"] .profile-select {
 .profile-select option { background: #1a1a2e; color: white; }
 body[data-theme="day"] .profile-select option { background: #ffffff; color: #1a1a1a; }
 
+/* Chrome incorrectly applies :read-only to <select> — force correct cursor */
+select.profile-input,
+select.profile-select { cursor: pointer !important; }
+
 input[type="date"].profile-input { color-scheme: dark; }
 body[data-theme="day"] input[type="date"].profile-input { color-scheme: light; }
 
