@@ -4,17 +4,28 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
-// Module-level constant — never changes, no need to be inside the component
+// Module-level constant — used when all network sources fail
 const FALLBACK_PAIRS = [
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  'MATICUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',
-  'UNIUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'SUIUSDT',
-  'SEIUSDT', 'TIAUSDT', 'WLDUSDT', 'TONUSDT', 'PEPEUSDT',
-  'SHIBUSDT', 'WIFUSDT', 'BONKUSDT', 'AAVEUSDT', 'GRTUSDT',
-  'DYDXUSDT', 'AXSUSDT', 'SANDUSDT', 'MANAUSDT', 'IMXUSDT',
-  'RUNEUSDT', 'FETUSDT', 'LDOUSDT', 'HBARUSDT', 'ICPUSDT',
-  'FILUSDT', 'ETCUSDT', 'XLMUSDT', 'TRXUSDT', 'BCHUSDT', 'ALGOUSDT',
+  'BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'SOLUSDT',  'XRPUSDT',
+  'ADAUSDT',  'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT',  'MATICUSDT',
+  'LINKUSDT', 'UNIUSDT',  'ATOMUSDT', 'LTCUSDT',  'NEARUSDT',
+  'APTUSDT',  'ARBUSDT',  'OPUSDT',   'BCHUSDT',  'TONUSDT',
+  'TRXUSDT',  'XLMUSDT',  'ETCUSDT',  'INJUSDT',  'SUIUSDT',
+  'SEIUSDT',  'TIAUSDT',  'WLDUSDT',  'PEPEUSDT', 'SHIBUSDT',
+  'WIFUSDT',  'BONKUSDT', 'FLOKIUSDT','ORDIUSDT', 'RUNEUSDT',
+  'LDOUSDT',  'ICPUSDT',  'HBARUSDT', 'FILUSDT',  'ALGOUSDT',
+  'AAVEUSDT', 'CRVUSDT',  'MKRUSDT',  'COMPUSDT', 'GRTUSDT',
+  'DYDXUSDT', 'PENDLEUSDT','GMXUSDT', 'STRKUSDT', 'SNXUSDT',
+  'FETUSDT',  'RENDERUSDT','TAOUSDT', 'PYTHUSDT', 'AXSUSDT',
+  'SANDUSDT', 'MANAUSDT', 'GALAUSDT', 'IMXUSDT',  'KASUSDT',
+  'JUPUSDT',  'POPCATUSDT','FTMUSDT', 'EOSUSDT',  'VETUSDT',
+  'EGLDUSDT', 'FLOWUSDT', 'XTZUSDT',  'ZILUSDT',  'KAVAUSDT',
+  'SUSHIUSDT','1INCHUSDT','BALUSDT',  'YFIUSDT',  'LRCUSDT',
+  'OCEANUSDT','ARKMUSDT', 'APEUSDT',  'BLURUSDT', 'YGGUSDT',
+  'ENAUSDT',  'COTIUSDT', 'ANKRUSDT', 'STORJUSDT','BANDUSDT',
+  'CELRUSDT', 'CKBUSDT',  'SCUSDT',   'ONTUSDT',  'CHZUSDT',
+  'ENJUSDT',  'CHRUSDT',  'ALICEUSDT','CTSIUSDT', 'REEFUSDT',
+  'SUPERUSDT','WAVESUSDT','ZENUSDT',  'DGBUSDT',  'CVCUSDT',
 ]
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
@@ -84,32 +95,52 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const bids = obMode === 'ws' ? liveBids : simOb.bids
   const asks = obMode === 'ws' ? liveAsks : simOb.asks
 
-  // Fetch all Binance USDT perpetual futures sorted by 24h quote volume (highest first)
-  // This gives BTC, ETH, SOL etc at top — same order traders expect
+  // Fetch all USDT perpetual futures sorted by 24h quote volume.
+  // Tier 1: /api/pairs proxy (same Vercel domain — bypasses ISP blocks)
+  // Tier 2: Binance fapi direct (works outside geo-blocked regions)
+  // Tier 3: FALLBACK_PAIRS constant (always works)
   useEffect(() => {
     const fetchAllPairs = async () => {
+      // ── Tier 1: Vercel proxy ──────────────────────────────────────────────────────────────────
       try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const res = await fetch('/api/pairs', { signal: AbortSignal.timeout(5000) })
+        if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+        const { pairs, prices } = await res.json()
+        if (Array.isArray(pairs) && pairs.length > 0) {
+          setAvailablePairs(pairs)
+          setSnapshotPrices(prices || {})
+          setPairsLoading(false)
+          return
+        }
+        throw new Error('proxy returned empty pairs')
+      } catch (proxyErr) {
+        console.warn('Pairs proxy failed, trying Binance direct:', proxyErr.message)
+      }
+
+      // ── Tier 2: Binance fapi direct ───────────────────────────────────────────────────────────────
+      try {
+        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr', {
+          signal: AbortSignal.timeout(5000),
+        })
+        if (!res.ok) throw new Error(`Binance HTTP ${res.status}`)
         const tickers = await res.json()
         const pairs = tickers
           .filter(t => t.symbol.endsWith('USDT'))
           .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
           .map(t => t.symbol)
-        // Build snapshot price map for dropdown display
         const snap = {}
         tickers.forEach(t => {
           if (t.symbol.endsWith('USDT')) {
             snap[t.symbol] = {
-              price: parseFloat(t.lastPrice) || 0,
+              price:  parseFloat(t.lastPrice) || 0,
               change: parseFloat(t.priceChangePercent) || 0,
             }
           }
         })
         setSnapshotPrices(snap)
         setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-      } catch (err) {
-        console.warn('Binance pairs fetch failed, using fallback:', err.message)
+      } catch (binanceErr) {
+        console.warn('Binance pairs fetch failed, using fallback:', binanceErr.message)
         setAvailablePairs(FALLBACK_PAIRS)
       } finally {
         setPairsLoading(false)
