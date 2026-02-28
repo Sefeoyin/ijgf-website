@@ -13829,54 +13829,16 @@ body[data-theme="day"] .dash-sidebar {
 .challenge-result-btn-secondary:hover { background: var(--bg-hover); }
 
 /* ============================================================
-   PROFILE PAGE — NEW SECTION STYLES
-   Append these to the bottom of your existing dashboard CSS file
+   PROFILE PAGE — APPEND TO BOTTOM OF App.css
    ============================================================ */
 
-/* Profile setup subtitle */
-.profile-setup-subtitle {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.9rem;
-  margin-bottom: 2rem;
-  line-height: 1.5;
-}
-
-/* Required asterisk */
+/* ── Required asterisk ── */
 .required {
   color: #ef4444;
   margin-left: 2px;
 }
 
-/* Section wrapper */
-.profile-section {
-  margin-bottom: 2.5rem;
-  padding-bottom: 2.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.profile-section:last-of-type {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.profile-section-title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 1.5rem;
-}
-
-.profile-section-subtitle {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.45);
-  margin-top: -1rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-/* Select styling — matches existing profile-input */
+/* ── Select arrow styling ── */
 .profile-select {
   appearance: none;
   -webkit-appearance: none;
@@ -13886,45 +13848,40 @@ body[data-theme="day"] .dash-sidebar {
   padding-right: 2.5rem;
   cursor: pointer;
 }
-
-.profile-select option {
-  background: #1a1a2e;
-  color: white;
+body[data-theme="day"] .profile-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
+.profile-select option { background: #1a1a2e; color: white; }
+body[data-theme="day"] .profile-select option { background: #ffffff; color: #1a1a1a; }
 
-/* Date input color fix */
-input[type="date"].profile-input {
-  color-scheme: dark;
-}
+input[type="date"].profile-input { color-scheme: dark; }
+body[data-theme="day"] input[type="date"].profile-input { color-scheme: light; }
 
-/* Checkbox group */
+/* ── Checkbox pills ── */
 .profile-checkbox-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.65rem;
   margin-top: 0.5rem;
 }
-
 .profile-checkbox-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
   cursor: pointer;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.75);
-  transition: all 0.15s;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, background 0.15s;
   user-select: none;
 }
-
 .profile-checkbox-item:hover {
   border-color: rgba(124, 58, 237, 0.4);
   background: rgba(124, 58, 237, 0.08);
 }
-
 .profile-checkbox {
   width: 15px;
   height: 15px;
@@ -13932,13 +13889,288 @@ input[type="date"].profile-input {
   cursor: pointer;
 }
 
-/* ============================================================
-   DASHBOARD HEADER — PROFILE AVATAR DROPDOWN
-   ============================================================ */
-
-.dash-user-avatar-wrapper {
-  position: relative;
+/* ── Alert banners inside dash page ── */
+.profile-alert {
+  margin-bottom: 1.5rem;
 }
+
+/* ============================================================
+   DASHBOARD PROFILE VIEW — two-column layout
+   ============================================================ */
+.profile-dash-page {
+  padding: 2rem 2rem 3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Override the old .profile-page centering when rendered inside dash */
+.profile-dash-page .profile-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: unset;
+  display: block;
+}
+
+.profile-dash-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* ── Left panel ── */
+.profile-dash-sidebar {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-dash-avatar-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.profile-dash-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+}
+.profile-dash-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-dash-avatar svg { color: var(--text-muted); }
+
+.profile-dash-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  border-radius: 50%;
+  color: white;
+}
+.profile-dash-avatar:hover .profile-dash-avatar-overlay { opacity: 1; }
+
+.profile-dash-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.profile-dash-username {
+  font-size: 0.85rem;
+  color: var(--accent-secondary);
+  margin: 0;
+}
+.profile-dash-country {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+.profile-dash-remove-photo {
+  background: none;
+  border: none;
+  color: rgba(239, 68, 68, 0.7);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  margin-top: 0.25rem;
+  transition: color 0.15s;
+}
+.profile-dash-remove-photo:hover { color: #ef4444; }
+
+/* Meta info block */
+.profile-dash-meta {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.profile-dash-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.profile-dash-meta-item:last-child { border-bottom: none; padding-bottom: 0; }
+.profile-dash-meta-item:first-child { padding-top: 0; }
+.profile-dash-meta-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.profile-dash-meta-val {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* ── Right form area: cards ── */
+.profile-dash-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+}
+body[data-theme="day"] .profile-dash-card {
+  background: #fff;
+  border-color: rgba(124, 58, 237, 0.1);
+}
+
+.profile-dash-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+/* ============================================================
+   PROFILE SETUP PAGE — standalone, full-screen centered
+   ============================================================ */
+.profile-setup-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-bottom: 4rem;
+}
+
+.psetup-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 2rem 0;
+}
+
+.psetup-heading {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.psetup-heading h1 {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+.psetup-heading p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* Avatar row on setup page */
+.psetup-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+.psetup-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.psetup-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.psetup-avatar svg { color: var(--text-muted); }
+.psetup-avatar-name {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.65rem;
+}
+
+/* Setup two-column grid */
+.psetup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.psetup-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.psetup-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+body[data-theme="day"] .psetup-card {
+  background: #fff;
+  border-color: rgba(124, 58, 237, 0.1);
+}
+.psetup-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.psetup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+/* ============================================================
+   AVATAR DROPDOWN (from previous update — keep here)
+   ============================================================ */
+.dash-user-avatar-wrapper { position: relative; }
 
 .dash-profile-dropdown {
   position: absolute;
@@ -13953,17 +14185,14 @@ input[type="date"].profile-input {
   overflow: hidden;
   animation: dropdownFadeIn 0.15s ease-out;
 }
-
 @keyframes dropdownFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0);    }
 }
-
 .dash-profile-dropdown-header {
   padding: 0.85rem 1rem 0.65rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-
 .dash-profile-dropdown-name {
   font-size: 0.8rem;
   font-weight: 600;
@@ -13973,7 +14202,6 @@ input[type="date"].profile-input {
   text-overflow: ellipsis;
   display: block;
 }
-
 .dash-profile-dropdown-item {
   width: 100%;
   display: flex;
@@ -13989,69 +14217,47 @@ input[type="date"].profile-input {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
+.dash-profile-dropdown-item:hover { background: rgba(255,255,255,0.05); color: white; }
+.dash-profile-dropdown-divider { height: 1px; background: rgba(255,255,255,0.06); }
+.dash-profile-dropdown-logout { color: rgba(239, 68, 68, 0.8); }
+.dash-profile-dropdown-logout:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
 
-.dash-profile-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-}
-
-.dash-profile-dropdown-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0;
-}
-
-.dash-profile-dropdown-logout {
-  color: rgba(239, 68, 68, 0.8);
-}
-
-.dash-profile-dropdown-logout:hover {
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
-}
-
-/* Light theme overrides */
-[data-theme="day"] .dash-profile-dropdown {
+body[data-theme="day"] .dash-profile-dropdown {
   background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+body[data-theme="day"] .dash-profile-dropdown-name  { color: rgba(0,0,0,0.85); }
+body[data-theme="day"] .dash-profile-dropdown-header { border-color: rgba(0,0,0,0.06); }
+body[data-theme="day"] .dash-profile-dropdown-item  { color: rgba(0,0,0,0.65); }
+body[data-theme="day"] .dash-profile-dropdown-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.9); }
+body[data-theme="day"] .dash-profile-dropdown-divider { background: rgba(0,0,0,0.06); }
+body[data-theme="day"] .dash-profile-dropdown-logout { color: rgba(220,38,38,0.8); }
+body[data-theme="day"] .dash-profile-dropdown-logout:hover { background: rgba(220,38,38,0.06); color: #dc2626; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  .profile-dash-layout {
+    grid-template-columns: 1fr;
+  }
+  .profile-dash-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .psetup-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-[data-theme="day"] .dash-profile-dropdown-name {
-  color: rgba(0, 0, 0, 0.85);
-}
-
-[data-theme="day"] .dash-profile-dropdown-header {
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="day"] .dash-profile-dropdown-item {
-  color: rgba(0, 0, 0, 0.65);
-}
-
-[data-theme="day"] .dash-profile-dropdown-item:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.9);
-}
-
-[data-theme="day"] .dash-profile-dropdown-divider {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="day"] .dash-profile-dropdown-logout {
-  color: rgba(220, 38, 38, 0.8);
-}
-
-[data-theme="day"] .dash-profile-dropdown-logout:hover {
-  background: rgba(220, 38, 38, 0.06);
-  color: #dc2626;
-}
-
-[data-theme="day"] .profile-select option {
-  background: #ffffff;
-  color: #1a1a1a;
-}
-
-[data-theme="day"] input[type="date"].profile-input {
-  color-scheme: light;
+@media (max-width: 768px) {
+  .profile-dash-page { padding: 1.25rem 1rem 2rem; }
+  .profile-dash-sidebar { grid-template-columns: 1fr; }
+  .psetup-wrapper { padding: 1.25rem 1rem 0; }
+  .psetup-avatar-row { flex-direction: column; align-items: flex-start; }
+  .profile-dash-card { padding: 1.25rem; }
+  .psetup-card { padding: 1.25rem; }
 }
