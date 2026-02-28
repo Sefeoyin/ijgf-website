@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from 'react'
+import { useState, useEffect, useContext, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
@@ -22,10 +22,13 @@ function Dashboard() {
   const [profileImage, setProfileImage] = useState('')
   const [loading, setLoading] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
   const [challengeModal, setChallengeModal] = useState(null) // { result: 'passed'|'failed', account, tradingDays }
+
+  const profileDropdownRef = useRef(null)
 
   const checkUserAndLoadProfile = useCallback(async () => {
     try {
@@ -60,6 +63,17 @@ function Dashboard() {
     checkAlerts()
     const interval = setInterval(checkAlerts, 5000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setShowProfileDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const handleLogout = async () => {
@@ -176,8 +190,14 @@ function Dashboard() {
                 </svg>
               </button>
             )}
+
+            {/* Notification bell */}
             <div style={{ position: 'relative' }}>
-              <button className="dash-icon-btn" onClick={() => setShowNotificationPanel(v => !v)} title="Alerts">
+              <button
+                className="dash-icon-btn"
+                onClick={() => { setShowNotificationPanel(v => !v); setShowProfileDropdown(false) }}
+                title="Alerts"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -200,6 +220,7 @@ function Dashboard() {
               )}
             </div>
 
+            {/* Theme toggle */}
             <button className="dash-icon-btn" onClick={toggleTheme} title="Toggle theme">
               {theme === 'night'
                 ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -207,11 +228,52 @@ function Dashboard() {
               }
             </button>
 
-            <div className="dash-user-avatar">
-              {profileImage
-                ? <img src={profileImage} alt={userName} />
-                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              }
+            {/* Profile avatar + dropdown */}
+            <div className="dash-user-avatar-wrapper" ref={profileDropdownRef}>
+              <div
+                className="dash-user-avatar"
+                onClick={() => { setShowProfileDropdown(v => !v); setShowNotificationPanel(false) }}
+                title={userName}
+                style={{ cursor: 'pointer' }}
+              >
+                {profileImage
+                  ? <img src={profileImage} alt={userName} />
+                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                }
+              </div>
+
+              {showProfileDropdown && (
+                <div className="dash-profile-dropdown">
+                  <div className="dash-profile-dropdown-header">
+                    <span className="dash-profile-dropdown-name">{userName}</span>
+                  </div>
+                  <button
+                    className="dash-profile-dropdown-item"
+                    onClick={() => { setActiveTab('profile'); setShowProfileDropdown(false) }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Profile
+                  </button>
+                  <div className="dash-profile-dropdown-divider" />
+                  <button
+                    className="dash-profile-dropdown-item dash-profile-dropdown-logout"
+                    onClick={handleLogout}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Log Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

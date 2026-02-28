@@ -13827,3 +13827,231 @@ body[data-theme="day"] .dash-sidebar {
 }
 
 .challenge-result-btn-secondary:hover { background: var(--bg-hover); }
+
+/* ============================================================
+   PROFILE PAGE — NEW SECTION STYLES
+   Append these to the bottom of your existing dashboard CSS file
+   ============================================================ */
+
+/* Profile setup subtitle */
+.profile-setup-subtitle {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+/* Required asterisk */
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* Section wrapper */
+.profile-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.profile-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 1.5rem;
+}
+
+.profile-section-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+/* Select styling — matches existing profile-input */
+.profile-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+.profile-select option {
+  background: #1a1a2e;
+  color: white;
+}
+
+/* Date input color fix */
+input[type="date"].profile-input {
+  color-scheme: dark;
+}
+
+/* Checkbox group */
+.profile-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.profile-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.profile-checkbox-item:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.profile-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #7C3AED;
+  cursor: pointer;
+}
+
+/* ============================================================
+   DASHBOARD HEADER — PROFILE AVATAR DROPDOWN
+   ============================================================ */
+
+.dash-user-avatar-wrapper {
+  position: relative;
+}
+
+.dash-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 200px;
+  background: #141420;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.dash-profile-dropdown-header {
+  padding: 0.85rem 1rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dash-profile-dropdown-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.dash-profile-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dash-profile-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.dash-profile-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0;
+}
+
+.dash-profile-dropdown-logout {
+  color: rgba(239, 68, 68, 0.8);
+}
+
+.dash-profile-dropdown-logout:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+
+/* Light theme overrides */
+[data-theme="day"] .dash-profile-dropdown {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="day"] .dash-profile-dropdown-name {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="day"] .dash-profile-dropdown-header {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="day"] .dash-profile-dropdown-item {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="day"] .dash-profile-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.9);
+}
+
+[data-theme="day"] .dash-profile-dropdown-divider {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="day"] .dash-profile-dropdown-logout {
+  color: rgba(220, 38, 38, 0.8);
+}
+
+[data-theme="day"] .dash-profile-dropdown-logout:hover {
+  background: rgba(220, 38, 38, 0.06);
+  color: #dc2626;
+}
+
+[data-theme="day"] .profile-select option {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+[data-theme="day"] input[type="date"].profile-input {
+  color-scheme: light;
+}
