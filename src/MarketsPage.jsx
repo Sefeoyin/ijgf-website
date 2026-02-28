@@ -4,9 +4,9 @@ import { generateSimulatedOrderBook } from './useBinanceWebSocket'
 import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
 import './MarketsPage.css'
 
-// Fallback when all network sources fail.
-// Only tokens with confirmed active USDT perpetual contracts on Binance.
-// Tokens delisted from Binance perps are intentionally excluded.
+// Fallback used only when ALL network sources fail.
+// Contains only tokens with confirmed active USDT perp contracts on Binance.
+// Low-liquidity or delisted tokens are excluded — the proxy populates the full list.
 const FALLBACK_PAIRS = [
   'BTCUSDT',   'ETHUSDT',   'BNBUSDT',   'SOLUSDT',   'XRPUSDT',
   'ADAUSDT',   'DOGEUSDT',  'AVAXUSDT',  'DOTUSDT',   'MATICUSDT',
@@ -19,10 +19,9 @@ const FALLBACK_PAIRS = [
   'AAVEUSDT',  'CRVUSDT',   'MKRUSDT',   'GRTUSDT',   'DYDXUSDT',
   'PENDLEUSDT','GMXUSDT',   'STRKUSDT',  'FETUSDT',   'RENDERUSDT',
   'TAOUSDT',   'PYTHUSDT',  'AXSUSDT',   'SANDUSDT',  'MANAUSDT',
-  'GALAUSDT',  'IMXUSDT',   'KASUSDT',   'JUPUSDT',   'FTMUSDT',
-  'VETUSDT',   'ENAUSDT',   'ANKRUSDT',  'CHZUSDT',   'APEUSDT',
-  'BLURUSDT',  'ARKMUSDT',  'OCEANUSDT', 'YFIUSDT',   'BALUSDT',
-  'SUSHIUSDT', 'KAVAUSDT',  'XTZUSDT',
+  'GALAUSDT',  'IMXUSDT',   'KASUSDT',   'JUPUSDT',   'VETUSDT',
+  'ENAUSDT',   'ANKRUSDT',  'CHZUSDT',   'APEUSDT',   'BLURUSDT',
+  'ARKMUSDT',
 ]
 
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
@@ -93,11 +92,11 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const asks = obMode === 'ws' ? liveAsks : simOb.asks
 
   // Fetch all USDT perpetual futures sorted by 24h quote volume.
-  // Tier 1: /api/pairs Vercel proxy (server-side, bypasses ISP geo-block)
+  // Tier 1: /api/pairs Vercel proxy (server-side — bypasses ISP geo-block)
   // Tier 2: Binance fapi direct (works in non-blocked regions)
-  // Tier 3: FALLBACK_PAIRS constant (always works, no network needed)
+  // Tier 3: FALLBACK_PAIRS constant (always works, no network required)
   useEffect(() => {
-    const parseTickers = (tickers) => {
+    const parseBinanceTickers = (tickers) => {
       const pairs = []
       const snap  = {}
       tickers
@@ -137,8 +136,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         })
         if (!res.ok) throw new Error(`Binance HTTP ${res.status}`)
         const tickers = await res.json()
-        if (!Array.isArray(tickers)) throw new Error('Unexpected shape')
-        const { pairs, snap } = parseTickers(tickers)
+        if (!Array.isArray(tickers)) throw new Error('Unexpected response shape')
+        const { pairs, snap } = parseBinanceTickers(tickers)
         setSnapshotPrices(snap)
         setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
       } catch (binanceErr) {
@@ -166,14 +165,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   const TV_BINANCE_RENAMES = {
     'MATICUSDT': 'POLUSDT',
   }
-  // Tokens delisted from Binance futures — route to Bybit chart instead
+  // Tokens delisted from Binance futures — use Bybit chart instead
   const TV_BYBIT_ONLY = new Set([
-    'EOSUSDT',   'FLOWUSDT',  'XTZUSDT',   'KAVAUSDT',
-    'LRCUSDT',   'COTIUSDT',  'CELRUSDT',  'CKBUSDT',
-    'SCUSDT',    'ONTUSDT',   'REEFUSDT',  'WAVESUSDT',
-    'ZENUSDT',   'DGBUSDT',   'CVCUSDT',   'ALICEUSDT',
-    'CTSIUSDT',  'CHRUSDT',   'SUPERUSDT', 'YGGUSDT',
-    'STORJUSDT', 'BANDUSDT',
+    'FTMUSDT',   'EOSUSDT',   'FLOWUSDT',  'XTZUSDT',   'KAVAUSDT',
+    'LRCUSDT',   'COTIUSDT',  'CELRUSDT',  'CKBUSDT',   'SCUSDT',
+    'ONTUSDT',   'REEFUSDT',  'WAVESUSDT', 'ZENUSDT',   'DGBUSDT',
+    'CVCUSDT',   'ALICEUSDT', 'CTSIUSDT',  'CHRUSDT',   'SUPERUSDT',
+    'YGGUSDT',   'STORJUSDT', 'BANDUSDT',  'YFIUSDT',   'BALUSDT',
+    'OCEANUSDT', 'SUSHIUSDT',
   ])
 
   const getTVSymbol = (pair) => {
