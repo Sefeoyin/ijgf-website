@@ -14,7 +14,6 @@ const MEXC_TICKERS  = 'https://contract.mexc.com/api/v1/contract/ticker'
 const BYBIT_TICKERS = 'https://api.bybit.com/v5/market/tickers?category=linear'
 
 // BTCUSDT → BTC_USDT
-const toMEXC   = (s) => s.replace('USDT', '_USDT')
 // BTC_USDT → BTCUSDT
 const fromMEXC = (s) => s.replace('_USDT', 'USDT')
 
