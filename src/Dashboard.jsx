@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback, useRef } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
@@ -12,6 +12,7 @@ import SupportPage from './SupportPage'
 import SettingsPage from './SettingsPage'
 import AIAssistantPage from './AIAssistantPage'
 import { ThemeContext } from './ThemeContext'
+import { useTPSLMonitor } from './useTPSLMonitor'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -22,15 +23,31 @@ function Dashboard() {
   const [profileImage, setProfileImage] = useState('')
   const [loading, setLoading] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [activeAlertCount, setActiveAlertCount] = useState(0)
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
-  const [challengeModal, setChallengeModal] = useState(null) // { result: 'passed'|'failed', account, tradingDays }
 
-  const profileDropdownRef = useRef(null)
+  // TP/SL monitor — always active regardless of which dashboard tab is open.
+  // MarketsPage unmounts when the user leaves the Market tab, which kills
+  // the interval in useDemoTrading. This hook runs at Dashboard level so
+  // TP/SL and liquidations always fire.
+  useTPSLMonitor(userId, (closedPositions) => {
+    for (const pos of closedPositions) {
+      const label = pos.closeReason === 'tp'
+        ? `✅ ${pos.symbol} Take Profit hit! PNL: $${pos.pnl?.toFixed(2)}`
+        : pos.closeReason === 'sl'
+        ? `🛑 ${pos.symbol} Stop Loss hit. PNL: $${pos.pnl?.toFixed(2)}`
+        : `💀 ${pos.symbol} Liquidated`
+      console.info('[Dashboard] Auto-close:', label)
+      // If the user is on the Market tab MarketsPage will also show its own
+      // notification via useDemoTrading — that's fine, it deduplicates via
+      // the atomic .eq('status', 'open') guard in closePosition.
+    }
+  })
 
-  const checkUserAndLoadProfile = useCallback(async () => {
+  useEffect(() => { checkUserAndLoadProfile() }, [])
+
+  const checkUserAndLoadProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
@@ -49,9 +66,7 @@ function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [navigate])
-
-  useEffect(() => { checkUserAndLoadProfile() }, [checkUserAndLoadProfile])
+  }
 
   useEffect(() => {
     const checkAlerts = () => {
@@ -63,17 +78,6 @@ function Dashboard() {
     checkAlerts()
     const interval = setInterval(checkAlerts, 5000)
     return () => clearInterval(interval)
-  }, [])
-
-  // Close profile dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
-        setShowProfileDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const handleLogout = async () => {
@@ -190,14 +194,8 @@ function Dashboard() {
                 </svg>
               </button>
             )}
-
-            {/* Notification bell */}
             <div style={{ position: 'relative' }}>
-              <button
-                className="dash-icon-btn"
-                onClick={() => { setShowNotificationPanel(v => !v); setShowProfileDropdown(false) }}
-                title="Alerts"
-              >
+              <button className="dash-icon-btn" onClick={() => setShowNotificationPanel(v => !v)} title="Alerts">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -220,7 +218,6 @@ function Dashboard() {
               )}
             </div>
 
-            {/* Theme toggle */}
             <button className="dash-icon-btn" onClick={toggleTheme} title="Toggle theme">
               {theme === 'night'
                 ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -228,59 +225,18 @@ function Dashboard() {
               }
             </button>
 
-            {/* Profile avatar + dropdown */}
-            <div className="dash-user-avatar-wrapper" ref={profileDropdownRef}>
-              <div
-                className="dash-user-avatar"
-                onClick={() => { setShowProfileDropdown(v => !v); setShowNotificationPanel(false) }}
-                title={userName}
-                style={{ cursor: 'pointer' }}
-              >
-                {profileImage
-                  ? <img src={profileImage} alt={userName} />
-                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                }
-              </div>
-
-              {showProfileDropdown && (
-                <div className="dash-profile-dropdown">
-                  <div className="dash-profile-dropdown-header">
-                    <span className="dash-profile-dropdown-name">{userName}</span>
-                  </div>
-                  <button
-                    className="dash-profile-dropdown-item"
-                    onClick={() => { setActiveTab('profile'); setShowProfileDropdown(false) }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    Profile
-                  </button>
-                  <div className="dash-profile-dropdown-divider" />
-                  <button
-                    className="dash-profile-dropdown-item dash-profile-dropdown-logout"
-                    onClick={handleLogout}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                    Log Out
-                  </button>
-                </div>
-              )}
+            <div className="dash-user-avatar">
+              {profileImage
+                ? <img src={profileImage} alt={userName} />
+                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              }
             </div>
           </div>
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard' && <DashboardOverview userId={userId} onNavigate={setActiveTab} />}
-          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} onChallengeResult={(result, acct, days) => setChallengeModal({ result, account: acct, tradingDays: days })} />}
+          {activeTab === 'dashboard' && <DashboardOverview userId={userId} />}
+          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
           {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
           {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
           {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
@@ -304,48 +260,6 @@ function Dashboard() {
           {activeTab === 'settings'  && <SettingsPage />}
         </div>
       </div>
-
-      {/* ── Challenge Result Modal ── */}
-      {challengeModal && (
-        <div className="challenge-result-overlay" onClick={() => setChallengeModal(null)}>
-          <div className="challenge-result-modal" onClick={e => e.stopPropagation()}>
-            {challengeModal.result === 'passed' ? (
-              <>
-                <div className="challenge-result-icon passed">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M20 6L9 17l-5-5"/>
-                  </svg>
-                </div>
-                <h2 className="challenge-result-heading passed">Challenge Passed!</h2>
-                <p className="challenge-result-sub">
-                  You hit your profit target across {challengeModal.tradingDays} trading day{challengeModal.tradingDays !== 1 ? 's' : ''}. This result has been saved to your challenge history.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="challenge-result-icon failed">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </div>
-                <h2 className="challenge-result-heading failed">Challenge Failed</h2>
-                <p className="challenge-result-sub">
-                  You exceeded the maximum drawdown limit. This result has been saved to your challenge history — every attempt is a lesson.
-                </p>
-              </>
-            )}
-            <div className="challenge-result-actions">
-              <button className="challenge-result-btn-primary" onClick={() => { setChallengeModal(null); setActiveTab('analytics') }}>
-                View Analytics
-              </button>
-              <button className="challenge-result-btn-secondary" onClick={() => setChallengeModal(null)}>
-                {challengeModal.result === 'passed' ? 'Start New Challenge' : 'Try Again'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
