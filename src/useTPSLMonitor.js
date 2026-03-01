@@ -60,6 +60,7 @@ export function useTPSLMonitor(userId, onTriggered) {
 
   // Initial load + periodic symbol refresh
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSymbols()
     const interval = setInterval(refreshSymbols, SYMBOL_REFRESH_MS)
     return () => clearInterval(interval)
