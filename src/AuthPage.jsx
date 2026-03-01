@@ -182,6 +182,14 @@ function AuthPage() {
             </div>
           )}
 
+          {isLogin && (
+            <div className="auth-forgot-password">
+              <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer' }}>
+                Forgot password?
+              </a>
+            </div>
+          )}
+
           <button type="submit" className="auth-submit-btn-new" disabled={loading}>
             {loading ? 'Please wait...' : (isLogin ? 'Log in' : 'Create Account')}
           </button>

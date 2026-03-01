@@ -17,6 +17,7 @@ import AuthCallback from './AuthCallback'
 import Dashboard from './Dashboard'
 import ProfileSetup from './ProfileSetup'
 import ResetPasswordPage from './ResetPasswordPage'
+import ForgotPasswordPage from './ForgotPasswordPage'
 import BackToTop from './BackToTop'
 import { useScrollAnimation, useMouseTracking } from './useScrollAnimation'
 import { ThemeContext } from './ThemeContext'
@@ -59,7 +60,7 @@ function PageWrapper({ children }) {
 function AnimatedRoutes() {
   const location = useLocation()
 
-  const isAuthPage = ['/signup', '/login', '/profile-setup', '/dashboard', '/auth/callback', '/reset-password'].includes(location.pathname)
+  const isAuthPage = ['/signup', '/login', '/profile-setup', '/dashboard', '/auth/callback', '/reset-password', '/forgot-password'].includes(location.pathname)
 
   return (
     <>
@@ -82,6 +83,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
           <Route path="/profile-setup" element={<PageWrapper><ProfileSetup /></PageWrapper>} />
           <Route path="/reset-password" element={<PageWrapper><ResetPasswordPage /></PageWrapper>} />
+          <Route path="/forgot-password" element={<PageWrapper><ForgotPasswordPage /></PageWrapper>} />
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

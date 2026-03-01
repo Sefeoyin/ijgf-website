@@ -478,6 +478,41 @@ body[data-theme="day"] .back-to-top:hover {
   font-size: 0.9rem;
 }
 
+.auth-forgot-password {
+  text-align: right;
+  margin-top: -0.25rem;
+}
+
+.auth-forgot-password a {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.auth-forgot-password a:hover {
+  color: #8b5cf6;
+}
+
+.auth-success-message {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+[data-theme='day'] .auth-forgot-password a {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='day'] .auth-forgot-password a:hover {
+  color: #7C3AED;
+}
+
 .auth-form-new {
   display: flex;
   flex-direction: column;
