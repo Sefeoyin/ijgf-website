@@ -26,6 +26,7 @@ function Dashboard() {
   const [activeAlertCount, setActiveAlertCount] = useState(0)
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -225,11 +226,55 @@ function Dashboard() {
               }
             </button>
 
-            <div className="dash-user-avatar">
-              {profileImage
-                ? <img src={profileImage} alt={userName} />
-                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              }
+            <div className="dash-user-avatar-wrapper" style={{ position: 'relative' }}>
+              <div
+                className="dash-user-avatar"
+                onClick={() => setShowUserMenu(v => !v)}
+                style={{ cursor: 'pointer' }}
+                title={userName}
+              >
+                {profileImage
+                  ? <img src={profileImage} alt={userName} />
+                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                }
+              </div>
+
+              {showUserMenu && (
+                <>
+                  {/* Click-outside backdrop */}
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="dash-profile-dropdown">
+                    <div className="dash-profile-dropdown-header">
+                      <span className="dash-profile-dropdown-name">{userName}</span>
+                    </div>
+                    <button
+                      className="dash-profile-dropdown-item"
+                      onClick={() => { setActiveTab('profile'); setShowUserMenu(false) }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                      Profile
+                    </button>
+                    <div className="dash-profile-dropdown-divider" />
+                    <button
+                      className="dash-profile-dropdown-item dash-profile-dropdown-logout"
+                      onClick={() => { setShowUserMenu(false); handleLogout() }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                      </svg>
+                      Log out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
