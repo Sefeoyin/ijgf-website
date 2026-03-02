@@ -350,8 +350,34 @@ function DashboardOverview({ userId, onNavigate }) {
     const COINGECKO_IDS = Object.keys(COINGECKO_SYMBOL_MAP)
     const CHUNK_SIZE = 50
 
-    // Step 1: seed all coins from CoinGecko (chunked to avoid silent truncation)
-    const seedPrices = async () => {
+    // Tier 1: Vercel proxy — runs server-side, bypasses all client-side ISP blocks
+    // (fapi.binance.com is blocked at the DNS/TCP level by NCC in Nigeria and other regions)
+    const fetchViaProxy = async () => {
+      try {
+        const res = await fetch('/api/pairs', { signal: AbortSignal.timeout(9000) })
+        if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+        const body = await res.json()
+        if (!Array.isArray(body.pairs) || body.pairs.length === 0) throw new Error('empty pairs')
+        const prices = body.prices || {}
+        const parsed = body.pairs.map(symbol => ({
+          symbol,
+          name: COIN_NAMES[symbol] || symbol.replace('USDT', ''),
+          price: parseFloat(prices[symbol]) || 0,
+          change: parseFloat(body.changes?.[symbol]) || 0,
+          favorite: FAVORITES.has(symbol),
+        }))
+        setMarkets(parsed)
+        setIsLoadingPrices(false)
+        return true
+      } catch (err) {
+        console.warn('DashboardOverview: proxy fetch failed, falling back to CoinGecko:', err.message)
+        return false
+      }
+    }
+
+    // Tier 2: CoinGecko — public API, no geo-blocking, rate-limited (30 req/min free tier)
+    // Only used when the Vercel proxy is unavailable. Chunked to avoid silent truncation at 50-item limit.
+    const seedViaCoinGecko = async () => {
       try {
         const chunks = []
         for (let i = 0; i < COINGECKO_IDS.length; i += CHUNK_SIZE) {
@@ -369,37 +395,18 @@ function DashboardOverview({ userId, onNavigate }) {
           return d ? { ...m, price: d.usd || 0, change: d.usd_24h_change || 0 } : m
         }))
         setIsLoadingPrices(false)
-      } catch { /* silent */ }
+      } catch { /* silent — markets will show with stale/zero prices, still functional */ }
     }
 
-    // Step 2: replace full list from Binance Futures (all 200+ pairs with live prices)
-    const fetchAllMarkets = async () => {
-      try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const tickers = await res.json()
-        const parsed = tickers
-          .filter(t => t.symbol.endsWith('USDT'))
-          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-          .map(t => ({
-            symbol: t.symbol,
-            name: COIN_NAMES[t.symbol] || t.symbol.replace('USDT', ''),
-            price: parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.priceChangePercent) || 0,
-            favorite: FAVORITES.has(t.symbol),
-          }))
-        if (parsed.length > 0) {
-          setMarkets(parsed)
-          setIsLoadingPrices(false)
-        }
-      } catch (err) {
-        console.error('Binance Futures ticker fetch failed:', err)
-      }
+    const init = async () => {
+      const proxyOk = await fetchViaProxy()
+      if (!proxyOk) await seedViaCoinGecko()
     }
 
-    seedPrices()         // fires immediately — populates defaults with real prices
-    fetchAllMarkets()    // fires immediately — replaces with full list once done
-    const interval = setInterval(fetchAllMarkets, 30000)
+    init()
+    // Refresh via proxy every 30s. CoinGecko is NOT used in the interval — its 30 req/min
+    // free tier would be exhausted by a 30s poll with chunked requests.
+    const interval = setInterval(fetchViaProxy, 30000)
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

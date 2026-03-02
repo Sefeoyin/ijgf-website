@@ -54,6 +54,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notifications, setNotifications] = useState([])
+  // Challenge result modal state — set when account transitions active → passed/failed
+  const [challengeResult, setChallengeResult] = useState(null)
+  // Tracks previous account status to detect transitions within the session only
+  const prevStatusRef = useRef(null)
 
   // --------------- WebSocket / CoinGecko prices ---------------
   // If the selected pair isn't in our base list, add it so it always gets a price
@@ -336,6 +340,37 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     ? (drawdownUsed / account.max_total_drawdown) * 100
     : 0
 
+  // --------------- Challenge result detection ---------------
+  // Fires only on active → passed/failed transitions within the current browser session.
+  // prevStatusRef starts as null, so the first load (null → 'active') never triggers.
+  // This prevents a stale 'passed' account from firing the modal on every page load.
+  useEffect(() => {
+    if (!account) return
+    const curr = account.status
+    const prev = prevStatusRef.current
+
+    if (prev === 'active' && (curr === 'passed' || curr === 'failed')) {
+      setChallengeResult(curr)
+    }
+    prevStatusRef.current = curr
+  }, [account?.status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dismiss the challenge result modal without any side effects
+  const dismissChallengeResult = useCallback(() => {
+    setChallengeResult(null)
+  }, [])
+
+  // Dismiss modal AND reset account to start a fresh challenge
+  const submitStartNewChallenge = useCallback(async () => {
+    setChallengeResult(null)
+    try {
+      await submitResetAccount()
+    } catch (err) {
+      setError(err.message)
+      addNotification(`Reset failed: ${err.message}`, 'error')
+    }
+  }, [submitResetAccount, addNotification]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return {
     // State
     account,
@@ -380,5 +415,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     submitResetAccount,
     refreshState,
     dismissNotification,
+
+    // Challenge result modal
+    challengeResult,
+    dismissChallengeResult,
+    submitStartNewChallenge,
   }
 }

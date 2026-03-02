@@ -238,6 +238,7 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
+          stopPolling() // proxy poll no longer needed — WS is live
           for (let i = 0; i < symbols.length; i += BYBIT_BATCH) {
             ws.send(JSON.stringify({
               op:   'subscribe',
@@ -312,6 +313,7 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
+          stopPolling() // proxy poll no longer needed — WS is live
           didOpen = true
           for (const sym of symbols) {
             ws.send(JSON.stringify({ method: 'sub.ticker', param: { symbol: toMEXC(sym) } }))
@@ -382,7 +384,7 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) return
 
           setIsConnected(true)
-          if (mode !== 'ws') setMode('proxy')
+          setMode(prev => prev === 'ws' ? 'ws' : 'proxy') // functional update — no stale closure
 
           setPrices(prev => {
             const next = { ...prev }
@@ -516,6 +518,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
+          stopPolling() // WS is live — proxy polling no longer needed
           ws.send(JSON.stringify({ op: 'subscribe', args: [`orderbook.50.${symbol}`] }))
           pingRef.current = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 'ping' }))

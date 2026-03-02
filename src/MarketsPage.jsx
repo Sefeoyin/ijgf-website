@@ -63,6 +63,8 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     challengeResult,
+    dismissChallengeResult,
+    submitStartNewChallenge,
     tradingDays,
     notifications, dismissNotification,
     submitMarketOrder, submitLimitOrder, submitCancelOrder, submitClosePosition,
@@ -126,24 +128,13 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         }
         throw new Error('proxy returned empty pairs')
       } catch (proxyErr) {
-        console.warn('Pairs proxy failed, trying Binance direct:', proxyErr.message)
-      }
-
-      // Tier 2: Binance fapi direct
-      try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr', {
-          signal: AbortSignal.timeout(9000),
-        })
-        if (!res.ok) throw new Error(`Binance HTTP ${res.status}`)
-        const tickers = await res.json()
-        if (!Array.isArray(tickers)) throw new Error('Unexpected response shape')
-        const { pairs, snap } = parseBinanceTickers(tickers)
-        setSnapshotPrices(snap)
-        setAvailablePairs(pairs.length > 0 ? pairs : FALLBACK_PAIRS)
-      } catch (binanceErr) {
-        console.warn('Binance direct failed, using fallback:', binanceErr.message)
+        console.warn('Pairs proxy failed, using static fallback pairs:', proxyErr.message)
+        // Tier 2: static FALLBACK_PAIRS — always works, no network call required.
+        // Direct fapi.binance.com is intentionally omitted: it is blocked at the ISP
+        // level in Nigeria and other restricted regions (NCC regulations). The proxy
+        // in /api/pairs handles live data server-side; if that fails, static pairs
+        // provide a functional trading UI without any geo-blocking risk.
         setAvailablePairs(FALLBACK_PAIRS)
-      } finally {
         setPairsLoading(false)
       }
     }
@@ -434,12 +425,12 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     if ((challengeResult === 'passed' || challengeResult === 'failed') && onChallengeResult) {
       onChallengeResult(
         challengeResult,
-        trading.account,
-        trading.tradingDays,
-        trading.submitStartNewChallenge
+        account,
+        tradingDays,
+        submitStartNewChallenge
       )
-      // Reset local state so it doesn't re-fire
-      trading.dismissChallengeResult()
+      // Reset so the modal doesn't re-fire on subsequent renders
+      dismissChallengeResult()
     }
   }, [challengeResult]) // eslint-disable-line
 
