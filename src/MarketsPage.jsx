@@ -98,22 +98,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // Tier 2: Binance fapi direct (works in non-blocked regions)
   // Tier 3: FALLBACK_PAIRS constant (offline safety net — no network required)
   useEffect(() => {
-    const parseBinanceTickers = (tickers) => {
-      const pairs = []
-      const snap  = {}
-      tickers
-        .filter(t => t.symbol.endsWith('USDT'))
-        .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-        .forEach(t => {
-          pairs.push(t.symbol)
-          snap[t.symbol] = {
-            price:  parseFloat(t.lastPrice) || 0,
-            change: parseFloat(t.priceChangePercent) || 0,
-          }
-        })
-      return { pairs, snap }
-    }
-
     const fetchAllPairs = async () => {
       // Tier 1: Vercel proxy (runs server-side, not subject to ISP geo-block)
       try {

@@ -369,7 +369,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setError(err.message)
       addNotification(`Reset failed: ${err.message}`, 'error')
     }
-  }, [submitResetAccount, addNotification]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [submitResetAccount, addNotification])
 
   return {
     // State
