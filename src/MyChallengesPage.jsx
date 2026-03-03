@@ -471,22 +471,27 @@ export default function MyChallengesPage({ userId }) {
   const [tab, setTab]               = useState('active')
   const [connectingAccount, setConnectingAccount] = useState(null)
 
-  // Load distinct trading days per account from demo_trades
+  // Load distinct trading days per account from demo_trades.
+  // COLUMN FIX: demo_trades uses demo_account_id (not account_id)
+  //             and executed_at (not created_at).
+  // Only closing trades (is_close = true) count as a trading day —
+  // matches the same logic in tradingService.js checkChallengeRules().
   // Declared FIRST so loadChallenges can reference it without a temporal dead zone.
   const loadTradingDays = useCallback(async (accountIds) => {
-    if (!accountIds.length) return
+    if (!accountIds?.length) return
     const { data, error } = await supabase
       .from('demo_trades')
-      .select('account_id, created_at')
-      .in('account_id', accountIds)
+      .select('demo_account_id, executed_at')
+      .in('demo_account_id', accountIds)
+      .eq('is_close', true)         // only closing trades count
     if (error) { console.error('[MyChallenges] tradingDays error:', error); return }
-    // Count distinct calendar days per account_id
+    // Count distinct calendar days per demo_account_id
     const map = {}
     for (const row of (data ?? [])) {
-      const day = row.created_at?.slice(0, 10) // 'YYYY-MM-DD'
+      const day = row.executed_at?.slice(0, 10) // 'YYYY-MM-DD'
       if (!day) continue
-      if (!map[row.account_id]) map[row.account_id] = new Set()
-      map[row.account_id].add(day)
+      if (!map[row.demo_account_id]) map[row.demo_account_id] = new Set()
+      map[row.demo_account_id].add(day)
     }
     const counts = {}
     for (const [id, days] of Object.entries(map)) counts[id] = days.size
