@@ -1,24 +1,34 @@
 /**
  * useBinanceWebSocket.js
  *
- * Price feed — four-tier cascade:
- *   1. /api/prices      — Vercel proxy (same domain, bypasses ISP blocks)
- *   2. MEXC Futures WS  — direct WebSocket, not on Nigeria NCC blocked list
- *   3. Bybit Linear WS  — direct WebSocket fallback
- *   4. CoinGecko REST   — final polling fallback
+ * ARCHITECTURE — price feed:
  *
- * Order book — three-tier cascade:
- *   1. /api/orderbook   — Vercel proxy REST snapshot, polls every 3s
- *   2. Bybit orderbook.50 WebSocket — if proxy unavailable
- *   3. Simulated        — mathematical fallback, always works
+ *   The Vercel proxy (/api/prices) is the PERMANENT backbone.
+ *   It runs on Vercel US servers → calls Binance server-side → no ISP geo-block.
+ *   It starts immediately and NEVER stops on its own.
  *
- * The proxy runs on the same Vercel domain as the frontend.
- * ISPs cannot block it without taking down the entire platform.
+ *   WebSockets (MEXC → Bybit) are OPTIONAL upgrades for lower latency.
+ *   When a WS connects successfully it pauses the proxy poll.
+ *   If that WS later disconnects, the proxy poll restarts immediately.
+ *   Prices NEVER go dark — users always see live data.
+ *
+ *   CoinGecko REST is the absolute last resort (rate-limited, 50-coin coverage).
+ *
+ * Price feed cascade:
+ *   1. /api/prices  — Vercel proxy, permanent backbone, 3 s poll
+ *   2. MEXC WS      — direct, not on Nigeria NCC block list, pauses proxy when live
+ *   3. Bybit WS     — direct fallback, pauses proxy when live
+ *   4. CoinGecko    — last resort, proxy tried first before falling here
+ *
+ * Order book cascade:
+ *   1. /api/orderbook — Vercel proxy REST snapshot, 3 s poll
+ *   2. Bybit orderbook.50 WebSocket
+ *   3. Simulated — mathematical fallback, always works
  */
 
 import { useState, useEffect, useRef } from 'react'
 
-// ── Proxy endpoints (relative URLs — same Vercel domain) ──────────────────────
+// ── Proxy endpoints (relative URLs — same Vercel domain, no CORS, no geo-block) ─
 const PROXY_PRICES    = '/api/prices'
 const PROXY_ORDERBOOK = '/api/orderbook'
 
@@ -27,8 +37,8 @@ const MEXC_WS  = 'wss://contract.mexc.com/edge'
 const BYBIT_WS = 'wss://stream.bybit.com/v5/public/linear'
 
 // ── Timing ────────────────────────────────────────────────────────────────────
-const PROXY_POLL_MS    = 3000
-const WS_TIMEOUT_MS    = 3000
+const PROXY_POLL_MS    = 3000   // proxy poll interval
+const WS_TIMEOUT_MS    = 4000   // time to wait for WS to open before giving up
 const MEXC_PING_MS     = 15000
 const BYBIT_PING_MS    = 20000
 const CG_POLL_MS       = 10000
@@ -39,7 +49,7 @@ const toMEXC      = (s) => s.replace('USDT', '_USDT')
 const fromMEXC    = (s) => s.replace('_USDT', 'USDT')
 const BYBIT_BATCH = 10
 
-// ── CoinGecko ID map ──────────────────────────────────────────────────────────
+// ── CoinGecko ID map (last resort — ~80 major coins) ─────────────────────────
 export const COINGECKO_MAP = {
   BTCUSDT:     'bitcoin',
   ETHUSDT:     'ethereum',
@@ -144,7 +154,7 @@ export const COINGECKO_MAP = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useBinanceWebSocket — price feed, four-tier cascade
+// useBinanceWebSocket — price feed
 // ─────────────────────────────────────────────────────────────────────────────
 export function useBinanceWebSocket(symbols = []) {
   const [prices, setPrices]           = useState({})
@@ -162,6 +172,7 @@ export function useBinanceWebSocket(symbols = []) {
     mounted.current = true
     if (symbols.length === 0) return
 
+    // Close any active WebSocket
     const closeWS = () => {
       if (pingRef.current) { clearInterval(pingRef.current); pingRef.current = null }
       if (wsRef.current) {
@@ -170,21 +181,61 @@ export function useBinanceWebSocket(symbols = []) {
       }
     }
 
+    // Stop the proxy / CoinGecko poll — ONLY called when a live WS is confirmed open
     const stopPolling = () => {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
 
+    // ── Proxy poll (permanent backbone) ──────────────────────────────────────
+    // Calls /api/prices every 3 s. Runs on Vercel US servers → calls Binance
+    // server-side → completely bypasses Nigerian ISP geo-blocks.
+    // Started at mount and restarted any time a WS dies.
+    const startProxyPoll = () => {
+      if (!mounted.current || pollRef.current) return // already running
+
+      const poll = async () => {
+        // If a live WebSocket is open, skip — WS is providing prices already
+        if (wsRef.current?.readyState === WebSocket.OPEN) return
+        try {
+          const res = await fetch(
+            `${PROXY_PRICES}?symbols=${symbols.join(',')}`,
+            { signal: AbortSignal.timeout(8000) }
+          )
+          if (!res.ok) throw new Error(`proxy ${res.status}`)
+          const { prices: data } = await res.json()
+          if (!mounted.current) return
+          setIsConnected(true)
+          // Don't overwrite 'ws' mode if a WS just connected while fetch was in-flight
+          setMode(prev => prev === 'ws' ? 'ws' : 'proxy')
+          setPrices(prev => {
+            const next = { ...prev }
+            for (const [sym, p] of Object.entries(data)) {
+              next[sym] = { ...p, lastUpdate: Date.now() }
+            }
+            return next
+          })
+        } catch { /* cold-start or transient — retry next tick */ }
+      }
+
+      poll() // fire immediately
+      pollRef.current = setInterval(poll, PROXY_POLL_MS)
+    }
+
     // ── Tier 4: CoinGecko REST ────────────────────────────────────────────────
+    // True last resort — rate-limited, covers ~80 coins only.
+    // We always try restarting the proxy first before falling here.
     const startCoinGecko = () => {
-      if (!mounted.current || pollRef.current) return
+      if (!mounted.current) return
+      // Proxy is more reliable — restart it. If it's already running, this is a no-op.
+      startProxyPoll()
+      if (pollRef.current) return // proxy is polling, CoinGecko not needed
+
       setMode('polling')
       setIsConnected(true)
 
       const poll = async () => {
         try {
-          const ids = [...new Set(
-            symbols.map(s => COINGECKO_MAP[s]).filter(Boolean)
-          )].join(',')
+          const ids = [...new Set(symbols.map(s => COINGECKO_MAP[s]).filter(Boolean))].join(',')
           if (!ids) return
           const res = await fetch(
             `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
@@ -209,7 +260,7 @@ export function useBinanceWebSocket(symbols = []) {
             }
             return next
           })
-        } catch { /* ignore */ }
+        } catch { /* rate-limited or blocked — retry next tick */ }
       }
 
       poll()
@@ -226,7 +277,8 @@ export function useBinanceWebSocket(symbols = []) {
         timedOut = true
         if (wsRef.current?.readyState !== WebSocket.OPEN) {
           closeWS()
-          startCoinGecko()
+          // Bybit timed out — proxy is still polling, no action needed
+          // (proxy was never stopped since WS never opened)
         }
       }, WS_TIMEOUT_MS)
 
@@ -238,7 +290,8 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
-          stopPolling() // proxy poll no longer needed — WS is live
+          // WS is live — pause the proxy poll to save bandwidth
+          stopPolling()
           for (let i = 0; i < symbols.length; i += BYBIT_BATCH) {
             ws.send(JSON.stringify({
               op:   'subscribe',
@@ -279,13 +332,15 @@ export function useBinanceWebSocket(symbols = []) {
           clearInterval(pingRef.current); pingRef.current = null
           wsRef.current = null
           setIsConnected(false)
-          if (!timedOut) startCoinGecko()
+          setMode('proxy')
+          // WS died — immediately restart proxy so prices never go dark
+          startProxyPoll()
         }
 
         ws.onerror = () => { clearTimeout(timeout); ws.close() }
       } catch {
         clearTimeout(timeout)
-        startCoinGecko()
+        // WS failed to construct — proxy is still running, nothing to do
       }
     }
 
@@ -313,7 +368,8 @@ export function useBinanceWebSocket(symbols = []) {
           if (!mounted.current) { ws.close(); return }
           clearTimeout(timeout)
           if (timedOut) { ws.close(); return }
-          stopPolling() // proxy poll no longer needed — WS is live
+          // WS is live — pause the proxy poll to save bandwidth
+          stopPolling()
           didOpen = true
           for (const sym of symbols) {
             ws.send(JSON.stringify({ method: 'sub.ticker', param: { symbol: toMEXC(sym) } }))
@@ -352,7 +408,16 @@ export function useBinanceWebSocket(symbols = []) {
           clearInterval(pingRef.current); pingRef.current = null
           wsRef.current = null
           setIsConnected(false)
-          if (didOpen || !timedOut) tryBybit()
+          if (didOpen) {
+            // MEXC was working then died — restart proxy immediately, try Bybit next
+            setMode('proxy')
+            startProxyPoll()
+            tryBybit()
+          } else if (!timedOut) {
+            // Closed before opening and before timeout — unusual, try Bybit
+            tryBybit()
+          }
+          // If timedOut and never opened: timeout handler already called tryBybit()
         }
 
         ws.onerror = () => { clearTimeout(timeout); ws.close() }
@@ -362,30 +427,25 @@ export function useBinanceWebSocket(symbols = []) {
       }
     }
 
-    // ── Tier 1: Vercel proxy polling ─────────────────────────────────────────
-    // Fires immediately. Simultaneously attempts a direct WS in the background.
-    // If the WS connects and starts writing prices, mode flips to 'ws'.
-    const startProxy = () => {
-      if (!mounted.current) return
+    // ── Start: proxy first, then attempt WS upgrade ───────────────────────────
+    // Proxy starts immediately. First successful proxy response triggers one
+    // WS upgrade attempt. This way users get prices within 3 s even on cold
+    // Vercel starts, and get lower-latency WS if available.
+    let wsUpgradeStarted = false
 
-      let wsStarted = false
-
+    const startWithProxyThenWS = () => {
       const poll = async () => {
-        // Skip proxy poll if a live WS is already running
         if (wsRef.current?.readyState === WebSocket.OPEN) return
-
         try {
           const res = await fetch(
             `${PROXY_PRICES}?symbols=${symbols.join(',')}`,
-            { signal: AbortSignal.timeout(4000) }
+            { signal: AbortSignal.timeout(8000) }
           )
-          if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+          if (!res.ok) throw new Error(`proxy ${res.status}`)
           const { prices: data } = await res.json()
           if (!mounted.current) return
-
           setIsConnected(true)
-          setMode(prev => prev === 'ws' ? 'ws' : 'proxy') // functional update — no stale closure
-
+          setMode(prev => prev === 'ws' ? 'ws' : 'proxy')
           setPrices(prev => {
             const next = { ...prev }
             for (const [sym, p] of Object.entries(data)) {
@@ -393,19 +453,16 @@ export function useBinanceWebSocket(symbols = []) {
             }
             return next
           })
-
-          // Attempt direct WS once proxy confirms the network is reachable
-          if (!wsStarted) {
-            wsStarted = true
+          // Once proxy confirms network is reachable, attempt WS upgrade once
+          if (!wsUpgradeStarted) {
+            wsUpgradeStarted = true
             tryMEXC()
           }
         } catch {
-          // Proxy cold-start timeout (Vercel serverless ~4s spin-up) or transient
-          // network error. Do NOT stopPolling() — the interval keeps retrying every
-          // PROXY_POLL_MS so it will recover automatically on the next tick.
-          // Only attempt the direct WS if we haven't already started it.
-          if (!wsStarted) {
-            wsStarted = true
+          // Proxy cold-start or transient — keep retrying.
+          // Also try WS in parallel (it may work even if proxy is warming up)
+          if (!wsUpgradeStarted) {
+            wsUpgradeStarted = true
             tryMEXC()
           }
         }
@@ -415,7 +472,7 @@ export function useBinanceWebSocket(symbols = []) {
       pollRef.current = setInterval(poll, PROXY_POLL_MS)
     }
 
-    startProxy()
+    startWithProxyThenWS()
 
     return () => {
       mounted.current = false
@@ -490,6 +547,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     }
 
+    // Fall back to simulated order book (mathematical, always works)
     const goSimulated = () => {
       if (!mounted.current) return
       closeWS()
@@ -565,8 +623,9 @@ export function useBinanceOrderBook(symbol, depth = 10) {
     }
 
     // ── Tier 1: Vercel proxy REST snapshot ───────────────────────────────────
-    // Polls every 3s. Simultaneously attempts Bybit WS in the background.
-    // If WS connects, proxy polling stops and WS takes over.
+    // Polls every 3 s. Runs server-side on Vercel — no geo-block.
+    // Simultaneously tries Bybit WS in the background.
+    // If WS connects it stops the poll. If WS dies, simulated takes over.
     const startProxyPolling = () => {
       if (!mounted.current) return
 
@@ -574,15 +633,13 @@ export function useBinanceOrderBook(symbol, depth = 10) {
       let proxyWorks = false
 
       const poll = async () => {
-        // Skip poll if live WS is already running
         if (wsRef.current?.readyState === WebSocket.OPEN) return
-
         try {
           const res = await fetch(
             `${PROXY_ORDERBOOK}?symbol=${symbol}&depth=${depth}`,
-            { signal: AbortSignal.timeout(4000) }
+            { signal: AbortSignal.timeout(8000) }
           )
-          if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
+          if (!res.ok) throw new Error(`proxy ${res.status}`)
           const { bids: rawBids, asks: rawAsks } = await res.json()
           if (!mounted.current) return
 
@@ -603,7 +660,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
             tryBybit()
           }
         } catch {
-          // Proxy cold-start / transient failure. Keep interval alive for retry.
+          // Cold-start or transient — keep retrying
           if (!wsStarted) {
             wsStarted = true
             tryBybit()
