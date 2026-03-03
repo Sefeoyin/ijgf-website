@@ -54,9 +54,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notifications, setNotifications] = useState([])
-  // Challenge result modal state — set when account transitions active → passed/failed
+  // Challenge result modal — fired when account transitions active → passed/failed
+  // within the current browser session. prevStatusRef starts null so a stale
+  // 'passed' account on page load never re-triggers the modal.
   const [challengeResult, setChallengeResult] = useState(null)
-  // Tracks previous account status to detect transitions within the session only
   const prevStatusRef = useRef(null)
 
   // --------------- WebSocket / CoinGecko prices ---------------
@@ -341,26 +342,25 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     : 0
 
   // --------------- Challenge result detection ---------------
-  // Fires only on active → passed/failed transitions within the current browser session.
-  // prevStatusRef starts as null, so the first load (null → 'active') never triggers.
-  // This prevents a stale 'passed' account from firing the modal on every page load.
+  // Detects active → passed/failed transitions within this session only.
+  // prevStatusRef is null on mount, so loading an already-passed account
+  // never fires the modal again.
   useEffect(() => {
     if (!account) return
     const curr = account.status
     const prev = prevStatusRef.current
-
     if (prev === 'active' && (curr === 'passed' || curr === 'failed')) {
       setChallengeResult(curr)
     }
     prevStatusRef.current = curr
   }, [account?.status]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Dismiss the challenge result modal without any side effects
+  // Close modal without side effects
   const dismissChallengeResult = useCallback(() => {
     setChallengeResult(null)
   }, [])
 
-  // Dismiss modal AND reset account to start a fresh challenge
+  // Close modal AND reset account so the user starts a fresh challenge
   const submitStartNewChallenge = useCallback(async () => {
     setChallengeResult(null)
     try {

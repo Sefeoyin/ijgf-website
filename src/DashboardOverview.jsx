@@ -350,8 +350,9 @@ function DashboardOverview({ userId, onNavigate }) {
     const COINGECKO_IDS = Object.keys(COINGECKO_SYMBOL_MAP)
     const CHUNK_SIZE = 50
 
-    // Tier 1: Vercel proxy — runs server-side, bypasses all client-side ISP blocks
-    // (fapi.binance.com is blocked at the DNS/TCP level by NCC in Nigeria and other regions)
+    // Tier 1: /api/pairs Vercel proxy — runs server-side in US datacenter.
+    // fapi.binance.com is blocked at the ISP/DNS level in Nigeria (NCC) and
+    // other restricted regions, so we never call it directly from the browser.
     const fetchViaProxy = async () => {
       try {
         const res = await fetch('/api/pairs', { signal: AbortSignal.timeout(9000) })
@@ -362,21 +363,22 @@ function DashboardOverview({ userId, onNavigate }) {
         const parsed = body.pairs.map(symbol => ({
           symbol,
           name: COIN_NAMES[symbol] || symbol.replace('USDT', ''),
-          price: parseFloat(prices[symbol]) || 0,
-          change: parseFloat(body.changes?.[symbol]) || 0,
+          price: parseFloat(prices[symbol]?.price ?? prices[symbol]) || 0,
+          change: parseFloat(prices[symbol]?.change) || 0,
           favorite: FAVORITES.has(symbol),
         }))
         setMarkets(parsed)
         setIsLoadingPrices(false)
         return true
       } catch (err) {
-        console.warn('DashboardOverview: proxy fetch failed, falling back to CoinGecko:', err.message)
+        console.warn('[DashboardOverview] Proxy failed, falling back to CoinGecko:', err.message)
         return false
       }
     }
 
-    // Tier 2: CoinGecko — public API, no geo-blocking, rate-limited (30 req/min free tier)
-    // Only used when the Vercel proxy is unavailable. Chunked to avoid silent truncation at 50-item limit.
+    // Tier 2: CoinGecko — only when proxy is unavailable. Not used in the
+    // 30s interval because chunked requests would exhaust the free-tier
+    // rate limit (30 req/min) in under two refresh cycles.
     const seedViaCoinGecko = async () => {
       try {
         const chunks = []
@@ -395,17 +397,15 @@ function DashboardOverview({ userId, onNavigate }) {
           return d ? { ...m, price: d.usd || 0, change: d.usd_24h_change || 0 } : m
         }))
         setIsLoadingPrices(false)
-      } catch { /* silent — markets will show with stale/zero prices, still functional */ }
+      } catch { /* silent — markets will show with static prices, still functional */ }
     }
 
     const init = async () => {
-      const proxyOk = await fetchViaProxy()
-      if (!proxyOk) await seedViaCoinGecko()
+      const ok = await fetchViaProxy()
+      if (!ok) await seedViaCoinGecko()
     }
 
     init()
-    // Refresh via proxy every 30s. CoinGecko is NOT used in the interval — its 30 req/min
-    // free tier would be exhausted by a 30s poll with chunked requests.
     const interval = setInterval(fetchViaProxy, 30000)
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
