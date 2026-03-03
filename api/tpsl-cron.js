@@ -1,3 +1,4 @@
+/* global process */
 /**
  * /api/tpsl-cron.js — Server-side TP/SL & liquidation monitor
  *

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import ProfilePage from './ProfilePage'
@@ -11,8 +11,11 @@ import RulesObjectivesPage from './RulesObjectivesPage'
 import SupportPage from './SupportPage'
 import SettingsPage from './SettingsPage'
 import AIAssistantPage from './AIAssistantPage'
+import ChallengeResultModal from './ChallengeResultModal'
+import MyChallengesPage from './MyChallengesPage'
 import { ThemeContext } from './ThemeContext'
 import { useTPSLMonitor } from './useTPSLMonitor'
+import { resetDemoAccount } from './tradingService'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -27,6 +30,9 @@ function Dashboard() {
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  // Challenge result modal state — lifted here so it fires regardless of active tab
+  const [challengeResultData, setChallengeResultData] = useState(null)
+  const prevAccountStatusRef = useRef(null)
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -87,21 +93,23 @@ function Dashboard() {
   }
 
   const menuItems = [
-    { id: 'dashboard', icon: 'grid',       label: 'Dashboard',          disabled: false },
-    { id: 'market',    icon: 'chart',      label: 'Market',             disabled: false },
-    { id: 'analytics', icon: 'trending',   label: 'Analytics',          disabled: false },
-    { id: 'history',   icon: 'clock',      label: 'Trade History',      disabled: false },
-    { id: 'rules',     icon: 'book',       label: 'Rules & Objectives', disabled: false },
-    { id: 'ai',        icon: 'cpu',        label: 'AI Assistant',       disabled: true },
-    { id: 'profile',   icon: 'user',       label: 'Profile',            disabled: false },
-    { id: 'support',   icon: 'headphones', label: 'Support',            disabled: false },
-    { id: 'settings',  icon: 'settings',   label: 'Settings',           disabled: false },
+    { id: 'dashboard',  icon: 'grid',       label: 'Dashboard',          disabled: false },
+    { id: 'market',     icon: 'chart',      label: 'Market',             disabled: false },
+    { id: 'challenges', icon: 'trophy',     label: 'My Challenges',      disabled: false },
+    { id: 'analytics',  icon: 'trending',   label: 'Analytics',          disabled: false },
+    { id: 'history',    icon: 'clock',      label: 'Trade History',      disabled: false },
+    { id: 'rules',      icon: 'book',       label: 'Rules & Objectives', disabled: false },
+    { id: 'ai',         icon: 'cpu',        label: 'AI Assistant',       disabled: true  },
+    { id: 'profile',    icon: 'user',       label: 'Profile',            disabled: false },
+    { id: 'support',    icon: 'headphones', label: 'Support',            disabled: false },
+    { id: 'settings',   icon: 'settings',   label: 'Settings',           disabled: false },
   ]
 
   const renderIcon = (name) => {
     const icons = {
       grid:       <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>,
       chart:      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>,
+      trophy:     <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>,
       trending:   <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
       clock:      <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
       book:       <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
@@ -119,6 +127,76 @@ function Dashboard() {
       setSidebarOpen(false)
     }
   }
+
+  // ── Challenge result modal handlers ─────────────────────────────────────
+  // Called by MarketsPage when the account transitions to passed/failed.
+  const handleChallengeResult = useCallback((result, account, tradingDays, onStartNew) => {
+    prevAccountStatusRef.current = result
+    setChallengeResultData({ result, account, tradingDays, onStartNew })
+  }, [])
+
+  const dismissChallengeResult = useCallback(() => {
+    setChallengeResultData(null)
+  }, [])
+
+  const handleStartNewChallenge = useCallback(async (challengeType) => {
+    if (!challengeResultData?.onStartNew) return
+    try {
+      await challengeResultData.onStartNew(challengeType)
+    } catch (err) {
+      console.error('[Dashboard] start new challenge failed:', err)
+    }
+    setChallengeResultData(null)
+  }, [challengeResultData])
+
+  // ── Background status polling ────────────────────────────────────────────
+  // When the user is NOT on the Market tab, MarketsPage is unmounted so its
+  // own challengeResult detection can't fire.  Poll here every 8s so the
+  // modal fires regardless of which tab is active.
+  useEffect(() => {
+    if (!userId || activeTab === 'market') return // Market tab handles its own detection
+
+    const poll = async () => {
+      try {
+        const { data: account } = await supabase
+          .from('demo_accounts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!account) return
+
+        const curr = account.status
+        const prev = prevAccountStatusRef.current
+
+        // Only fire when we see an active → passed/failed transition
+        if (prev === 'active' && (curr === 'passed' || curr === 'failed')) {
+          prevAccountStatusRef.current = curr
+          setChallengeResultData({
+            result: curr,
+            account,
+            tradingDays: account.trading_days ?? 0,
+            onStartNew: async (type) => {
+              await resetDemoAccount(userId, type)
+              await checkUserAndLoadProfile()
+            },
+          })
+        } else if (prev === null && curr) {
+          // First read — just record the current status, don't fire a modal
+          prevAccountStatusRef.current = curr
+        }
+      } catch (err) {
+        console.error('[Dashboard] background status poll error:', err)
+      }
+    }
+
+    const interval = setInterval(poll, 8000)
+    poll() // run immediately
+
+    return () => clearInterval(interval)
+  }, [userId, activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <LoadingAnimation />
 
@@ -280,12 +358,20 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard' && <DashboardOverview userId={userId} />}
-          {activeTab === 'market'    && <MarketsPage chartExpanded={chartExpanded} setChartExpanded={setChartExpanded} userId={userId} />}
-          {activeTab === 'analytics' && <AnalyticsPage userId={userId} />}
-          {activeTab === 'history'   && <TradeHistoryPage userId={userId} />}
-          {activeTab === 'rules'     && <RulesObjectivesPage userId={userId} />}
-          {activeTab === 'ai'        && (
+          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} />}
+          {activeTab === 'market'     && (
+            <MarketsPage
+              chartExpanded={chartExpanded}
+              setChartExpanded={setChartExpanded}
+              userId={userId}
+              onChallengeResult={handleChallengeResult}
+            />
+          )}
+          {activeTab === 'challenges' && <MyChallengesPage userId={userId} />}
+          {activeTab === 'analytics'  && <AnalyticsPage userId={userId} />}
+          {activeTab === 'history'    && <TradeHistoryPage userId={userId} />}
+          {activeTab === 'rules'      && <RulesObjectivesPage userId={userId} />}
+          {activeTab === 'ai'         && (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               height: '100%', minHeight: '60vh', gap: '16px', color: 'rgba(255,255,255,0.5)',
@@ -300,11 +386,24 @@ function Dashboard() {
               </p>
             </div>
           )}
-          {activeTab === 'profile'   && <ProfilePage isSetup={false} />}
-          {activeTab === 'support'   && <SupportPage userId={userId} />}
-          {activeTab === 'settings'  && <SettingsPage />}
+          {activeTab === 'profile'    && <ProfilePage isSetup={false} />}
+          {activeTab === 'support'    && <SupportPage userId={userId} />}
+          {activeTab === 'settings'   && <SettingsPage />}
         </div>
       </div>
+
+      {/* Challenge result modal — rendered at Dashboard root so it fires on any tab */}
+      {challengeResultData && (
+        <ChallengeResultModal
+          result={challengeResultData.result}
+          userName={userName}
+          profileImage={profileImage}
+          account={challengeResultData.account}
+          tradingDays={challengeResultData.tradingDays}
+          onStartNew={handleStartNewChallenge}
+          onDismiss={dismissChallengeResult}
+        />
+      )}
     </div>
   )
 }
