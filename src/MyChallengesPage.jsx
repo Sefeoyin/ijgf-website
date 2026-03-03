@@ -99,22 +99,29 @@ function Gauge({ value, max, label, color, size = 72, trackColor, textPrimary, t
 }
 
 // ── Challenge card ─────────────────────────────────────────────────────────
-function ChallengeCard({ account, onConnect }) {
+function ChallengeCard({ account, tradingDaysMap, onConnect }) {
   const t = useTokens()
 
   const isPassed = account.status === 'passed'
   const isFailed = account.status === 'failed'
 
-  const initialBalance  = account.initial_balance  ?? 10000
-  const currentBalance  = account.balance          ?? initialBalance
-  const profitAbs       = currentBalance - initialBalance
-  const profitPct       = (profitAbs / initialBalance) * 100
-  const dailyLoss       = account.daily_loss        ?? 0
-  const maxDrawdownUsed = account.max_drawdown_used ?? 0
-  const tradingDays     = account.trading_days      ?? 0
-  const profitTarget    = initialBalance * 0.10
-  const dailyLossLimit  = initialBalance * 0.04
-  const maxDrawdown     = initialBalance * 0.06
+  // ── Correct DB field names ──────────────────────────────────────────────
+  // current_balance: live balance stored after each trade
+  // profit_target:   stored on account row (e.g. 1000 for a $10K account)
+  // max_total_drawdown: stored on account row (e.g. 800 for 8% of $10K)
+  // min_trading_days:   stored on account row (default 5)
+  // trading_days:    NOT a column — counted from demo_trades by distinct day
+  const initialBalance   = account.initial_balance   ?? 10000
+  const currentBalance   = account.current_balance   ?? initialBalance  // fixed: was account.balance
+  const profitAbs        = currentBalance - initialBalance
+  const profitPct        = (profitAbs / initialBalance) * 100
+  const profitTarget     = account.profit_target     ?? initialBalance * 0.10
+  const maxDrawdownLimit = account.max_total_drawdown ?? initialBalance * 0.08  // 8% rule
+  const minTradingDays   = account.min_trading_days  ?? 5
+  // drawdownUsed = how much equity has dropped below initial (same formula as useDemoTrading)
+  const drawdownUsed     = Math.max(0, initialBalance - currentBalance)
+  // trading_days from the preloaded map (queried from demo_trades by the parent)
+  const tradingDays      = tradingDaysMap[account.id] ?? 0
 
   const createdAt   = account.created_at
     ? new Date(account.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -122,16 +129,16 @@ function ChallengeCard({ account, onConnect }) {
   const statusColor = isPassed ? '#22c55e' : isFailed ? '#f6465d' : '#f59e0b'
   const statusLabel = isPassed ? 'Passed'  : isFailed ? 'Failed'  : 'Active'
   const profitColor = profitAbs >= 0 ? '#22c55e' : '#f6465d'
-  const ddColor     = maxDrawdownUsed > maxDrawdown * 0.75 ? '#f6465d'
-                    : maxDrawdownUsed > maxDrawdown * 0.5  ? '#f59e0b' : '#7C3AED'
+  const ddColor     = drawdownUsed > maxDrawdownLimit * 0.75 ? '#f6465d'
+                    : drawdownUsed > maxDrawdownLimit * 0.5  ? '#f59e0b' : '#7C3AED'
   const cardBorder  = isPassed ? 'rgba(34,197,94,0.25)'
                     : isFailed ? 'rgba(246,70,93,0.2)' : 'rgba(124,58,237,0.2)'
 
+  // No daily drawdown rule — 3 gauges only
   const gauges = [
-    { v: tradingDays,               mx: 30,            lbl: 'days',    clr: '#7C3AED',   head: 'Trading Days'   },
-    { v: Math.abs(dailyLoss),       mx: dailyLossLimit, lbl: 'daily',   clr: dailyLoss > dailyLossLimit * 0.75 ? '#f6465d' : '#f59e0b', head: 'Daily Loss' },
-    { v: Math.abs(maxDrawdownUsed), mx: maxDrawdown,    lbl: 'dd used', clr: ddColor,     head: 'Max DD Used'    },
-    { v: Math.max(0, profitAbs),    mx: profitTarget,   lbl: 'profit',  clr: profitColor, head: 'Profit Target'  },
+    { v: tradingDays,              mx: minTradingDays,    lbl: 'days',    clr: '#7C3AED',   head: 'Trading Days'   },
+    { v: drawdownUsed,             mx: maxDrawdownLimit,  lbl: 'dd used', clr: ddColor,     head: 'Max Drawdown'   },
+    { v: Math.max(0, profitAbs),   mx: profitTarget,      lbl: 'profit',  clr: profitColor, head: 'Profit Target'  },
   ]
 
   return (
@@ -187,10 +194,10 @@ function ChallengeCard({ account, onConnect }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {[
           ['Account Size',  `$${initialBalance.toLocaleString()}`],
-          ['Profit Target', '10%'],
-          ['Max Drawdown',  '6%'],
-          ['Daily Limit',   '4%'],
-          ['Leverage',      '8x BTC/ETH · 5x Alts'],
+          ['Profit Target', `${((profitTarget / initialBalance) * 100).toFixed(0)}%`],
+          ['Max Drawdown',  `${((maxDrawdownLimit / initialBalance) * 100).toFixed(0)}%`],
+          ['Min Days',      `${minTradingDays} days`],
+          ['Leverage',      '100x'],
           ['Profit Split',  '80%'],
         ].map(([label, value]) => (
           <div key={label} style={{
@@ -211,9 +218,9 @@ function ChallengeCard({ account, onConnect }) {
         borderBottom: `1px solid ${t.divider}`,
       }}>
         {[
-          { label: 'Current Balance', value: `$${currentBalance.toFixed(2)}`,      color: t.textPrimary },
-          { label: 'Initial Balance', value: `$${initialBalance.toLocaleString()}`, color: t.textMuted   },
-          { label: 'Profit Target',   value: `$${profitTarget.toFixed(0)}`,         color: '#7C3AED'     },
+          { label: 'Current Balance', value: `$${currentBalance.toFixed(2)}`,     color: t.textPrimary },
+          { label: 'Profit Target',   value: `+$${profitTarget.toFixed(0)}`,       color: '#22c55e'     },
+          { label: 'Max Drawdown',    value: `-$${maxDrawdownLimit.toFixed(0)}`,    color: '#f6465d'     },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <span style={{ fontSize: '0.7rem', color: t.textFaint }}>{label}</span>
@@ -459,6 +466,7 @@ function ConnectExchangeModal({ account, onClose }) {
 export default function MyChallengesPage({ userId }) {
   const t = useTokens()
   const [challenges, setChallenges] = useState([])
+  const [tradingDaysMap, setTradingDaysMap] = useState({}) // { [accountId]: number }
   const [loading, setLoading]       = useState(true)
   const [tab, setTab]               = useState('active')
   const [connectingAccount, setConnectingAccount] = useState(null)
@@ -472,9 +480,35 @@ export default function MyChallengesPage({ userId }) {
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
     if (error) console.error('[MyChallenges] load error:', error)
-    setChallenges(data ?? [])
+    const accounts = data ?? []
+    setChallenges(accounts)
     setLoading(false)
-  }, [userId])
+    // Load trading days for each account from demo_trades
+    if (accounts.length > 0) {
+      loadTradingDays(accounts.map(a => a.id))
+    }
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load distinct trading days per account from demo_trades
+  const loadTradingDays = useCallback(async (accountIds) => {
+    if (!accountIds.length) return
+    const { data, error } = await supabase
+      .from('demo_trades')
+      .select('account_id, created_at')
+      .in('account_id', accountIds)
+    if (error) { console.error('[MyChallenges] tradingDays error:', error); return }
+    // Count distinct calendar days per account_id
+    const map = {}
+    for (const row of (data ?? [])) {
+      const day = row.created_at?.slice(0, 10) // 'YYYY-MM-DD'
+      if (!day) continue
+      if (!map[row.account_id]) map[row.account_id] = new Set()
+      map[row.account_id].add(day)
+    }
+    const counts = {}
+    for (const [id, days] of Object.entries(map)) counts[id] = days.size
+    setTradingDaysMap(counts)
+  }, [])
 
   useEffect(() => {
     if (!userId) return
@@ -487,11 +521,15 @@ export default function MyChallengesPage({ userId }) {
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) console.error('[MyChallenges] load error:', error)
-        setChallenges(data ?? [])
+        const accounts = data ?? []
+        setChallenges(accounts)
         setLoading(false)
+        if (accounts.length > 0) {
+          loadTradingDays(accounts.map(a => a.id))
+        }
       })
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, loadTradingDays])
 
   const filtered = challenges.filter(c => c.status === tab)
   const counts = {
@@ -572,7 +610,7 @@ export default function MyChallengesPage({ userId }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {filtered.map(acc => (
-            <ChallengeCard key={acc.id} account={acc} onConnect={setConnectingAccount} />
+            <ChallengeCard key={acc.id} account={acc} tradingDaysMap={tradingDaysMap} onConnect={setConnectingAccount} />
           ))}
         </div>
       )}

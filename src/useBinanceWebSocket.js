@@ -400,11 +400,10 @@ export function useBinanceWebSocket(symbols = []) {
             tryMEXC()
           }
         } catch {
-          // Proxy itself failed — try WS directly.
-          // Do NOT stopPolling() here: the interval keeps retrying every
-          // PROXY_POLL_MS so if it was a cold-start / transient blip the
-          // proxy will recover automatically.  stopPolling() is only called
-          // inside the WS onopen handlers once a live feed is confirmed.
+          // Proxy cold-start timeout (Vercel serverless ~4s spin-up) or transient
+          // network error. Do NOT stopPolling() — the interval keeps retrying every
+          // PROXY_POLL_MS so it will recover automatically on the next tick.
+          // Only attempt the direct WS if we haven't already started it.
           if (!wsStarted) {
             wsStarted = true
             tryMEXC()
@@ -604,8 +603,7 @@ export function useBinanceOrderBook(symbol, depth = 10) {
             tryBybit()
           }
         } catch {
-          // Proxy failed — try WS directly but keep the poll interval alive
-          // so it retries automatically on cold-start / transient failures.
+          // Proxy cold-start / transient failure. Keep interval alive for retry.
           if (!wsStarted) {
             wsStarted = true
             tryBybit()
