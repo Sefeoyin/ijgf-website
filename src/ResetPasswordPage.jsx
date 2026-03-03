@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
+import { ThemeContext } from './ThemeContext'
 
 const validatePassword = (pwd) => ({
   length:    pwd.length >= 8 && pwd.length <= 30,
@@ -11,6 +12,14 @@ const validatePassword = (pwd) => ({
 
 function ResetPasswordPage() {
   const navigate = useNavigate()
+  const { theme } = useContext(ThemeContext)
+  const dark = theme === 'night'
+
+  const toggleColor      = dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)'
+  const checklistBg      = dark ? 'rgba(13,15,20,0.98)'    : '#ffffff'
+  const checklistBorder  = 'rgba(124,58,237,0.3)'
+  const checkUnmetCircle = dark ? 'rgba(255,255,255,0.2)'  : 'rgba(0,0,0,0.18)'
+  const checkUnmetLabel  = dark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.4)'
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -147,7 +156,7 @@ function ResetPasswordPage() {
                 style={{
                   position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  color: 'rgba(255,255,255,0.45)', lineHeight: 1,
+                  color: toggleColor, lineHeight: 1,
                 }}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -167,7 +176,7 @@ function ResetPasswordPage() {
               {passwordFocused && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-                  background: 'rgba(13,15,20,0.98)', border: '1px solid rgba(124,58,237,0.3)',
+                  background: checklistBg, border: `1px solid ${checklistBorder}`,
                   borderRadius: 10, padding: '12px 14px', zIndex: 20,
                   display: 'flex', flexDirection: 'column', gap: 6,
                 }}>
@@ -183,10 +192,10 @@ function ResetPasswordPage() {
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                           {met
                             ? <><circle cx="8" cy="8" r="8" fill="rgba(34,197,94,0.2)"/><path d="M5 8l2 2 4-4" stroke="#22c55e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></>
-                            : <circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+                            : <circle cx="8" cy="8" r="7" stroke={checkUnmetCircle} strokeWidth="1.5"/>
                           }
                         </svg>
-                        <span style={{ color: met ? '#22c55e' : 'rgba(255,255,255,0.38)' }}>{label}</span>
+                        <span style={{ color: met ? '#22c55e' : checkUnmetLabel }}>{label}</span>
                       </div>
                     )
                   })}
@@ -212,7 +221,7 @@ function ResetPasswordPage() {
                 style={{
                   position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  color: 'rgba(255,255,255,0.45)', lineHeight: 1,
+                  color: toggleColor, lineHeight: 1,
                 }}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
