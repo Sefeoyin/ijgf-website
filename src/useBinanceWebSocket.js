@@ -41,7 +41,6 @@ const PROXY_POLL_MS    = 3000   // proxy poll interval
 const WS_TIMEOUT_MS    = 4000   // time to wait for WS to open before giving up
 const MEXC_PING_MS     = 15000
 const BYBIT_PING_MS    = 20000
-const CG_POLL_MS       = 10000
 const OB_PROXY_POLL_MS = 3000
 
 // ── Symbol helpers ────────────────────────────────────────────────────────────
@@ -219,52 +218,6 @@ export function useBinanceWebSocket(symbols = []) {
 
       poll() // fire immediately
       pollRef.current = setInterval(poll, PROXY_POLL_MS)
-    }
-
-    // ── Tier 4: CoinGecko REST ────────────────────────────────────────────────
-    // True last resort — rate-limited, covers ~80 coins only.
-    // We always try restarting the proxy first before falling here.
-    const startCoinGecko = () => {
-      if (!mounted.current) return
-      // Proxy is more reliable — restart it. If it's already running, this is a no-op.
-      startProxyPoll()
-      if (pollRef.current) return // proxy is polling, CoinGecko not needed
-
-      setMode('polling')
-      setIsConnected(true)
-
-      const poll = async () => {
-        try {
-          const ids = [...new Set(symbols.map(s => COINGECKO_MAP[s]).filter(Boolean))].join(',')
-          if (!ids) return
-          const res = await fetch(
-            `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
-          )
-          if (!res.ok || !mounted.current) return
-          const data = await res.json()
-          setPrices(prev => {
-            const next = { ...prev }
-            for (const sym of symbols) {
-              const coin = data[COINGECKO_MAP[sym]]
-              if (coin) {
-                next[sym] = {
-                  price:       coin.usd || 0,
-                  change:      coin.usd_24h_change || 0,
-                  high:        0,
-                  low:         0,
-                  volume:      0,
-                  quoteVolume: 0,
-                  lastUpdate:  Date.now(),
-                }
-              }
-            }
-            return next
-          })
-        } catch { /* rate-limited or blocked — retry next tick */ }
-      }
-
-      poll()
-      pollRef.current = setInterval(poll, CG_POLL_MS)
     }
 
     // ── Tier 3: Bybit Linear WebSocket ───────────────────────────────────────
