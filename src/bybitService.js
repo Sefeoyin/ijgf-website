@@ -92,7 +92,6 @@ export async function placeBybitOrder({
   }
   if (side === 'Buy'  && stopLoss  >= takeProfit) throw new Error('Buy order: Stop Loss must be below Take Profit')
   if (side === 'Sell' && stopLoss  <= takeProfit) throw new Error('Sell order: Stop Loss must be above Take Profit')
-  if (side === 'Buy'  && stopLoss  >= parseFloat(qty) * 0) {} // qty sanity — bybit validates
   if (!qty || parseFloat(qty) <= 0) throw new Error('Order quantity must be greater than 0')
 
   // Fetch credentials from DB — never cache in memory
