@@ -33,10 +33,7 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
-  // 'ijgf' | 'bybit' | null — persisted from active account's trading_mode
-  // Controls whether MarketsPage is accessible. Set when challenge starts,
-  // cleared when challenge ends (passed/failed).
-  // null = not yet loaded from DB, 'ijgf' = active IJGF challenge, 'bybit' = bybit, 'none' = no active challenge
+  // 'ijgf' | 'bybit' | 'none' | null(loading)
   const [tradingMode, setTradingMode] = useState(null)
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
@@ -65,9 +62,7 @@ function Dashboard() {
       if (!user) { navigate('/login'); return }
       setUserId(user.id)
 
-      // Load active account and its trading_mode.
-      // trading_mode column now exists (migration applied).
-      // 'ijgf' = IJGF MarketsPage active, 'bybit' = Bybit terminal, null = default 'ijgf'
+      // Read active challenge to determine market access + trading mode
       const { data: activeAccount } = await supabase
         .from('demo_accounts')
         .select('id, status, trading_mode')
@@ -77,9 +72,7 @@ function Dashboard() {
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-
       if (activeAccount) {
-        // trading_mode null means account was created before migration — treat as 'ijgf'
         setTradingMode(activeAccount.trading_mode ?? 'ijgf')
       } else {
         setTradingMode('none')
@@ -158,8 +151,7 @@ function Dashboard() {
   // Called by MarketsPage when the account transitions to passed/failed.
   const handleChallengeResult = useCallback((result, account, tradingDays, onStartNew) => {
     prevAccountStatusRef.current = result
-    // Lock MarketsPage immediately when challenge ends (passed or failed)
-    setTradingMode('none')
+    setTradingMode('none') // lock market immediately on challenge end
     setChallengeResultData({ result, account, tradingDays, onStartNew })
   }, [])
 
@@ -175,7 +167,6 @@ function Dashboard() {
       console.error('[Dashboard] start new challenge failed:', err)
     }
     setTradingMode(mode)
-    // Navigate to market tab if IJGF mode was selected
     if (mode === 'ijgf') setActiveTab('market')
     setChallengeResultData(null)
   }, [challengeResultData])
@@ -408,23 +399,35 @@ function Dashboard() {
               />
             ) : (
               <div style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                height: '100%', minHeight: '60vh', gap: 16,
-                color: 'rgba(255,255,255,0.5)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', height: '100%', minHeight: '60vh',
+                gap: 16, color: 'rgba(255,255,255,0.5)',
               }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.4">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
                 {tradingMode === null ? (
                   <p style={{ fontSize: '1rem', fontWeight: 500 }}>Loading...</p>
                 ) : tradingMode === 'bybit' ? (
                   <>
-                    <p style={{ fontSize: '1rem', fontWeight: 500 }}>Trading via Bybit</p>
-                    <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
-                      Your challenge is running on Bybit demo futures. Open Bybit to trade.
+                    <p style={{ fontSize: '1rem', fontWeight: 700, color: '#eaecef' }}>Trading via Bybit Demo</p>
+                    <p style={{ fontSize: '0.85rem', maxWidth: 340, textAlign: 'center', lineHeight: 1.7 }}>
+                      Your challenge is live on your Bybit demo futures terminal.<br/>
+                      Open <strong style={{color:'#f59e0b'}}>Bybit Testnet</strong> to place and manage trades.
                     </p>
+                    <a
+                      href="https://testnet.bybit.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        marginTop: 8, padding: '10px 24px',
+                        background: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+                        color: '#000', borderRadius: 10, fontWeight: 700,
+                        fontSize: '0.9rem', textDecoration: 'none',
+                      }}
+                    >
+                      Open Bybit Testnet →
+                    </a>
                   </>
                 ) : (
                   <>
