@@ -143,6 +143,8 @@ function Dashboard() {
     if (!challengeResultData?.onStartNew) return
     try {
       await challengeResultData.onStartNew(challengeType)
+      // Reset the status tracker so the NEXT pass/fail transition is detected
+      prevAccountStatusRef.current = 'active'
     } catch (err) {
       console.error('[Dashboard] start new challenge failed:', err)
     }

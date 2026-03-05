@@ -24,6 +24,41 @@ const FALLBACK_PAIRS = [
   'ARKMUSDT',
 ]
 
+// Static market-cap rank (lower = higher cap). Updated periodically by hand;
+// good enough for display purposes without hitting a paid CMC/CoinGecko API.
+// Coins not in this map fall to the bottom (rank 9999) which keeps obscure
+// perps from floating above large-caps.
+const MARKETCAP_RANK = {
+  BTCUSDT:1, ETHUSDT:2, BNBUSDT:3, SOLUSDT:4, XRPUSDT:5,
+  USDCUSDT:6, ADAUSDT:7, DOGEUSDT:8, TRXUSDT:9, TONUSDT:10,
+  AVAXUSDT:11, XLMUSDT:12, DOTUSDT:13, LINKUSDT:14, SHIBUSDT:15,
+  SUIUSDT:16, HBARUSDT:17, BCHUSDT:18, LTCUSDT:19, UNIUSDT:20,
+  NEARUSDT:21, APTUSDT:22, ICPUSDT:23, PEPEUSDT:24, KASUSDT:25,
+  ETCUSDT:26, ATOMUSDT:27, TAOUSDT:28, MATICUSDT:29, RENDERUSDT:30,
+  FETUSDT:31, WIFUSDT:32, ARBUSDT:33, OPUSDT:34, FILUSDT:35,
+  INJUSDT:36, IMXUSDT:37, RUNEUSDT:38, AAVEUSDT:39, TIAUSDT:40,
+  BONKUSDT:41, FLOKIUSDT:42, SEIUSDT:43, GRTUSDT:44, ALGOUSDT:45,
+  JUPUSDT:46, MKRUSDT:47, STRKUSDT:48, LDOUSDT:49, VETUSDT:50,
+  FTMUSDT:51, PENDLEUSDT:52, WLDUSDT:53, ORDIUSDT:54, GALAUSDT:55,
+  SANDUSDT:56, MANAUSDT:57, AXSUSDT:58, CRVUSDT:59, DYDXUSDT:60,
+  GMXUSDT:61, SNXUSDT:62, COMPUSDT:63, ENAUSDT:64, PYTHUSDT:65,
+  ARKMUSDT:66, BLURUSDT:67, APEUSDT:68, CHZUSDT:69, ANKRUSDT:70,
+  OCEANUSDT:71, SUSHIUSDT:72, BANDUSDT:73, STORJUSDT:74, LRCUSDT:75,
+  COTIUSDT:76, YGGUSDT:77, CHRUSDT:78, SUPERUSDT:79, CTSIUSDT:80,
+  CVCUSDT:81, REEFUSDT:82, ALICEUSDT:83, CELRUSDT:84, CKBUSDT:85,
+  DGBUSDT:86, SCUSDT:87, ONTUSDT:88, WAVESUSDT:89, ZENUSDT:90,
+}
+
+// Sort a pairs array by market cap rank (ascending). Pairs not in the
+// rank map are placed at the end, preserving their relative order.
+function sortByMarketCap(pairs) {
+  return [...pairs].sort((a, b) => {
+    const ra = MARKETCAP_RANK[a] ?? 9999
+    const rb = MARKETCAP_RANK[b] ?? 9999
+    return ra - rb
+  })
+}
+
 function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userId, onChallengeResult }) {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT')
   const [showPairDropdown, setShowPairDropdown] = useState(false)
@@ -105,7 +140,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         if (!res.ok) throw new Error(`proxy HTTP ${res.status}`)
         const body = await res.json()
         if (Array.isArray(body.pairs) && body.pairs.length > 0) {
-          setAvailablePairs(body.pairs)
+          setAvailablePairs(sortByMarketCap(body.pairs))
           setSnapshotPrices(body.prices || {})
           setPairsLoading(false)
           return
@@ -118,7 +153,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         // level in Nigeria and other restricted regions (NCC regulations). The proxy
         // in /api/pairs handles live data server-side; if that fails, static pairs
         // provide a functional trading UI without any geo-blocking risk.
-        setAvailablePairs(FALLBACK_PAIRS)
+        setAvailablePairs(sortByMarketCap(FALLBACK_PAIRS))
         setPairsLoading(false)
       }
     }
@@ -405,6 +440,14 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   }
 
   // ---- Fire parent callback when challenge status changes ----
+  // IMPORTANT: Do NOT call dismissChallengeResult() here. Calling it
+  // synchronously in the same effect that fires onChallengeResult() creates a
+  // React state-update race: the hook resets challengeResult (and potentially
+  // re-renders account state) before Dashboard has committed setChallengeResultData,
+  // which can prevent the modal from appearing — especially for 'passed' where the
+  // transition window is narrow. The hook's challengeResult is cleared naturally
+  // when the user dismisses the modal (onDismiss) or starts a new challenge
+  // (onStartNew), both of which call setChallengeResultData(null) in Dashboard.
   useEffect(() => {
     if ((challengeResult === 'passed' || challengeResult === 'failed') && onChallengeResult) {
       onChallengeResult(
@@ -413,8 +456,7 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
         tradingDays,
         submitStartNewChallenge
       )
-      // Reset so the modal doesn't re-fire on subsequent renders
-      dismissChallengeResult()
+      // dismissChallengeResult() intentionally removed — see comment above.
     }
   }, [challengeResult]) // eslint-disable-line
 

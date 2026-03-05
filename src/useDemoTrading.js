@@ -360,16 +360,24 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     setChallengeResult(null)
   }, [])
 
-  // Close modal AND reset account so the user starts a fresh challenge
-  const submitStartNewChallenge = useCallback(async () => {
+  // Close modal AND reset account so the user starts a fresh challenge.
+  // challengeType is the tier key selected in the modal ('5k','10k','25k', etc.).
+  // BUGFIX: was previously async () => {} with no argument, silently dropping the
+  // selected challenge tier and always resetting to the server hardcoded default.
+  // prevStatusRef is seeded to 'active' immediately so the next pass/fail
+  // transition is detected correctly within the same session.
+  const submitStartNewChallenge = useCallback(async (challengeType) => {
     setChallengeResult(null)
+    prevStatusRef.current = 'active'
     try {
-      await submitResetAccount()
+      await resetDemoAccount(userIdRef.current, challengeType)
+      addNotification(`New ${challengeType || '10k'} challenge started!`, 'info')
+      await refreshState()
     } catch (err) {
       setError(err.message)
       addNotification(`Reset failed: ${err.message}`, 'error')
     }
-  }, [submitResetAccount, addNotification])
+  }, [refreshState, addNotification])
 
   return {
     // State

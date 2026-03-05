@@ -1,6 +1,30 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
 
+// Static market-cap rank (lower number = higher cap).
+// Keeps the Markets widget sorted largest-to-smallest regardless of which
+// exchange's volume order the /api/pairs proxy returns.
+const MARKETCAP_RANK = {
+  BTCUSDT:1, ETHUSDT:2, BNBUSDT:3, SOLUSDT:4, XRPUSDT:5,
+  USDCUSDT:6, ADAUSDT:7, DOGEUSDT:8, TRXUSDT:9, TONUSDT:10,
+  AVAXUSDT:11, XLMUSDT:12, DOTUSDT:13, LINKUSDT:14, SHIBUSDT:15,
+  SUIUSDT:16, HBARUSDT:17, BCHUSDT:18, LTCUSDT:19, UNIUSDT:20,
+  NEARUSDT:21, APTUSDT:22, ICPUSDT:23, PEPEUSDT:24, KASUSDT:25,
+  ETCUSDT:26, ATOMUSDT:27, TAOUSDT:28, MATICUSDT:29, RENDERUSDT:30,
+  FETUSDT:31, WIFUSDT:32, ARBUSDT:33, OPUSDT:34, FILUSDT:35,
+  INJUSDT:36, IMXUSDT:37, RUNEUSDT:38, AAVEUSDT:39, TIAUSDT:40,
+  BONKUSDT:41, FLOKIUSDT:42, SEIUSDT:43, GRTUSDT:44, ALGOUSDT:45,
+  JUPUSDT:46, MKRUSDT:47, STRKUSDT:48, LDOUSDT:49, VETUSDT:50,
+  FTMUSDT:51, PENDLEUSDT:52, WLDUSDT:53, ORDIUSDT:54, GALAUSDT:55,
+  SANDUSDT:56, MANAUSDT:57, AXSUSDT:58, CRVUSDT:59, DYDXUSDT:60,
+  GMXUSDT:61, SNXUSDT:62, COMPUSDT:63, ENAUSDT:64, PYTHUSDT:65,
+  ARKMUSDT:66, BLURUSDT:67, APEUSDT:68, CHZUSDT:69, ANKRUSDT:70,
+  OCEANUSDT:71, SUSHIUSDT:72, BANDUSDT:73, STORJUSDT:74, LRCUSDT:75,
+  COTIUSDT:76, YGGUSDT:77, CHRUSDT:78, SUPERUSDT:79, CTSIUSDT:80,
+  CVCUSDT:81, REEFUSDT:82, ALICEUSDT:83, CELRUSDT:84, CKBUSDT:85,
+  DGBUSDT:86, SCUSDT:87, ONTUSDT:88, WAVESUSDT:89, ZENUSDT:90,
+}
+
 function DashboardOverview({ userId, onNavigate }) {
   const [timeRange, setTimeRange] = useState('1W')
   const [selectedMarket, setSelectedMarket] = useState(null)
@@ -186,11 +210,13 @@ function DashboardOverview({ userId, onNavigate }) {
 
   // Sort filtered markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
-    // If default sorting, favorites first
+    // Default: market-cap order (favorites bubble to top within their cap tier)
     if (sortBy === 'default') {
       if (a.favorite && !b.favorite) return -1
       if (!a.favorite && b.favorite) return 1
-      return 0
+      const ra = MARKETCAP_RANK[a.symbol] ?? 9999
+      const rb = MARKETCAP_RANK[b.symbol] ?? 9999
+      return ra - rb
     }
     
     // Price sorting
@@ -367,6 +393,8 @@ function DashboardOverview({ userId, onNavigate }) {
           change: parseFloat(prices[symbol]?.change) || 0,
           favorite: FAVORITES.has(symbol),
         }))
+        // Sort by market cap so the list is always large-cap → small-cap
+        parsed.sort((a, b) => (MARKETCAP_RANK[a.symbol] ?? 9999) - (MARKETCAP_RANK[b.symbol] ?? 9999))
         setMarkets(parsed)
         setIsLoadingPrices(false)
         return true
