@@ -321,8 +321,8 @@ function ChallengeResultModal({
         /* ── Overlay ── */
         .cr-overlay {
           position: fixed; inset: 0; z-index: 9999;
-          background: rgba(0,0,0,0.85);
-          backdrop-filter: blur(8px);
+          background: rgba(0,0,0,0.55);
+          backdrop-filter: blur(2px);
           display: flex; align-items: center; justify-content: center;
           padding: 20px;
           opacity: 0; transition: opacity 0.35s ease;
@@ -385,7 +385,7 @@ function ChallengeResultModal({
         /* ── Text ── */
         .cr-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
         .cr-title-pass {
-          background: linear-gradient(135deg,#f59e0b,#fbbf24);
+          background: linear-gradient(135deg,#22c55e,#4ade80);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text;
         }
@@ -416,7 +416,7 @@ function ChallengeResultModal({
         }
         .cr-cert-logo {
           font-size: 1.1rem; font-weight: 800; letter-spacing: 3px;
-          background: linear-gradient(135deg,#f59e0b,#fbbf24);
+          background: linear-gradient(135deg,#7c3aed,#a855f7);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text;
         }
@@ -435,7 +435,7 @@ function ChallengeResultModal({
         .cr-cert-text { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
         .cr-cert-tier {
           font-size: 1rem; font-weight: 700;
-          background: linear-gradient(135deg,#f59e0b,#fbbf24);
+          background: linear-gradient(135deg,#7c3aed,#a855f7);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text; margin-bottom: 16px;
         }
