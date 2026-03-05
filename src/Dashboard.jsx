@@ -36,7 +36,8 @@ function Dashboard() {
   // 'ijgf' | 'bybit' | null — persisted from active account's trading_mode
   // Controls whether MarketsPage is accessible. Set when challenge starts,
   // cleared when challenge ends (passed/failed).
-  const [tradingMode, setTradingMode] = useState('ijgf')
+  // null = not yet loaded from DB, 'ijgf' = active IJGF challenge, 'bybit' = bybit, 'none' = no active challenge
+  const [tradingMode, setTradingMode] = useState(null)
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -63,6 +64,27 @@ function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
       setUserId(user.id)
+
+      // Load active account and its trading_mode.
+      // trading_mode column now exists (migration applied).
+      // 'ijgf' = IJGF MarketsPage active, 'bybit' = Bybit terminal, null = default 'ijgf'
+      const { data: activeAccount } = await supabase
+        .from('demo_accounts')
+        .select('id, status, trading_mode')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .not('challenge_type', 'like', '%_archived_%')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (activeAccount) {
+        // trading_mode null means account was created before migration — treat as 'ijgf'
+        setTradingMode(activeAccount.trading_mode ?? 'ijgf')
+      } else {
+        setTradingMode('none')
+      }
+
       const { data: profile, error } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
       if (error) console.error('Error loading profile:', error)
@@ -136,6 +158,8 @@ function Dashboard() {
   // Called by MarketsPage when the account transitions to passed/failed.
   const handleChallengeResult = useCallback((result, account, tradingDays, onStartNew) => {
     prevAccountStatusRef.current = result
+    // Lock MarketsPage immediately when challenge ends (passed or failed)
+    setTradingMode('none')
     setChallengeResultData({ result, account, tradingDays, onStartNew })
   }, [])
 
@@ -224,20 +248,26 @@ function Dashboard() {
         </div>
 
         <nav className="dash-sidebar-nav">
-          {menuItems.map(item => (
-            <button
-              key={item.id}
-              className={`dash-nav-item ${activeTab === item.id ? 'active' : ''} ${item.disabled ? 'disabled' : ''}`}
-              onClick={() => handleNavClick(item.id)}
-              disabled={item.disabled}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {renderIcon(item.icon)}
-              </svg>
-              <span>{item.label}</span>
-              {item.disabled && <span className="dash-nav-soon">Soon</span>}
-            </button>
-          ))}
+          {menuItems.map(item => {
+            const isMarketLocked = item.id === 'market' && tradingMode !== 'ijgf'
+            const isDisabled = item.disabled || isMarketLocked
+            return (
+              <button
+                key={item.id}
+                className={`dash-nav-item ${activeTab === item.id ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                onClick={() => handleNavClick(item.id)}
+                disabled={isDisabled}
+                title={isMarketLocked ? 'Start a challenge to access the Market' : undefined}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {renderIcon(item.icon)}
+                </svg>
+                <span>{item.label}</span>
+                {item.disabled && <span className="dash-nav-soon">Soon</span>}
+                {isMarketLocked && <span className="dash-nav-soon">🔒</span>}
+              </button>
+            )
+          })}
         </nav>
 
         <div className="dash-sidebar-footer">
@@ -367,7 +397,7 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} />}
+          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} />}
           {activeTab === 'market'     && (
             tradingMode === 'ijgf' ? (
               <MarketsPage
@@ -387,14 +417,23 @@ function Dashboard() {
                   <rect x="3" y="11" width="18" height="11" rx="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
-                <p style={{ fontSize: '1rem', fontWeight: 500 }}>
-                  {tradingMode === 'bybit' ? 'Trading via Bybit — use your Bybit terminal' : 'No active challenge'}
-                </p>
-                <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
-                  {tradingMode === 'bybit'
-                    ? 'Your challenge is running on Bybit demo futures. Open Bybit to trade with your connected account.'
-                    : 'Start a challenge from the My Challenges tab to activate trading.'}
-                </p>
+                {tradingMode === null ? (
+                  <p style={{ fontSize: '1rem', fontWeight: 500 }}>Loading...</p>
+                ) : tradingMode === 'bybit' ? (
+                  <>
+                    <p style={{ fontSize: '1rem', fontWeight: 500 }}>Trading via Bybit</p>
+                    <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
+                      Your challenge is running on Bybit demo futures. Open Bybit to trade.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '1rem', fontWeight: 500 }}>No Active Challenge</p>
+                    <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
+                      Start a challenge from the Dashboard to activate trading.
+                    </p>
+                  </>
+                )}
               </div>
             )
           )}

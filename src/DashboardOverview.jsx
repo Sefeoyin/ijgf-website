@@ -186,26 +186,53 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
     return matchesSearch && matchesFavorites
   })
 
+  // Market cap rank — lower number = larger cap = shown first.
+  // Based on CoinMarketCap / CoinGecko rankings (March 2026).
+  // Tokens not listed here fall to rank 9999 (shown last in default view).
+  const MCAP_RANK = {
+    BTCUSDT:1, ETHUSDT:2, BNBUSDT:3, SOLUSDT:4, XRPUSDT:5,
+    TONUSDT:6, DOGEUSDT:7, ADAUSDT:8, TRXUSDT:9, AVAXUSDT:10,
+    SHIBUSDT:11, DOTUSDT:12, LINKUSDT:13, BCHUSDT:14, NEARUSDT:15,
+    LTCUSDT:16, UNIUSDT:17, ICPUSDT:18, FETUSDT:19, APTUSDT:20,
+    XLMUSDT:21, ETCUSDT:22, HBARUSDT:23, ATOMUSDT:24, IMXUSDT:25,
+    ARBUSDT:26, KASUSDT:27, OPUSDT:28, FILUSDT:29, SUIUSDT:30,
+    INJUSDT:31, RENDERUSDT:32, TAOUSDT:33, VETUSDT:34, LDOUSDT:35,
+    MATICUSDT:36, AAVEUSDT:37, RUNEUSDT:38, SEIUSDT:39, TIAUSDT:40,
+    MKRUSDT:41, PEPEUSDT:42, WLDUSDT:43, PENDLEUSDT:44, STRKUSDT:45,
+    GRTUSDT:46, WIFUSDT:47, BONKUSDT:48, COMPUSDT:49, SNXUSDT:50,
+    SANDUSDT:51, MANAUSDT:52, AXSUSDT:53, GALAUSDT:54, APEUSDT:55,
+    ALGOUSDT:56, FTMUSDT:57, GMXUSDT:58, DYDXUSDT:59, BLURUSDT:60,
+    CRVUSDT:61, SUSHIUSDT:62, JUPUSDT:63, ENAUSDT:64, ORDIUSDT:65,
+    PYTHUSDT:66, ARKMUSDT:67, FLOKIUSDT:68, POPCATUSDT:69, CHZUSDT:70,
+    ANKRUSDT:71, OCEANUSDT:72, YGGUSDT:73, BANDUSDT:74, ONTUSDT:75,
+    WAVESUSDT:76, LRCUSDT:77, ENJUSDT:78, COTIUSDT:79, ZENUSDT:80,
+    STORJUSDT:81, CELRUSDT:82, CHRUSDT:83, CTSIUSDT:84, SCUSDT:85,
+    ALICEUSDT:86, REEFUSDT:87, CVCUSDT:88, DGBUSDT:89, SUPERUSDT:90,
+  }
+
   // Sort filtered markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
-    // If default sorting, favorites first
+    // Default: favorites first, then market cap order
     if (sortBy === 'default') {
       if (a.favorite && !b.favorite) return -1
       if (!a.favorite && b.favorite) return 1
-      return 0
+      // Secondary sort: market cap rank (lower rank = larger cap = first)
+      const rankA = MCAP_RANK[a.symbol] ?? 9999
+      const rankB = MCAP_RANK[b.symbol] ?? 9999
+      return rankA - rankB
     }
-    
+
     // Price sorting
     if (sortBy === 'price-high') return b.price - a.price
     if (sortBy === 'price-low') return a.price - b.price
-    
+
     // Change % sorting
     if (sortBy === 'change-high') return b.change - a.change
     if (sortBy === 'change-low') return a.change - b.change
-    
+
     // Alphabetical sorting
     if (sortBy === 'name') return a.name.localeCompare(b.name)
-    
+
     return 0
   })
 
