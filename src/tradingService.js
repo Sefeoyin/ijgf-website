@@ -705,10 +705,13 @@ async function checkChallengeRules(accountId, userId) {
   // CRITICAL: trader must ALSO have completed min_trading_days before passing
   const totalProfit = trueEquity - account.initial_balance
   if (totalProfit >= account.profit_target) {
-    // Count distinct calendar days with trades
+    // Count distinct calendar days with CLOSING trades.
+    // BUGFIX: previously selected only 'executed_at', so t.is_close was always
+    // undefined — the filter dropped every row and tradingDays was always 0,
+    // making the challenge pass condition permanently unreachable.
     const { data: allTrades } = await supabase
       .from('demo_trades')
-      .select('executed_at')
+      .select('executed_at, is_close')
       .eq('demo_account_id', accountId)
 
     const tradingDays = new Set(
@@ -816,9 +819,10 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
 // ---------------------------------------------------------------------------
 export async function getTradingDays(accountId) {
   if (!accountId) return 0
+  // BUGFIX: must select 'is_close' or the filter below always evaluates to false
   const { data, error } = await supabase
     .from('demo_trades')
-    .select('executed_at')
+    .select('executed_at, is_close')
     .eq('demo_account_id', accountId)
 
   if (error || !data) return 0
