@@ -228,6 +228,7 @@ function ProfilePage({ isSetup = false }) {
   // ── SETUP VIEW ────────────────────────────────────────────────────────────
   if (isSetup) {
     return (
+      <>
       <div className="profile-setup-page">
         <div className="auth-logo-header">
           <a href="/" className="auth-logo-link">
@@ -490,7 +491,7 @@ function ProfilePage({ isSetup = false }) {
           }}
         />
       )}
-    </div>
+    </>
   )
   }
 
