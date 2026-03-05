@@ -98,7 +98,6 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
     equity, equityProfit, totalUnrealizedPNL,
     drawdownUsed, drawdownPercent,
     challengeResult,
-    dismissChallengeResult,
     submitStartNewChallenge,
     tradingDays,
     notifications, dismissNotification,
