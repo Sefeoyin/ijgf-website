@@ -177,7 +177,6 @@ function ChallengeResultModal({
       //   ADD COLUMN bybit_api_key TEXT,
       //   ADD COLUMN bybit_api_secret TEXT,
       //   ADD COLUMN bybit_connected_at TIMESTAMPTZ;
-      const { createClient } = await import('./supabase')
       const { supabase } = await import('./supabase')
       const { error } = await supabase
         .from('demo_accounts')

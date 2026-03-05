@@ -262,7 +262,6 @@ export default function MyChallengesPage({ userId }) {
   //             and executed_at (not created_at).
   // Only closing trades (is_close = true) count as a trading day —
   // matches the same logic in tradingService.js checkChallengeRules().
-  // Declared FIRST so loadChallenges can reference it without a temporal dead zone.
   const loadTradingDays = useCallback(async (accountIds) => {
     if (!accountIds?.length) return
     const { data, error } = await supabase
@@ -284,22 +283,6 @@ export default function MyChallengesPage({ userId }) {
     setTradingDaysMap(counts)
   }, [])
 
-  // Kept for post-modal refresh — declared after loadTradingDays so it can call it.
-  const loadChallenges = useCallback(async () => {
-    if (!userId) return
-    const { data, error } = await supabase
-      .from('demo_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-    if (error) console.error('[MyChallenges] load error:', error)
-    const accounts = data ?? []
-    setChallenges(accounts)
-    setLoading(false)
-    if (accounts.length > 0) {
-      loadTradingDays(accounts.map(a => a.id))
-    }
-  }, [userId, loadTradingDays])
 
   useEffect(() => {
     if (!userId) return
