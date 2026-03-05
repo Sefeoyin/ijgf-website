@@ -1,31 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
 
-// Static market-cap rank (lower number = higher cap).
-// Keeps the Markets widget sorted largest-to-smallest regardless of which
-// exchange's volume order the /api/pairs proxy returns.
-const MARKETCAP_RANK = {
-  BTCUSDT:1, ETHUSDT:2, BNBUSDT:3, SOLUSDT:4, XRPUSDT:5,
-  USDCUSDT:6, ADAUSDT:7, DOGEUSDT:8, TRXUSDT:9, TONUSDT:10,
-  AVAXUSDT:11, XLMUSDT:12, DOTUSDT:13, LINKUSDT:14, SHIBUSDT:15,
-  SUIUSDT:16, HBARUSDT:17, BCHUSDT:18, LTCUSDT:19, UNIUSDT:20,
-  NEARUSDT:21, APTUSDT:22, ICPUSDT:23, PEPEUSDT:24, KASUSDT:25,
-  ETCUSDT:26, ATOMUSDT:27, TAOUSDT:28, MATICUSDT:29, RENDERUSDT:30,
-  FETUSDT:31, WIFUSDT:32, ARBUSDT:33, OPUSDT:34, FILUSDT:35,
-  INJUSDT:36, IMXUSDT:37, RUNEUSDT:38, AAVEUSDT:39, TIAUSDT:40,
-  BONKUSDT:41, FLOKIUSDT:42, SEIUSDT:43, GRTUSDT:44, ALGOUSDT:45,
-  JUPUSDT:46, MKRUSDT:47, STRKUSDT:48, LDOUSDT:49, VETUSDT:50,
-  FTMUSDT:51, PENDLEUSDT:52, WLDUSDT:53, ORDIUSDT:54, GALAUSDT:55,
-  SANDUSDT:56, MANAUSDT:57, AXSUSDT:58, CRVUSDT:59, DYDXUSDT:60,
-  GMXUSDT:61, SNXUSDT:62, COMPUSDT:63, ENAUSDT:64, PYTHUSDT:65,
-  ARKMUSDT:66, BLURUSDT:67, APEUSDT:68, CHZUSDT:69, ANKRUSDT:70,
-  OCEANUSDT:71, SUSHIUSDT:72, BANDUSDT:73, STORJUSDT:74, LRCUSDT:75,
-  COTIUSDT:76, YGGUSDT:77, CHRUSDT:78, SUPERUSDT:79, CTSIUSDT:80,
-  CVCUSDT:81, REEFUSDT:82, ALICEUSDT:83, CELRUSDT:84, CKBUSDT:85,
-  DGBUSDT:86, SCUSDT:87, ONTUSDT:88, WAVESUSDT:89, ZENUSDT:90,
-}
-
-function DashboardOverview({ userId, onNavigate }) {
+function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
   const [timeRange, setTimeRange] = useState('1W')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
@@ -39,6 +15,8 @@ function DashboardOverview({ userId, onNavigate }) {
   const [showMarketsModal, setShowMarketsModal] = useState(false)
   const [showChallengeModal, setShowChallengeModal] = useState(false)
   const [startingChallenge, setStartingChallenge] = useState(false)
+  // When user picks a tier, hold it here and show mode picker before starting
+  const [pendingTierKey, setPendingTierKey] = useState(null)
   
   // Real account data from Supabase
   const [account, setAccount] = useState(null)
@@ -210,13 +188,11 @@ function DashboardOverview({ userId, onNavigate }) {
 
   // Sort filtered markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
-    // Default: market-cap order (favorites bubble to top within their cap tier)
+    // If default sorting, favorites first
     if (sortBy === 'default') {
       if (a.favorite && !b.favorite) return -1
       if (!a.favorite && b.favorite) return 1
-      const ra = MARKETCAP_RANK[a.symbol] ?? 9999
-      const rb = MARKETCAP_RANK[b.symbol] ?? 9999
-      return ra - rb
+      return 0
     }
     
     // Price sorting
@@ -393,8 +369,6 @@ function DashboardOverview({ userId, onNavigate }) {
           change: parseFloat(prices[symbol]?.change) || 0,
           favorite: FAVORITES.has(symbol),
         }))
-        // Sort by market cap so the list is always large-cap → small-cap
-        parsed.sort((a, b) => (MARKETCAP_RANK[a.symbol] ?? 9999) - (MARKETCAP_RANK[b.symbol] ?? 9999))
         setMarkets(parsed)
         setIsLoadingPrices(false)
         return true
@@ -1237,21 +1211,10 @@ function DashboardOverview({ userId, onNavigate }) {
                   className={`challenge-tier-card ${tier.comingSoon ? 'coming-soon' : ''}`}
                   onClick={() => {
                     if (tier.comingSoon || startingChallenge) return
-                    setStartingChallenge(true)
-                    resetDemoAccount(userId, tier.key)
-                      .then(() => {
-                        setShowChallengeModal(false)
-                        // Reload account state
-                        return getAccountState(userId)
-                      })
-                      .then(state => {
-                        setAccount(state.account)
-                        setRealTrades(state.recentTrades)
-                        setAccountPositions(state.positions || [])
-                        setAccountTradingDays(state.tradingDays ?? 0)
-                      })
-                      .catch(err => console.error('Failed to start challenge:', err))
-                      .finally(() => setStartingChallenge(false))
+                    // Close tier picker first, then open mode picker
+                    // (prevents z-index conflict between the two overlays)
+                    setShowChallengeModal(false)
+                    setPendingTierKey(tier.key)
                   }}
                 >
                   {tier.comingSoon && <span className="tier-coming-soon-badge">Coming Soon</span>}
@@ -1270,6 +1233,98 @@ function DashboardOverview({ userId, onNavigate }) {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mode picker overlay — shown after tier is selected ────────────── */}
+      {pendingTierKey && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }}
+          onClick={e => { if (e.target === e.currentTarget) setPendingTierKey(null) }}
+        >
+          <div style={{
+            background: '#0d0f14', border: '1px solid rgba(124,58,237,0.3)',
+            borderRadius: 18, padding: '28px 24px', maxWidth: 420, width: '100%',
+          }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700, color: '#eaecef' }}>
+              How would you like to trade?
+            </h3>
+            <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
+              Starting <strong style={{color:'#a855f7'}}>${pendingTierKey.replace('k',',000')} Challenge</strong>
+            </p>
+
+            {/* IJGF Market option */}
+            <button
+              onClick={async () => {
+                setStartingChallenge(true)
+                try {
+                  await resetDemoAccount(userId, pendingTierKey)
+                  const state = await getAccountState(userId)
+                  setAccount(state.account)
+                  setRealTrades(state.recentTrades)
+                  setAccountPositions(state.positions || [])
+                  setAccountTradingDays(state.tradingDays ?? 0)
+                  setShowChallengeModal(false)
+                  setPendingTierKey(null)
+                  if (onChallengeStart) onChallengeStart('ijgf')
+                } catch (err) {
+                  console.error('Failed to start challenge:', err)
+                } finally {
+                  setStartingChallenge(false)
+                }
+              }}
+              disabled={startingChallenge}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                marginBottom: 10, color: '#eaecef', transition: 'all 0.15s',
+                opacity: startingChallenge ? 0.6 : 1,
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+            >
+              <span style={{fontSize:'1.5rem'}}>🚀</span>
+              <div style={{textAlign:'left'}}>
+                <div style={{fontWeight:700, fontSize:'0.95rem'}}>IJGF Market</div>
+                <div style={{fontSize:'0.78rem', color:'rgba(255,255,255,0.5)'}}>Trade Binance tokens inside this platform</div>
+              </div>
+            </button>
+
+            {/* Bybit option */}
+            <button
+              onClick={() => {
+                // Bybit requires DB migration — show coming soon for now
+                alert('Bybit integration coming soon. Use IJGF Market to start trading now.')
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                marginBottom: 20, color: 'rgba(255,255,255,0.4)', transition: 'all 0.15s',
+              }}
+            >
+              <span style={{fontSize:'1.5rem', opacity:0.5}}>🔗</span>
+              <div style={{textAlign:'left'}}>
+                <div style={{fontWeight:700, fontSize:'0.95rem'}}>Connect Bybit <span style={{fontSize:'0.7rem',background:'rgba(255,255,255,0.08)',padding:'2px 7px',borderRadius:20,marginLeft:6}}>Coming Soon</span></div>
+                <div style={{fontSize:'0.78rem', color:'rgba(255,255,255,0.4)'}}>Trade on your Bybit demo futures terminal</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setPendingTierKey(null)}
+              style={{
+                width: '100%', padding: '10px', background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
+                color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.9rem',
+              }}
+            >
+              ← Back
+            </button>
           </div>
         </div>
       )}

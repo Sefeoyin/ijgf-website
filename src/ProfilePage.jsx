@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import { ThemeContext } from './ThemeContext'
+import OnboardingModal from './OnboardingModal'
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
@@ -50,10 +51,12 @@ function ProfilePage({ isSetup = false }) {
   const navigate   = useNavigate()
   const { theme, toggleTheme } = useContext(ThemeContext)
   const [user,      setUser]      = useState(null)
-  const [loading,   setLoading]   = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [error,     setError]     = useState('')
-  const [success,   setSuccess]   = useState('')
+  const [loading,         setLoading]         = useState(false)
+  const [uploading,       setUploading]       = useState(false)
+  const [error,           setError]           = useState('')
+  const [success,         setSuccess]         = useState('')
+  // Shown after profile setup completes — new user picks challenge tier + mode
+  const [showOnboarding,  setShowOnboarding]  = useState(false)
 
   const [profileImageUrl,   setProfileImageUrl]   = useState('')
   const [firstName,         setFirstName]         = useState('')
@@ -197,7 +200,7 @@ function ProfilePage({ isSetup = false }) {
       const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select()
       if (error) throw error
       setSuccess('Profile saved successfully!')
-      if (isSetup) navigate('/dashboard')
+      if (isSetup) setShowOnboarding(true)
     } catch (err) {
       if (err.code === '23505' || err.message?.includes('unique') || err.message?.includes('duplicate')) {
         setError('That username is already taken. Please choose another.')
@@ -476,7 +479,19 @@ function ProfilePage({ isSetup = false }) {
           </div>
         </div>
       </div>
-    )
+
+      {/* Onboarding modal — fires after profile saved, lets user pick challenge + mode */}
+      {showOnboarding && user && (
+        <OnboardingModal
+          userId={user.id}
+          onComplete={(challengeType, mode) => {
+            setShowOnboarding(false)
+            navigate('/dashboard', { state: { tradingMode: mode, challengeType } })
+          }}
+        />
+      )}
+    </div>
+  )
   }
 
   // ── DASHBOARD PROFILE VIEW ─────────────────────────────────────────────────
