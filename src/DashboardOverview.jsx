@@ -15,7 +15,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
   const [showMarketsModal, setShowMarketsModal] = useState(false)
   const [showChallengeModal, setShowChallengeModal] = useState(false)
   const [startingChallenge, setStartingChallenge] = useState(false)
-  // Holds the selected tier key while the mode picker (IJGF vs Bybit) is shown
   const [pendingTierKey, setPendingTierKey] = useState(null)
   
   // Real account data from Supabase
@@ -186,7 +185,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
     return matchesSearch && matchesFavorites
   })
 
-  // Market cap rank (March 2026) — lower = larger cap = shown first
   const MCAP_RANK = {
     BTCUSDT:1,ETHUSDT:2,BNBUSDT:3,SOLUSDT:4,XRPUSDT:5,
     TONUSDT:6,DOGEUSDT:7,ADAUSDT:8,TRXUSDT:9,AVAXUSDT:10,
@@ -205,13 +203,11 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
     ANKRUSDT:71,OCEANUSDT:72,YGGUSDT:73,BANDUSDT:74,ONTUSDT:75,
     WAVESUSDT:76,LRCUSDT:77,ENJUSDT:78,COTIUSDT:79,ZENUSDT:80,
   }
-
   // Sort filtered markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
     if (sortBy === 'default') {
       if (a.favorite && !b.favorite) return -1
       if (!a.favorite && b.favorite) return 1
-      // Secondary: market cap rank
       return (MCAP_RANK[a.symbol] ?? 9999) - (MCAP_RANK[b.symbol] ?? 9999)
     }
     if (sortBy === 'price-high') return b.price - a.price
@@ -1224,7 +1220,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
                   className={`challenge-tier-card ${tier.comingSoon ? 'coming-soon' : ''}`}
                   onClick={() => {
                     if (tier.comingSoon || startingChallenge) return
-                    // Close tier picker and open mode picker (IJGF vs Bybit)
                     setShowChallengeModal(false)
                     setPendingTierKey(tier.key)
                   }}
@@ -1249,26 +1244,26 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
         </div>
       )}
 
-      {/* ── Mode picker — shown after tier selected, before challenge starts ── */}
+      {/* ── Mode picker: IJGF vs Bybit — appears after tier is selected ── */}
       {pendingTierKey && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 10000,
-            background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+            position:'fixed',inset:0,zIndex:10000,
+            background:'rgba(0,0,0,0.80)',backdropFilter:'blur(6px)',
+            display:'flex',alignItems:'center',justifyContent:'center',padding:16,
           }}
-          onClick={e => { if (e.target === e.currentTarget && !startingChallenge) setPendingTierKey(null) }}
+          onClick={e => { if (e.target===e.currentTarget && !startingChallenge) setPendingTierKey(null) }}
         >
           <div style={{
-            background: '#0d0f14', border: '1px solid rgba(124,58,237,0.35)',
-            borderRadius: 18, padding: '28px 24px', maxWidth: 420, width: '100%',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+            background:'#0d0f14',border:'1px solid rgba(124,58,237,0.35)',
+            borderRadius:18,padding:'28px 24px',maxWidth:420,width:'100%',
+            boxShadow:'0 24px 60px rgba(0,0,0,0.6)',
           }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 700, color: '#eaecef' }}>
+            <h3 style={{margin:'0 0 4px',fontSize:'1.15rem',fontWeight:700,color:'#eaecef'}}>
               How would you like to trade?
             </h3>
-            <p style={{ margin: '0 0 22px', fontSize: '0.83rem', color: 'rgba(255,255,255,0.45)' }}>
-              Starting <strong style={{color:'#a855f7'}}>${pendingTierKey.replace('k',',000')} Challenge</strong>
+            <p style={{margin:'0 0 22px',fontSize:'0.83rem',color:'rgba(255,255,255,0.45)'}}>
+              Starting&nbsp;<strong style={{color:'#a855f7'}}>${pendingTierKey.replace('k',',000')} Challenge</strong>
             </p>
 
             {/* IJGF Market */}
@@ -1286,26 +1281,25 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
                   setPendingTierKey(null)
                   if (onChallengeStart) onChallengeStart('ijgf')
                 } catch (err) {
-                  console.error('Failed to start IJGF challenge:', err)
-                } finally {
-                  setStartingChallenge(false)
-                }
+                  console.error('IJGF start failed:', err)
+                } finally { setStartingChallenge(false) }
               }}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.3)',
-                borderRadius: 12, padding: '15px 16px', cursor: startingChallenge ? 'not-allowed' : 'pointer',
-                marginBottom: 10, color: '#eaecef', transition: 'all 0.15s',
-                opacity: startingChallenge ? 0.6 : 1,
+                width:'100%',display:'flex',alignItems:'center',gap:14,
+                background:'rgba(124,58,237,0.08)',border:'1px solid rgba(124,58,237,0.3)',
+                borderRadius:12,padding:'15px 16px',
+                cursor:startingChallenge?'not-allowed':'pointer',
+                marginBottom:10,color:'#eaecef',opacity:startingChallenge?0.6:1,
+                transition:'all 0.15s',
               }}
-              onMouseEnter={e => { if (!startingChallenge) e.currentTarget.style.borderColor = 'rgba(124,58,237,0.7)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)' }}
+              onMouseEnter={e=>{if(!startingChallenge)e.currentTarget.style.borderColor='rgba(124,58,237,0.7)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(124,58,237,0.3)'}}
             >
               <span style={{fontSize:'1.6rem'}}>🚀</span>
               <div style={{textAlign:'left'}}>
-                <div style={{fontWeight:700, fontSize:'0.97rem', marginBottom:2}}>IJGF Market</div>
-                <div style={{fontSize:'0.78rem', color:'rgba(255,255,255,0.45)'}}>
-                  Trade Binance-listed tokens inside this platform. No external account needed.
+                <div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>IJGF Market</div>
+                <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>
+                  Trade Binance-listed tokens inside this platform
                 </div>
               </div>
               {startingChallenge && <span style={{marginLeft:'auto',fontSize:'0.8rem',color:'#a855f7'}}>Starting…</span>}
@@ -1323,34 +1317,32 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
                   setRealTrades(state.recentTrades)
                   setAccountPositions(state.positions || [])
                   setAccountTradingDays(state.tradingDays ?? 0)
-                  // Mark as bybit mode in DB
-                  const { supabase: sb } = await import('./supabase')
                   if (state.account?.id) {
-                    await sb.from('demo_accounts').update({ trading_mode: 'bybit' }).eq('id', state.account.id)
+                    const { supabase: sb } = await import('./supabase')
+                    await sb.from('demo_accounts').update({ trading_mode:'bybit' }).eq('id', state.account.id)
                   }
                   setPendingTierKey(null)
                   if (onChallengeStart) onChallengeStart('bybit')
                 } catch (err) {
-                  console.error('Failed to start Bybit challenge:', err)
-                } finally {
-                  setStartingChallenge(false)
-                }
+                  console.error('Bybit start failed:', err)
+                } finally { setStartingChallenge(false) }
               }}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)',
-                borderRadius: 12, padding: '15px 16px', cursor: startingChallenge ? 'not-allowed' : 'pointer',
-                marginBottom: 20, color: '#eaecef', transition: 'all 0.15s',
-                opacity: startingChallenge ? 0.6 : 1,
+                width:'100%',display:'flex',alignItems:'center',gap:14,
+                background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.25)',
+                borderRadius:12,padding:'15px 16px',
+                cursor:startingChallenge?'not-allowed':'pointer',
+                marginBottom:20,color:'#eaecef',opacity:startingChallenge?0.6:1,
+                transition:'all 0.15s',
               }}
-              onMouseEnter={e => { if (!startingChallenge) e.currentTarget.style.borderColor = 'rgba(245,158,11,0.55)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.25)' }}
+              onMouseEnter={e=>{if(!startingChallenge)e.currentTarget.style.borderColor='rgba(245,158,11,0.55)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(245,158,11,0.25)'}}
             >
               <span style={{fontSize:'1.6rem'}}>🔗</span>
               <div style={{textAlign:'left'}}>
-                <div style={{fontWeight:700, fontSize:'0.97rem', marginBottom:2}}>Connect Bybit Demo</div>
-                <div style={{fontSize:'0.78rem', color:'rgba(255,255,255,0.45)'}}>
-                  Trade on your Bybit demo futures terminal. IJGF tracks your progress via API.
+                <div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>Connect Bybit Demo</div>
+                <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>
+                  Trade on Bybit demo futures — IJGF tracks your progress
                 </div>
               </div>
               {startingChallenge && <span style={{marginLeft:'auto',fontSize:'0.8rem',color:'#f59e0b'}}>Starting…</span>}
@@ -1358,15 +1350,13 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
 
             <button
               disabled={startingChallenge}
-              onClick={() => setPendingTierKey(null)}
+              onClick={()=>setPendingTierKey(null)}
               style={{
-                width: '100%', padding: '10px', background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-                color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: '0.88rem',
+                width:'100%',padding:'10px',background:'transparent',
+                border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,
+                color:'rgba(255,255,255,0.45)',cursor:'pointer',fontSize:'0.88rem',
               }}
-            >
-              ← Back
-            </button>
+            >← Back</button>
           </div>
         </div>
       )}
