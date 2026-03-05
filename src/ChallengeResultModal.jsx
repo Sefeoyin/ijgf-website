@@ -138,6 +138,12 @@ function ChallengeResultModal({
   const [quote]                  = useState(
     () => FAIL_QUOTES[Math.floor(Math.random() * FAIL_QUOTES.length)]
   )
+  // 'idle' | 'selectMode' | 'bybitApi'
+  const [startStep, setStartStep]   = useState('idle')
+  const [apiKey, setApiKey]         = useState('')
+  const [apiSecret, setApiSecret]   = useState('')
+  const [apiError, setApiError]     = useState('')
+  const [apiSaving, setApiSaving]   = useState(false)
 
   // Animate in
   useEffect(() => {
@@ -145,8 +151,50 @@ function ChallengeResultModal({
     return () => clearTimeout(t)
   }, [])
 
-  const handleStart = () => {
-    if (onStartNew) onStartNew('10k')
+  // Opens the mode-selection screen
+  const handleStart = () => setStartStep('selectMode')
+
+  // User picks IJGF Market — activates demo trading with IJGF MarketsPage
+  const handleSelectIJGF = () => {
+    if (onStartNew) onStartNew('10k', 'ijgf')
+  }
+
+  // User picks Bybit — show API key entry
+  const handleSelectBybit = () => setStartStep('bybitApi')
+
+  // Save Bybit API credentials then start challenge
+  const handleSaveBybit = async () => {
+    if (!apiKey.trim() || !apiSecret.trim()) {
+      setApiError('Both API Key and API Secret are required')
+      return
+    }
+    setApiSaving(true)
+    setApiError('')
+    try {
+      // Write credentials to demo_accounts.
+      // Requires migration: ALTER TABLE demo_accounts
+      //   ADD COLUMN trading_mode TEXT DEFAULT 'ijgf',
+      //   ADD COLUMN bybit_api_key TEXT,
+      //   ADD COLUMN bybit_api_secret TEXT,
+      //   ADD COLUMN bybit_connected_at TIMESTAMPTZ;
+      const { createClient } = await import('./supabase')
+      const { supabase } = await import('./supabase')
+      const { error } = await supabase
+        .from('demo_accounts')
+        .update({
+          trading_mode:      'bybit',
+          bybit_api_key:     apiKey.trim(),
+          bybit_api_secret:  apiSecret.trim(),
+          bybit_connected_at: new Date().toISOString(),
+        })
+        .eq('id', account?.id)
+      if (error) throw error
+      if (onStartNew) onStartNew('10k', 'bybit')
+    } catch (err) {
+      setApiError(err.message || 'Failed to save API credentials')
+    } finally {
+      setApiSaving(false)
+    }
   }
 
   const isPassed = result === 'passed'
@@ -233,14 +281,81 @@ function ChallengeResultModal({
                 🎉 In live mode, your funded account would now be activated. For this demo, start a new challenge to keep practising.
               </div>
 
-              <div className="cr-actions">
-                <button className="cr-btn-primary" onClick={handleStart}>
-                  Start New Challenge
-                </button>
-                <button className="cr-btn-ghost" onClick={onDismiss}>
-                  View Dashboard
-                </button>
-              </div>
+              {/* ── Start New Challenge: mode picker / Bybit API ──── */}
+              {startStep === 'idle' && (
+                <div className="cr-actions">
+                  <button className="cr-btn-primary" onClick={handleStart}>
+                    Start New Challenge
+                  </button>
+                  <button className="cr-btn-ghost" onClick={onDismiss}>
+                    View Dashboard
+                  </button>
+                </div>
+              )}
+
+              {startStep === 'selectMode' && (
+                <div className="cr-mode-picker">
+                  <p className="cr-mode-title">How would you like to trade?</p>
+                  <button className="cr-mode-btn" onClick={handleSelectIJGF}>
+                    <span className="cr-mode-icon">🚀</span>
+                    <div className="cr-mode-info">
+                      <span className="cr-mode-name">IJGF Market</span>
+                      <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
+                    </div>
+                  </button>
+                  <button className="cr-mode-btn" onClick={handleSelectBybit}>
+                    <span className="cr-mode-icon">🔗</span>
+                    <div className="cr-mode-info">
+                      <span className="cr-mode-name">Connect Bybit</span>
+                      <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
+                    </div>
+                  </button>
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                    ← Back
+                  </button>
+                </div>
+              )}
+
+              {startStep === 'bybitApi' && (
+                <div className="cr-bybit-form">
+                  <p className="cr-mode-title">Connect Bybit Demo Account</p>
+                  <p className="cr-bybit-hint">
+                    Create a <strong>read + trade</strong> API key on Bybit Testnet. Do not enable withdrawals.
+                  </p>
+                  {apiError && (
+                    <div className="cr-api-error">{apiError}</div>
+                  )}
+                  <label className="cr-api-label">API Key</label>
+                  <input
+                    className="cr-api-input"
+                    type="password"
+                    placeholder="Paste Bybit API key"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                  />
+                  <label className="cr-api-label">API Secret</label>
+                  <input
+                    className="cr-api-input"
+                    type="password"
+                    placeholder="Paste Bybit API secret"
+                    value={apiSecret}
+                    onChange={e => setApiSecret(e.target.value)}
+                  />
+                  <div className="cr-actions" style={{marginTop:16}}>
+                    <button
+                      className="cr-btn-primary"
+                      onClick={handleSaveBybit}
+                      disabled={apiSaving}
+                      style={{opacity: apiSaving ? 0.7 : 1}}
+                    >
+                      {apiSaving ? 'Connecting...' : 'Connect & Start Challenge'}
+                    </button>
+                    <button className="cr-btn-ghost" onClick={() => setStartStep('selectMode')}>
+                      ← Back
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -304,14 +419,80 @@ function ChallengeResultModal({
                 Review your trade history to identify patterns. Risk management — not entry timing — is what gets traders funded.
               </div>
 
-              <div className="cr-actions">
-                <button className="cr-btn-primary" onClick={handleStart}>
-                  Try Again
-                </button>
-                <button className="cr-btn-ghost" onClick={onDismiss}>
-                  Review History
-                </button>
-              </div>
+              {startStep === 'idle' && (
+                <div className="cr-actions">
+                  <button className="cr-btn-primary" onClick={handleStart}>
+                    Try Again
+                  </button>
+                  <button className="cr-btn-ghost" onClick={onDismiss}>
+                    Review History
+                  </button>
+                </div>
+              )}
+
+              {startStep === 'selectMode' && (
+                <div className="cr-mode-picker">
+                  <p className="cr-mode-title">How would you like to trade?</p>
+                  <button className="cr-mode-btn" onClick={handleSelectIJGF}>
+                    <span className="cr-mode-icon">🚀</span>
+                    <div className="cr-mode-info">
+                      <span className="cr-mode-name">IJGF Market</span>
+                      <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
+                    </div>
+                  </button>
+                  <button className="cr-mode-btn" onClick={handleSelectBybit}>
+                    <span className="cr-mode-icon">🔗</span>
+                    <div className="cr-mode-info">
+                      <span className="cr-mode-name">Connect Bybit</span>
+                      <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
+                    </div>
+                  </button>
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                    ← Back
+                  </button>
+                </div>
+              )}
+
+              {startStep === 'bybitApi' && (
+                <div className="cr-bybit-form">
+                  <p className="cr-mode-title">Connect Bybit Demo Account</p>
+                  <p className="cr-bybit-hint">
+                    Create a <strong>read + trade</strong> API key on Bybit Testnet. Do not enable withdrawals.
+                  </p>
+                  {apiError && (
+                    <div className="cr-api-error">{apiError}</div>
+                  )}
+                  <label className="cr-api-label">API Key</label>
+                  <input
+                    className="cr-api-input"
+                    type="password"
+                    placeholder="Paste Bybit API key"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                  />
+                  <label className="cr-api-label">API Secret</label>
+                  <input
+                    className="cr-api-input"
+                    type="password"
+                    placeholder="Paste Bybit API secret"
+                    value={apiSecret}
+                    onChange={e => setApiSecret(e.target.value)}
+                  />
+                  <div className="cr-actions" style={{marginTop:16}}>
+                    <button
+                      className="cr-btn-primary"
+                      onClick={handleSaveBybit}
+                      disabled={apiSaving}
+                      style={{opacity: apiSaving ? 0.7 : 1}}
+                    >
+                      {apiSaving ? 'Connecting...' : 'Connect & Start Challenge'}
+                    </button>
+                    <button className="cr-btn-ghost" onClick={() => setStartStep('selectMode')}>
+                      ← Back
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -321,8 +502,8 @@ function ChallengeResultModal({
         /* ── Overlay ── */
         .cr-overlay {
           position: fixed; inset: 0; z-index: 9999;
-          background: rgba(0,0,0,0.55);
-          backdrop-filter: blur(2px);
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(8px);
           display: flex; align-items: center; justify-content: center;
           padding: 20px;
           opacity: 0; transition: opacity 0.35s ease;
@@ -385,7 +566,7 @@ function ChallengeResultModal({
         /* ── Text ── */
         .cr-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
         .cr-title-pass {
-          background: linear-gradient(135deg,#22c55e,#4ade80);
+          background: linear-gradient(135deg,#f59e0b,#fbbf24);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text;
         }
@@ -416,7 +597,7 @@ function ChallengeResultModal({
         }
         .cr-cert-logo {
           font-size: 1.1rem; font-weight: 800; letter-spacing: 3px;
-          background: linear-gradient(135deg,#7c3aed,#a855f7);
+          background: linear-gradient(135deg,#f59e0b,#fbbf24);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text;
         }
@@ -435,7 +616,7 @@ function ChallengeResultModal({
         .cr-cert-text { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
         .cr-cert-tier {
           font-size: 1rem; font-weight: 700;
-          background: linear-gradient(135deg,#7c3aed,#a855f7);
+          background: linear-gradient(135deg,#f59e0b,#fbbf24);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text; margin-bottom: 16px;
         }
@@ -518,6 +699,55 @@ function ChallengeResultModal({
           border-radius: 10px; font-size: 0.95rem; cursor: pointer; transition: all 0.2s;
         }
         .cr-btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: #eaecef; }
+
+        /* ── Mode picker ─────────────────────────────── */
+        .cr-mode-picker { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        .cr-mode-title {
+          font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.65);
+          text-align: center; margin: 0 0 4px;
+        }
+        .cr-mode-btn {
+          display: flex; align-items: center; gap: 14px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px; padding: 14px 16px;
+          cursor: pointer; transition: all 0.15s; text-align: left; width: 100%;
+          color: #eaecef;
+        }
+        .cr-mode-btn:hover {
+          background: rgba(124,58,237,0.15);
+          border-color: rgba(124,58,237,0.45);
+          transform: translateY(-1px);
+        }
+        .cr-mode-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+        .cr-mode-info { display: flex; flex-direction: column; gap: 2px; }
+        .cr-mode-name { font-size: 0.95rem; font-weight: 700; color: #eaecef; }
+        .cr-mode-desc { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+
+        /* ── Bybit API form ───────────────────────────── */
+        .cr-bybit-form { display: flex; flex-direction: column; gap: 0; width: 100%; }
+        .cr-bybit-hint {
+          font-size: 0.79rem; color: rgba(255,255,255,0.5); line-height: 1.5;
+          margin: 0 0 12px; background: rgba(255,255,255,0.04);
+          border-radius: 8px; padding: 8px 12px;
+        }
+        .cr-api-label {
+          display: block; font-size: 0.78rem; color: rgba(255,255,255,0.55);
+          margin: 8px 0 4px;
+        }
+        .cr-api-input {
+          width: 100%; background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+          padding: 9px 12px; color: #eaecef; font-size: 0.88rem;
+          outline: none; box-sizing: border-box;
+          transition: border-color 0.15s;
+        }
+        .cr-api-input:focus { border-color: rgba(124,58,237,0.5); }
+        .cr-api-error {
+          background: rgba(246,70,93,0.1); border: 1px solid rgba(246,70,93,0.3);
+          color: #f6465d; border-radius: 8px; padding: 8px 12px;
+          font-size: 0.82rem; margin-bottom: 4px;
+        }
 
         /* ── Scrollbar ── */
         .cr-card::-webkit-scrollbar { width: 4px; }

@@ -99,7 +99,7 @@ function Gauge({ value, max, label, color, size = 72, trackColor, textPrimary, t
 }
 
 // ── Challenge card ─────────────────────────────────────────────────────────
-function ChallengeCard({ account, tradingDaysMap, onConnect }) {
+function ChallengeCard({ account, tradingDaysMap }) {
   const t = useTokens()
 
   const isPassed = account.status === 'passed'
@@ -229,235 +229,22 @@ function ChallengeCard({ account, tradingDaysMap, onConnect }) {
         ))}
       </div>
 
-      {/* CTA */}
+      {/* CTA — demo mode: no funded account setup yet */}
       {isPassed && (
-        <button
-          onClick={() => onConnect(account)}
-          style={{
-            width: '100%', padding: '11px',
-            background: 'linear-gradient(135deg, #7C3AED, #a855f7)',
-            color: 'white', border: 'none', borderRadius: 10,
-            fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(124,58,237,0.4)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          Set Up Funded Account
-        </button>
+        <div style={{
+          textAlign: 'center', fontSize: '0.82rem', color: '#22c55e',
+          padding: '10px 0', borderRadius: 8,
+          background: 'rgba(34,197,94,0.07)',
+          border: '1px solid rgba(34,197,94,0.2)',
+        }}>
+          🎉 Challenge complete — funded account setup coming soon
+        </div>
       )}
       {isFailed && (
         <div style={{ textAlign: 'center', fontSize: '0.82rem', color: t.textFaint, padding: '8px 0' }}>
           Challenge ended · Start a new one from the Market tab
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Exchange connection modal ──────────────────────────────────────────────
-const EXCHANGES = [
-  { id: 'bybit',   name: 'Bybit',   pairs: 300 },
-  { id: 'binance', name: 'Binance', pairs: 400 },
-  { id: 'bitget',  name: 'Bitget',  pairs: 200 },
-]
-
-function ConnectExchangeModal({ account, onClose }) {
-  const t = useTokens()
-  const [step, setStep]                         = useState(1)
-  const [selectedExchange, setSelectedExchange] = useState(null)
-  const [apiKey, setApiKey]                     = useState('')
-  const [apiSecret, setApiSecret]               = useState('')
-  const [submitting, setSubmitting]             = useState(false)
-  const [error, setError]                       = useState('')
-
-  const handleConfirmExchange = () => { if (selectedExchange) setStep(2) }
-
-  const handleConnect = async () => {
-    if (!apiKey.trim() || !apiSecret.trim()) { setError('Both API Key and API Secret are required'); return }
-    setSubmitting(true); setError('')
-    try {
-      const { error: dbErr } = await supabase
-        .from('demo_accounts')
-        .update({
-          connected_exchange:    selectedExchange.id,
-          exchange_api_key:      apiKey.trim(),
-          exchange_connected_at: new Date().toISOString(),
-        })
-        .eq('id', account.id)
-      if (dbErr) throw dbErr
-      onClose(true)
-    } catch (err) {
-      setError(err.message || 'Failed to save exchange connection')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 2000,
-        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(false) }}
-    >
-      <div style={{
-        background: t.modalBg, border: '1px solid rgba(124,58,237,0.25)',
-        borderRadius: 18, padding: '28px 28px 24px', maxWidth: 480, width: '100%',
-      }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: t.textPrimary }}>
-              {step === 1 ? 'Select Your Exchange' : `Connect ${selectedExchange?.name}`}
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: t.textMuted }}>
-              {step === 1
-                ? 'Your funded account will be allocated on this exchange.'
-                : 'Enter API credentials with trade permissions.'}
-            </p>
-          </div>
-          <button
-            onClick={() => onClose(false)}
-            style={{ background: 'none', border: 'none', color: t.closeBtnColor, cursor: 'pointer', padding: 4 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        {error && (
-          <div style={{
-            background: 'rgba(246,70,93,0.1)', border: '1px solid rgba(246,70,93,0.3)',
-            color: '#f6465d', borderRadius: 8, padding: '10px 14px',
-            fontSize: '0.85rem', marginBottom: 16,
-          }}>
-            {error}
-          </div>
-        )}
-
-        {step === 1 && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {EXCHANGES.map(ex => {
-                const isSel = selectedExchange?.id === ex.id
-                return (
-                  <button
-                    key={ex.id}
-                    onClick={() => setSelectedExchange(ex)}
-                    style={{
-                      background: isSel ? t.exBtnBgActive : t.exBtnBg,
-                      border: `1px solid ${isSel ? 'rgba(124,58,237,0.5)' : t.exBtnBorder}`,
-                      borderRadius: 12, padding: '14px 16px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
-                      color: t.textExBtn,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 2 }}>{ex.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: t.textMuted }}>{ex.pairs}+ pairs</div>
-                    </div>
-                    {isSel && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5">
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-
-            <div style={{
-              background: t.infoBg, border: `1px solid ${t.infoBorder}`,
-              borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem',
-              color: t.textInfo, marginBottom: 20, lineHeight: 1.5,
-            }}>
-              ⚠ Your exchange selection is locked for this funding phase. You cannot change exchanges until this funding phase ends.
-            </div>
-
-            <button
-              onClick={handleConfirmExchange}
-              disabled={!selectedExchange}
-              style={{
-                width: '100%', padding: '12px',
-                background: selectedExchange ? '#7C3AED' : t.disabledBtnBg,
-                color: selectedExchange ? 'white' : t.textDisabled,
-                border: 'none', borderRadius: 10,
-                fontSize: '0.95rem', fontWeight: 600,
-                cursor: selectedExchange ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
-              }}
-            >
-              Confirm Selection
-            </button>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <div style={{
-              marginBottom: 14, padding: '12px 14px',
-              background: t.hintBg, borderRadius: 8,
-              fontSize: '0.82rem', color: t.textSecondary, lineHeight: 1.6,
-            }}>
-              Create a <strong style={{ color: t.textPrimary }}>read-only + trade permissions</strong> API key on {selectedExchange?.name}. Do not enable withdrawal permissions.
-            </div>
-
-            {[
-              { label: 'API Key',    value: apiKey,    set: setApiKey,    ph: 'Paste your API key here' },
-              { label: 'API Secret', value: apiSecret, set: setApiSecret, ph: 'Paste your API secret here' },
-            ].map(({ label, value, set, ph }) => (
-              <div key={label} style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: t.textSecondary, marginBottom: 6 }}>
-                  {label}
-                </label>
-                <input
-                  type="password"
-                  value={value}
-                  onChange={e => set(e.target.value)}
-                  placeholder={ph}
-                  style={{
-                    width: '100%', background: t.inputBg,
-                    border: `1px solid ${t.borderLg}`, borderRadius: 8,
-                    padding: '10px 14px', color: t.textInput,
-                    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-            ))}
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button
-                onClick={() => setStep(1)}
-                style={{
-                  flex: 1, padding: '11px',
-                  background: 'transparent', color: t.textSecondary,
-                  border: `1px solid ${t.borderLg}`, borderRadius: 10,
-                  fontSize: '0.9rem', cursor: 'pointer',
-                }}
-              >
-                Back
-              </button>
-              <button
-                onClick={handleConnect}
-                disabled={submitting}
-                style={{
-                  flex: 2, padding: '11px',
-                  background: '#7C3AED', color: 'white',
-                  border: 'none', borderRadius: 10,
-                  fontSize: '0.9rem', fontWeight: 600,
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  opacity: submitting ? 0.7 : 1,
-                }}
-              >
-                {submitting ? 'Connecting...' : 'Connect Exchange'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   )
 }
@@ -469,7 +256,6 @@ export default function MyChallengesPage({ userId }) {
   const [tradingDaysMap, setTradingDaysMap] = useState({}) // { [accountId]: number }
   const [loading, setLoading]       = useState(true)
   const [tab, setTab]               = useState('active')
-  const [connectingAccount, setConnectingAccount] = useState(null)
 
   // Load distinct trading days per account from demo_trades.
   // COLUMN FIX: demo_trades uses demo_account_id (not account_id)
@@ -615,20 +401,11 @@ export default function MyChallengesPage({ userId }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {filtered.map(acc => (
-            <ChallengeCard key={acc.id} account={acc} tradingDaysMap={tradingDaysMap} onConnect={setConnectingAccount} />
+            <ChallengeCard key={acc.id} account={acc} tradingDaysMap={tradingDaysMap} />
           ))}
         </div>
       )}
 
-      {connectingAccount && (
-        <ConnectExchangeModal
-          account={connectingAccount}
-          onClose={(saved) => {
-            setConnectingAccount(null)
-            if (saved) loadChallenges()
-          }}
-        />
-      )}
     </div>
   )
 }

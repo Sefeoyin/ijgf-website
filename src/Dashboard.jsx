@@ -33,6 +33,10 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
+  // 'ijgf' | 'bybit' | null — persisted from active account's trading_mode
+  // Controls whether MarketsPage is accessible. Set when challenge starts,
+  // cleared when challenge ends (passed/failed).
+  const [tradingMode, setTradingMode] = useState('ijgf')
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -139,15 +143,16 @@ function Dashboard() {
     setChallengeResultData(null)
   }, [])
 
-  const handleStartNewChallenge = useCallback(async (challengeType) => {
+  const handleStartNewChallenge = useCallback(async (challengeType, mode = 'ijgf') => {
     if (!challengeResultData?.onStartNew) return
     try {
-      await challengeResultData.onStartNew(challengeType)
-      // Reset the status tracker so the NEXT pass/fail transition is detected
-      prevAccountStatusRef.current = 'active'
+      await challengeResultData.onStartNew(challengeType, mode)
     } catch (err) {
       console.error('[Dashboard] start new challenge failed:', err)
     }
+    setTradingMode(mode)
+    // Navigate to market tab if IJGF mode was selected
+    if (mode === 'ijgf') setActiveTab('market')
     setChallengeResultData(null)
   }, [challengeResultData])
 
@@ -180,8 +185,10 @@ function Dashboard() {
             result: curr,
             account,
             tradingDays: account.trading_days ?? 0,
-            onStartNew: async (type) => {
+            onStartNew: async (type, mode = 'ijgf') => {
               await resetDemoAccount(userId, type)
+              setTradingMode(mode)
+              if (mode === 'ijgf') setActiveTab('market')
               await checkUserAndLoadProfile()
             },
           })
@@ -362,12 +369,34 @@ function Dashboard() {
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard'  && <DashboardOverview userId={userId} />}
           {activeTab === 'market'     && (
-            <MarketsPage
-              chartExpanded={chartExpanded}
-              setChartExpanded={setChartExpanded}
-              userId={userId}
-              onChallengeResult={handleChallengeResult}
-            />
+            tradingMode === 'ijgf' ? (
+              <MarketsPage
+                chartExpanded={chartExpanded}
+                setChartExpanded={setChartExpanded}
+                userId={userId}
+                onChallengeResult={handleChallengeResult}
+              />
+            ) : (
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                height: '100%', minHeight: '60vh', gap: 16,
+                color: 'rgba(255,255,255,0.5)',
+              }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.4">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <p style={{ fontSize: '1rem', fontWeight: 500 }}>
+                  {tradingMode === 'bybit' ? 'Trading via Bybit — use your Bybit terminal' : 'No active challenge'}
+                </p>
+                <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
+                  {tradingMode === 'bybit'
+                    ? 'Your challenge is running on Bybit demo futures. Open Bybit to trade with your connected account.'
+                    : 'Start a challenge from the My Challenges tab to activate trading.'}
+                </p>
+              </div>
+            )
           )}
           {activeTab === 'challenges' && <MyChallengesPage userId={userId} />}
           {activeTab === 'analytics'  && <AnalyticsPage userId={userId} />}

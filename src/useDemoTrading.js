@@ -366,12 +366,15 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   // selected challenge tier and always resetting to the server hardcoded default.
   // prevStatusRef is seeded to 'active' immediately so the next pass/fail
   // transition is detected correctly within the same session.
-  const submitStartNewChallenge = useCallback(async (challengeType) => {
+  // mode: 'ijgf' | 'bybit'
+  // When mode='bybit' the Bybit credentials have already been saved by ChallengeResultModal.
+  // When mode='ijgf' this is the default: trading happens on the IJGF MarketsPage.
+  const submitStartNewChallenge = useCallback(async (challengeType, mode = 'ijgf') => {
     setChallengeResult(null)
     prevStatusRef.current = 'active'
     try {
       await resetDemoAccount(userIdRef.current, challengeType)
-      addNotification(`New ${challengeType || '10k'} challenge started!`, 'info')
+      addNotification(`New ${challengeType || '10k'} challenge started! (${mode === 'bybit' ? 'Bybit' : 'IJGF Market'})`, 'info')
       await refreshState()
     } catch (err) {
       setError(err.message)
