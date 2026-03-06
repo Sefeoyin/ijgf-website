@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bybit API Diagnostic</title>
+  <style>
+    body { font-family: monospace; background: #0d0f14; color: #eaecef; padding: 24px; }
+    input { background: #1a1d24; border: 1px solid #333; color: #eaecef; padding: 8px 12px; width: 100%; margin-bottom: 8px; border-radius: 6px; font-family: monospace; }
+    button { background: #f59e0b; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; margin: 4px; }
+    button.danger { background: #f6465d; color: #fff; }
+    pre { background: #1a1d24; border: 1px solid #333; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; white-space: pre-wrap; margin: 8px 0; }
+    .ok { color: #22c55e; } .err { color: #f6465d; } .warn { color: #f59e0b; }
+    h3 { color: #a855f7; margin: 20px 0 8px; }
+    label { font-size: 0.8rem; color: #888; }
+  </style>
+</head>
+<body>
+  <h2>🔧 Bybit Demo API Diagnostic</h2>
+  <p style="color:#888;font-size:0.85rem">Run this from your IJGF app domain so /api/bybit-proxy is reachable. Open browser console for extra detail.</p>
+
+  <label>API Key</label>
+  <input id="apiKey" placeholder="Paste Demo Trading API key" />
+  <label>API Secret</label>
+  <input id="apiSecret" type="password" placeholder="Paste Demo Trading API secret" />
+
+  <div style="margin:12px 0">
+    <button onclick="runTest('balance')">1. Check Balance</button>
+    <button onclick="runTest('addTest')">2. Add $1 (test)</button>
+    <button onclick="runTest('reduceTest')">3. Reduce $1 (test)</button>
+    <button onclick="runTest('addFull')">4. ADD full amount to challenge</button>
+    <button class="danger" onclick="runTest('reduceFull')">5. REDUCE to challenge amount</button>
+  </div>
+
+  <label>Challenge Tier USDT (default 10000)</label>
+  <input id="tierUsdt" value="10000" style="width:120px;display:inline-block" />
+
+  <div id="log"></div>
+
+  <script>
+    const PROXY = '/api/bybit-proxy'
+
+    function log(label, data, isError) {
+      const el = document.getElementById('log')
+      const cls = isError ? 'err' : (data?.retCode === 0 ? 'ok' : 'warn')
+      el.innerHTML += `<h3>${label}</h3><pre class="${cls}">${JSON.stringify(data, null, 2)}</pre>`
+    }
+
+    async function call(method, endpoint, params = {}) {
+      const apiKey = document.getElementById('apiKey').value.trim()
+      const apiSecret = document.getElementById('apiSecret').value.trim()
+      if (!apiKey || !apiSecret) { alert('Enter API key and secret first'); return null }
+
+      console.log(`[DIAG] ${method} ${endpoint}`, params)
+      try {
+        const res = await fetch(PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
+        })
+        const json = await res.json()
+        console.log(`[DIAG] Response:`, json)
+        return json
+      } catch (err) {
+        console.error('[DIAG] Fetch error:', err)
+        return { error: err.message }
+      }
+    }
+
+    async function runTest(type) {
+      document.getElementById('log').innerHTML = ''
+      const tierUsdt = parseInt(document.getElementById('tierUsdt').value) || 10000
+
+      if (type === 'balance') {
+        const r = await call('GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+        log('Wallet Balance (UNIFIED)', r, r?.retCode !== 0)
+        const usdt = r?.result?.list?.[0]?.coin?.find(c => c.coin === 'USDT')
+        log('USDT Parsed', { equity: usdt?.equity, walletBalance: usdt?.walletBalance })
+        return
+      }
+
+      if (type === 'addTest') {
+        const r = await call('POST', '/v5/account/demo-apply-money', {
+          adjustType: 0,
+          utaDemoApplyMoney: [{ coin: 'USDT', amountStr: '1' }]
+        })
+        log('ADD $1 — Raw Bybit Response', r, r?.retCode !== 0)
+        return
+      }
+
+      if (type === 'reduceTest') {
+        const r = await call('POST', '/v5/account/demo-apply-money', {
+          adjustType: 1,
+          utaDemoApplyMoney: [{ coin: 'USDT', amountStr: '1' }]
+        })
+        log('REDUCE $1 — Raw Bybit Response', r, r?.retCode !== 0)
+        return
+      }
+
+      // First get balance
+      const walletRes = await call('GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+      const usdt = walletRes?.result?.list?.[0]?.coin?.find(c => c.coin === 'USDT')
+      const currentEquity = parseFloat(usdt?.equity ?? usdt?.walletBalance ?? 0)
+      log(`Current Balance`, { currentEquity, tierUsdt })
+
+      if (type === 'addFull') {
+        const needed = Math.ceil(tierUsdt - currentEquity)
+        if (needed <= 0) { log('Already at or above target', { currentEquity, tierUsdt }); return }
+        const chunks = []
+        let rem = needed
+        while (rem > 0) { chunks.push(Math.min(rem, 100000)); rem -= 100000 }
+        log(`Will ADD ${needed} USDT in ${chunks.length} chunk(s)`, chunks)
+        for (const chunk of chunks) {
+          const r = await call('POST', '/v5/account/demo-apply-money', {
+            adjustType: 0,
+            utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }]
+          })
+          log(`ADD chunk ${chunk}`, r, r?.retCode !== 0)
+        }
+      }
+
+      if (type === 'reduceFull') {
+        const excess = Math.floor(currentEquity - tierUsdt)
+        if (excess <= 0) { log('Already at or below target', { currentEquity, tierUsdt }); return }
+        log(`Will REDUCE by ${excess} USDT`, { currentEquity, tierUsdt, excess })
+        // Try reducing in 100k chunks
+        const chunks = []
+        let rem = excess
+        while (rem > 0) { chunks.push(Math.min(rem, 100000)); rem -= 100000 }
+        for (const chunk of chunks) {
+          const r = await call('POST', '/v5/account/demo-apply-money', {
+            adjustType: 1,
+            utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }]
+          })
+          log(`REDUCE chunk ${chunk} — RAW RESPONSE`, r, r?.retCode !== 0)
+        }
+        // Check balance after
+        const after = await call('GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+        const usdtAfter = after?.result?.list?.[0]?.coin?.find(c => c.coin === 'USDT')
+        log('Balance AFTER reduce attempt', { newEquity: usdtAfter?.equity })
+      }
+    }
+  </script>
+</body>
+</html>
