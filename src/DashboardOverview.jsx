@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
+import BybitModePicker from './BybitModePicker'
 
 function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
   const [timeRange, setTimeRange] = useState('1W')
@@ -1244,121 +1245,55 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
         </div>
       )}
 
-      {/* ── Mode picker: IJGF vs Bybit — appears after tier is selected ── */}
+      {/* ── Mode picker + Bybit API flow ── */}
       {pendingTierKey && (
-        <div
-          style={{
-            position:'fixed',inset:0,zIndex:10000,
-            background:'rgba(0,0,0,0.80)',backdropFilter:'blur(6px)',
-            display:'flex',alignItems:'center',justifyContent:'center',padding:16,
+        <BybitModePicker
+          tierKey={pendingTierKey}
+          userId={userId}
+          startingChallenge={startingChallenge}
+          setStartingChallenge={setStartingChallenge}
+          onCancel={() => setPendingTierKey(null)}
+          onSelectIJGF={async () => {
+            setStartingChallenge(true)
+            try {
+              await resetDemoAccount(userId, pendingTierKey)
+              const state = await getAccountState(userId)
+              setAccount(state.account)
+              setRealTrades(state.recentTrades)
+              setAccountPositions(state.positions || [])
+              setAccountTradingDays(state.tradingDays ?? 0)
+              setPendingTierKey(null)
+              if (onChallengeStart) onChallengeStart('ijgf')
+            } catch (err) {
+              console.error('IJGF start failed:', err)
+            } finally { setStartingChallenge(false) }
           }}
-          onClick={e => { if (e.target===e.currentTarget && !startingChallenge) setPendingTierKey(null) }}
-        >
-          <div style={{
-            background:'#0d0f14',border:'1px solid rgba(124,58,237,0.35)',
-            borderRadius:18,padding:'28px 24px',maxWidth:420,width:'100%',
-            boxShadow:'0 24px 60px rgba(0,0,0,0.6)',
-          }}>
-            <h3 style={{margin:'0 0 4px',fontSize:'1.15rem',fontWeight:700,color:'#eaecef'}}>
-              How would you like to trade?
-            </h3>
-            <p style={{margin:'0 0 22px',fontSize:'0.83rem',color:'rgba(255,255,255,0.45)'}}>
-              Starting&nbsp;<strong style={{color:'#a855f7'}}>${pendingTierKey.replace('k',',000')} Challenge</strong>
-            </p>
-
-            {/* IJGF Market */}
-            <button
-              disabled={startingChallenge}
-              onClick={async () => {
-                setStartingChallenge(true)
-                try {
-                  await resetDemoAccount(userId, pendingTierKey)
-                  const state = await getAccountState(userId)
-                  setAccount(state.account)
-                  setRealTrades(state.recentTrades)
-                  setAccountPositions(state.positions || [])
-                  setAccountTradingDays(state.tradingDays ?? 0)
-                  setPendingTierKey(null)
-                  if (onChallengeStart) onChallengeStart('ijgf')
-                } catch (err) {
-                  console.error('IJGF start failed:', err)
-                } finally { setStartingChallenge(false) }
-              }}
-              style={{
-                width:'100%',display:'flex',alignItems:'center',gap:14,
-                background:'rgba(124,58,237,0.08)',border:'1px solid rgba(124,58,237,0.3)',
-                borderRadius:12,padding:'15px 16px',
-                cursor:startingChallenge?'not-allowed':'pointer',
-                marginBottom:10,color:'#eaecef',opacity:startingChallenge?0.6:1,
-                transition:'all 0.15s',
-              }}
-              onMouseEnter={e=>{if(!startingChallenge)e.currentTarget.style.borderColor='rgba(124,58,237,0.7)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(124,58,237,0.3)'}}
-            >
-              <span style={{fontSize:'1.6rem'}}>🚀</span>
-              <div style={{textAlign:'left'}}>
-                <div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>IJGF Market</div>
-                <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>
-                  Trade Binance-listed tokens inside this platform
-                </div>
-              </div>
-              {startingChallenge && <span style={{marginLeft:'auto',fontSize:'0.8rem',color:'#a855f7'}}>Starting…</span>}
-            </button>
-
-            {/* Bybit Demo */}
-            <button
-              disabled={startingChallenge}
-              onClick={async () => {
-                setStartingChallenge(true)
-                try {
-                  await resetDemoAccount(userId, pendingTierKey)
-                  const state = await getAccountState(userId)
-                  setAccount(state.account)
-                  setRealTrades(state.recentTrades)
-                  setAccountPositions(state.positions || [])
-                  setAccountTradingDays(state.tradingDays ?? 0)
-                  if (state.account?.id) {
-                    const { supabase: sb } = await import('./supabase')
-                    await sb.from('demo_accounts').update({ trading_mode:'bybit' }).eq('id', state.account.id)
-                  }
-                  setPendingTierKey(null)
-                  if (onChallengeStart) onChallengeStart('bybit')
-                } catch (err) {
-                  console.error('Bybit start failed:', err)
-                } finally { setStartingChallenge(false) }
-              }}
-              style={{
-                width:'100%',display:'flex',alignItems:'center',gap:14,
-                background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.25)',
-                borderRadius:12,padding:'15px 16px',
-                cursor:startingChallenge?'not-allowed':'pointer',
-                marginBottom:20,color:'#eaecef',opacity:startingChallenge?0.6:1,
-                transition:'all 0.15s',
-              }}
-              onMouseEnter={e=>{if(!startingChallenge)e.currentTarget.style.borderColor='rgba(245,158,11,0.55)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(245,158,11,0.25)'}}
-            >
-              <span style={{fontSize:'1.6rem'}}>🔗</span>
-              <div style={{textAlign:'left'}}>
-                <div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>Connect Bybit Demo</div>
-                <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>
-                  Trade on Bybit demo futures — IJGF tracks your progress
-                </div>
-              </div>
-              {startingChallenge && <span style={{marginLeft:'auto',fontSize:'0.8rem',color:'#f59e0b'}}>Starting…</span>}
-            </button>
-
-            <button
-              disabled={startingChallenge}
-              onClick={()=>setPendingTierKey(null)}
-              style={{
-                width:'100%',padding:'10px',background:'transparent',
-                border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,
-                color:'rgba(255,255,255,0.45)',cursor:'pointer',fontSize:'0.88rem',
-              }}
-            >← Back</button>
-          </div>
-        </div>
+          onSelectBybit={async (apiKey, apiSecret, equity) => {
+            setStartingChallenge(true)
+            try {
+              await resetDemoAccount(userId, pendingTierKey)
+              const state = await getAccountState(userId)
+              setAccount(state.account)
+              setRealTrades(state.recentTrades)
+              setAccountPositions(state.positions || [])
+              setAccountTradingDays(state.tradingDays ?? 0)
+              if (state.account?.id) {
+                const { supabase: sb } = await import('./supabase')
+                await sb.from('demo_accounts').update({
+                  trading_mode: 'bybit',
+                  bybit_api_key: apiKey,
+                  bybit_api_secret: apiSecret,
+                  bybit_connected_at: new Date().toISOString(),
+                  bybit_equity: equity,
+                }).eq('id', state.account.id)
+              }
+              setPendingTierKey(null)
+              if (onChallengeStart) onChallengeStart('bybit')
+            } catch (err) {
+              console.error('Bybit start failed:', err)
+            } finally { setStartingChallenge(false) }
+          }}
+        />
       )}
 
       {/* Notifications */}

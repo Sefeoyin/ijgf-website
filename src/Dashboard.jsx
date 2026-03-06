@@ -15,6 +15,7 @@ import ChallengeResultModal from './ChallengeResultModal'
 import MyChallengesPage from './MyChallengesPage'
 import { ThemeContext } from './ThemeContext'
 import { useTPSLMonitor } from './useTPSLMonitor'
+import BybitLivePanel from './BybitLivePanel'
 import { resetDemoAccount } from './tradingService'
 
 function Dashboard() {
@@ -404,22 +405,7 @@ function Dashboard() {
                 {tradingMode === null ? (
                   <p style={{fontSize:'1rem',fontWeight:500}}>Loading...</p>
                 ) : tradingMode === 'bybit' ? (
-                  <>
-                    <p style={{fontSize:'1rem',fontWeight:700,color:'#eaecef'}}>Trading via Bybit Demo</p>
-                    <p style={{fontSize:'0.85rem',maxWidth:340,textAlign:'center',lineHeight:1.7}}>
-                      Your challenge is live on Bybit demo futures.<br/>
-                      Open <strong style={{color:'#f59e0b'}}>Bybit Testnet</strong> to place and manage trades.
-                    </p>
-                    <a
-                      href="https://testnet.bybit.com" target="_blank" rel="noopener noreferrer"
-                      style={{
-                        marginTop:8,padding:'10px 24px',
-                        background:'linear-gradient(135deg,#f59e0b,#fbbf24)',
-                        color:'#000',borderRadius:10,fontWeight:700,
-                        fontSize:'0.9rem',textDecoration:'none',
-                      }}
-                    >Open Bybit Testnet →</a>
-                  </>
+                  <BybitLivePanel userId={userId} />
                 ) : (
                   <>
                     <p style={{fontSize:'1rem',fontWeight:500}}>No Active Challenge</p>
