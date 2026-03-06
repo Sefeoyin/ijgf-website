@@ -41,21 +41,12 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     } else throw err
   }
 
-  // Use totalWalletBalance from account level — this matches what Bybit UI shows
-  // as "Margin Balance" and includes USDT + USDC + all collateral coins combined
-  const accountData = walletResult?.list?.[0]
-  const currentEquity = parseFloat(accountData?.totalWalletBalance ?? 0)
   const challengeUsdt = tierToUsdt(tierKey)
 
   // 2. Set balance to exact challenge amount via demo-apply-money
-  // Strategy: zero out ALL coins, then add challengeUsdt in USDT only.
-  // Bybit demo accounts start with USDT + USDC + BTC + ETH mixed,
-  // so we must clear everything and start fresh with USDT only.
-  // adjustType 0 = ADD, 1 = REDUCE  (must be integer, NOT string)
-
+  // Correct body: { adjustType: integer, utaDemoApplyMoney: [{ coin, amountStr }] }
+  // Step A: zero out ALL coins (USDT, USDC, BTC, ETH etc)
   const allCoins = walletResult?.list?.[0]?.coin ?? []
-
-  // Step A: reduce every coin with a balance to zero
   for (const coinEntry of allCoins) {
     const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
     if (bal <= 0) continue
@@ -65,11 +56,10 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 1,
         utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
-      }).catch(() => {}) // BTC/ETH may not support reduce — skip silently
+      }).catch(() => {})
       rem -= chunk
     }
   }
-
   // Step B: add exact challengeUsdt in USDT only
   let rem = challengeUsdt
   while (rem > 0) {
