@@ -50,13 +50,14 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   // Correct body: { adjustType: integer, utaDemoApplyMoney: [{ coin, amountStr }] }
   // adjustType 0 = ADD, 1 = REDUCE  (must be integer, NOT string)
   const diff = Math.round(currentEquity - challengeUsdt)
+  console.log('[IJGF Bybit] currentEquity:', currentEquity, 'challengeUsdt:', challengeUsdt, 'diff:', diff)
 
   if (diff > 200) {
     // Balance too high — reduce down to challenge amount
-    // Split into 100k chunks (Bybit max per call)
     let remaining = diff
     while (remaining > 0) {
       const chunk = Math.min(remaining, 100000)
+      console.log('[IJGF Bybit] Reducing by chunk:', chunk, 'remaining after:', remaining - chunk)
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 1,
         utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
@@ -68,12 +69,15 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     let remaining = Math.abs(diff)
     while (remaining > 0) {
       const chunk = Math.min(remaining, 100000)
+      console.log('[IJGF Bybit] Adding chunk:', chunk, 'remaining after:', remaining - chunk)
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 0,
         utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
       })
       remaining -= chunk
     }
+  } else {
+    console.log('[IJGF Bybit] Balance within 200 USDT of target — no adjustment needed')
   }
 
   // 3. Read final balance to confirm
