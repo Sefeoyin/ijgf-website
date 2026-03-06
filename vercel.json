@@ -1,5 +1,10 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/bybit-proxy.js": {
+      "regions": ["fra1"]
+    }
+  }
 }
