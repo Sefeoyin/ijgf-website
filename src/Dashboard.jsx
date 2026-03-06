@@ -34,7 +34,7 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
-  const [tradingMode, setTradingMode] = useState(null)
+  const [tradingMode, setTradingMode] = useState(null) // null=loading, 'ijgf', 'bybit', 'none'
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -62,13 +62,12 @@ function Dashboard() {
       if (!user) { navigate('/login'); return }
       setUserId(user.id)
 
-      // Load active challenge to determine trading mode (ijgf | bybit | none)
+      // Read active challenge to know trading mode
       const { data: acct } = await supabase
         .from('demo_accounts')
         .select('id, status, trading_mode')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .not('challenge_type', 'like', '%_archived_%')
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -394,24 +393,15 @@ function Dashboard() {
                 onChallengeResult={handleChallengeResult}
               />
             ) : (
-              <div style={{
-                display:'flex',flexDirection:'column',alignItems:'center',
-                justifyContent:'center',height:'100%',minHeight:'60vh',
-                gap:16,color:'rgba(255,255,255,0.5)',
-              }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.4">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',minHeight:'60vh',gap:16,color:'rgba(255,255,255,0.5)'}}>
                 {tradingMode === null ? (
-                  <p style={{fontSize:'1rem',fontWeight:500}}>Loading...</p>
+                  <p>Loading...</p>
                 ) : tradingMode === 'bybit' ? (
                   <BybitLivePanel userId={userId} />
                 ) : (
                   <>
                     <p style={{fontSize:'1rem',fontWeight:500}}>No Active Challenge</p>
-                    <p style={{fontSize:'0.85rem',maxWidth:320,textAlign:'center',lineHeight:1.6}}>
-                      Start a challenge from the Dashboard tab to activate trading.
-                    </p>
+                    <p style={{fontSize:'0.85rem',maxWidth:320,textAlign:'center',lineHeight:1.6}}>Start a challenge from the Dashboard tab to activate trading.</p>
                   </>
                 )}
               </div>
