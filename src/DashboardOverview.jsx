@@ -1249,9 +1249,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
       {pendingTierKey && (
         <BybitModePicker
           tierKey={pendingTierKey}
-          userId={userId}
           startingChallenge={startingChallenge}
-          setStartingChallenge={setStartingChallenge}
           onCancel={() => setPendingTierKey(null)}
           onSelectIJGF={async () => {
             setStartingChallenge(true)

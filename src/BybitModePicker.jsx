@@ -44,7 +44,7 @@ async function validateBybitKeys(apiKey, apiSecret) {
 }
 
 export default function BybitModePicker({
-  tierKey, userId, startingChallenge, setStartingChallenge,
+  tierKey, startingChallenge,
   onCancel, onSelectIJGF, onSelectBybit,
 }) {
   const [step,       setStep]       = useState('choose')  // 'choose' | 'keys' | 'confirmed'
