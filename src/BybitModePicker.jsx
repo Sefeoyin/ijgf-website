@@ -28,6 +28,25 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
   return json.result
 }
 
+// ── Bybit official spec for /v5/account/demo-apply-money ──────────────────
+// adjustType: 0 (integer) = ADD funds, 1 (integer) = REDUCE funds
+// Body structure: { adjustType: 0, utaDemoApplyMoney: [{ coin: "USDT", amountStr: "100000" }] }
+// Max amountStr per USDT request: "100000" — must loop for larger amounts
+// Rate limit: 1 request per MINUTE
+async function applyDemoMoney(apiKey, apiSecret, adjustType, amountUsdt) {
+  const MAX_PER_CALL = 100000
+  let remaining = Math.floor(amountUsdt)
+  while (remaining > 0) {
+    const chunk = Math.min(remaining, MAX_PER_CALL)
+    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+      adjustType,                               // integer: 0=add, 1=reduce
+      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
+    })
+    remaining -= chunk
+    if (remaining > 0) await new Promise(r => setTimeout(r, 61000)) // rate limit: 1/min
+  }
+}
+
 async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   // 1. Verify credentials — try UNIFIED first, fall back to CONTRACT
   let walletResult
@@ -46,26 +65,19 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   const currentEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? 0)
   const challengeUsdt = tierToUsdt(tierKey)
 
-  // 2. Adjust demo balance to match challenge amount via demo-apply-money
-  // Bybit V5 spec: adjustType '1' = ADD (deposit), '0' = REDUCE (withdraw)
-  // Field name is 'amount', NOT 'utAmount'
+  // 2. Adjust demo balance to match challenge amount
+  // adjustType 0 = ADD, 1 = REDUCE  (Bybit official spec)
   if (currentEquity > challengeUsdt + 200) {
     const excess = Math.floor(currentEquity - challengeUsdt)
     try {
-      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-        adjustType: '0', amount: String(excess), coin: 'USDT',
-      })
+      await applyDemoMoney(apiKey, apiSecret, 1, excess) // 1 = REDUCE
     } catch (err) {
-      // Open positions may block reduction — non-fatal, log and continue
-      console.warn('[BybitModePicker] Balance reduction failed (open positions?):', err.message)
+      // Open positions block reduction — non-fatal, P&L is measured from initial_balance
+      console.warn('[BybitModePicker] Balance reduction failed (open positions may be blocking):', err.message)
     }
   } else if (currentEquity < challengeUsdt - 200) {
     const needed = Math.ceil(challengeUsdt - currentEquity)
-    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: '1', amount: String(needed), coin: 'USDT',
-    })
-    // ^^^ NOT silenced — if adding funds fails, we must surface the error
-    // so the user knows their challenge balance was NOT set correctly
+    await applyDemoMoney(apiKey, apiSecret, 0, needed) // 0 = ADD — NOT silenced
   }
 
   // 3. Read final balance after adjustment
@@ -75,7 +87,7 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     const fc = fw?.list?.[0]?.coin ?? []
     const fu = fc.find(c => c.coin === 'USDT')
     finalEquity = parseFloat(fu?.equity ?? fu?.walletBalance ?? challengeUsdt)
-  } catch { /* use challengeUsdt fallback */ }
+  } catch { /* use challengeUsdt as fallback */ }
 
   return { equity: finalEquity, challengeUsdt, accountType }
 }
@@ -173,7 +185,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         <button onClick={handleValidate} disabled={validating||!apiKey.trim()||!apiSecret.trim()}
           style={{width:'100%',padding:'12px',background:validating?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#f59e0b,#fbbf24)',color:validating?'rgba(255,255,255,0.4)':'#000',border:'none',borderRadius:10,fontWeight:700,fontSize:'0.93rem',cursor:validating?'not-allowed':'pointer',marginBottom:8}}>
-          {validating ? `Connecting & setting ${tierLabel} balance…` : 'Validate & Set Challenge Balance'}
+          {validating ? `Connecting & setting ${tierLabel} balance… (may take up to 60s)` : 'Validate & Set Challenge Balance'}
         </button>
         <button disabled={validating} onClick={()=>setStep('choose')} style={btnBack}>← Back</button>
       </div>
@@ -203,8 +215,8 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
         </div>
 
         {equity != null && Math.abs(equity - challengeUsdt) > 500 && (
-          <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:9,padding:'10px 13px',marginBottom:14,fontSize:'0.77rem',color:'rgba(255,255,255,0.5)',lineHeight:1.6}}>
-            💡 Bybit shows ${equity?.toLocaleString()} — IJGF measures P&L from your {tierLabel} challenge starting balance. Balance will re-sync when all positions are closed.
+          <div style={{background:'rgba(246,70,93,0.08)',border:'1px solid rgba(246,70,93,0.3)',borderRadius:9,padding:'10px 13px',marginBottom:14,fontSize:'0.77rem',color:'rgba(255,255,255,0.6)',lineHeight:1.6}}>
+            ⚠️ Bybit balance shows <strong style={{color:'#f6465d'}}>${equity?.toLocaleString()}</strong> — could not adjust to <strong style={{color:'#eaecef'}}>{tierLabel}</strong>. If you have open positions on Bybit, close them first, then reconnect. IJGF will measure P&L from your <strong>{tierLabel}</strong> starting balance regardless.
           </div>
         )}
 
