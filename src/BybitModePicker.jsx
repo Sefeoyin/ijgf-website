@@ -41,52 +41,51 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     } else throw err
   }
 
-  const coins = walletResult?.list?.[0]?.coin ?? []
-  const usdtCoin = coins.find(c => c.coin === 'USDT')
-  const currentEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? 0)
+  // Use totalWalletBalance from account level — this matches what Bybit UI shows
+  // as "Margin Balance" and includes USDT + USDC + all collateral coins combined
+  const accountData = walletResult?.list?.[0]
+  const currentEquity = parseFloat(accountData?.totalWalletBalance ?? 0)
   const challengeUsdt = tierToUsdt(tierKey)
 
   // 2. Set balance to exact challenge amount via demo-apply-money
-  // Correct body: { adjustType: integer, utaDemoApplyMoney: [{ coin, amountStr }] }
+  // Strategy: zero out ALL coins, then add challengeUsdt in USDT only.
+  // Bybit demo accounts start with USDT + USDC + BTC + ETH mixed,
+  // so we must clear everything and start fresh with USDT only.
   // adjustType 0 = ADD, 1 = REDUCE  (must be integer, NOT string)
-  const diff = Math.round(currentEquity - challengeUsdt)
-  console.log('[IJGF Bybit] currentEquity:', currentEquity, 'challengeUsdt:', challengeUsdt, 'diff:', diff)
 
-  if (diff > 200) {
-    // Balance too high — reduce down to challenge amount
-    let remaining = diff
-    while (remaining > 0) {
-      const chunk = Math.min(remaining, 100000)
-      console.log('[IJGF Bybit] Reducing by chunk:', chunk, 'remaining after:', remaining - chunk)
+  const allCoins = walletResult?.list?.[0]?.coin ?? []
+
+  // Step A: reduce every coin with a balance to zero
+  for (const coinEntry of allCoins) {
+    const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
+    if (bal <= 0) continue
+    let rem = bal
+    while (rem > 0) {
+      const chunk = Math.min(rem, 100000)
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 1,
-        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
-      })
-      remaining -= chunk
+        utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
+      }).catch(() => {}) // BTC/ETH may not support reduce — skip silently
+      rem -= chunk
     }
-  } else if (diff < -200) {
-    // Balance too low — add up to challenge amount
-    let remaining = Math.abs(diff)
-    while (remaining > 0) {
-      const chunk = Math.min(remaining, 100000)
-      console.log('[IJGF Bybit] Adding chunk:', chunk, 'remaining after:', remaining - chunk)
-      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-        adjustType: 0,
-        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
-      })
-      remaining -= chunk
-    }
-  } else {
-    console.log('[IJGF Bybit] Balance within 200 USDT of target — no adjustment needed')
+  }
+
+  // Step B: add exact challengeUsdt in USDT only
+  let rem = challengeUsdt
+  while (rem > 0) {
+    const chunk = Math.min(rem, 100000)
+    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+      adjustType: 0,
+      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
+    })
+    rem -= chunk
   }
 
   // 3. Read final balance to confirm
   let finalEquity = challengeUsdt
   try {
     const fw = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType })
-    const fc = fw?.list?.[0]?.coin ?? []
-    const fu = fc.find(c => c.coin === 'USDT')
-    finalEquity = parseFloat(fu?.equity ?? fu?.walletBalance ?? challengeUsdt)
+    finalEquity = parseFloat(fw?.list?.[0]?.totalWalletBalance ?? challengeUsdt)
   } catch { /* use challengeUsdt as fallback */ }
 
   return { equity: finalEquity, challengeUsdt, accountType }
