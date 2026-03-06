@@ -2,11 +2,6 @@
  * BybitModePicker.jsx
  * Uses Bybit DEMO TRADING (bybit.com → Demo mode), NOT testnet.bybit.com
  * Demo API domain: api-demo.bybit.com (handled by /api/bybit-proxy.js)
- *
- * CRITICAL — API KEY PERMISSION REQUIRED:
- * demo-apply-money requires: Wallet → AccountTransfer (or SubMemberTransfer)
- * WITHOUT this permission, Bybit returns retCode 10005 (Permission denied)
- * and the balance will never be set. Users MUST enable this when creating key.
  */
 import { useState } from 'react'
 
@@ -28,21 +23,19 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
   if (json.retCode !== 0) {
     if ([10003, 10004, 33004].includes(json.retCode))
       throw new Error('Invalid API credentials. Make sure you created the key inside Demo Trading mode on bybit.com — not from your live account.')
-    if (json.retCode === 10005)
-      throw new Error('PERMISSION_DENIED')
-    throw new Error(`Bybit error ${json.retCode}: ${json.retMsg}`)
+    throw new Error(`Bybit ${json.retCode}: ${json.retMsg}`)
   }
   return json.result
 }
 
 async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
-  // ── Step 1: Verify credentials & read current balance ──────────────────
-  let walletResult
+  // 1. Read current balance — try UNIFIED first, fall back to CONTRACT
   let accountType = 'UNIFIED'
+  let walletResult
   try {
     walletResult = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
   } catch (err) {
-    if (err.message === 'PERMISSION_DENIED' || !err.message.startsWith('Invalid')) {
+    if (!err.message.startsWith('Invalid')) {
       accountType = 'CONTRACT'
       walletResult = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
     } else throw err
@@ -53,44 +46,44 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   const currentEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? 0)
   const challengeUsdt = tierToUsdt(tierKey)
 
-  // ── Step 2: Set balance via demo-apply-money ────────────────────────────
-  // Official Bybit V5 spec:
-  //   POST /v5/account/demo-apply-money
-  //   { adjustType: 0, utaDemoApplyMoney: [{ coin: "USDT", amountStr: "10000" }] }
-  //   adjustType: 0 = ADD funds, 1 = REDUCE funds  (integers, not strings)
-  //   max per call: 100,000 USDT
-  //   REQUIRED PERMISSION: Wallet → AccountTransfer
+  // 2. Set balance to exact challenge amount via demo-apply-money
+  // Correct body: { adjustType: integer, utaDemoApplyMoney: [{ coin, amountStr }] }
+  // adjustType 0 = ADD, 1 = REDUCE  (must be integer, NOT string)
+  const diff = Math.round(currentEquity - challengeUsdt)
 
-  if (currentEquity > challengeUsdt + 200) {
-    // Need to reduce. Call with adjustType: 1
-    const excess = Math.floor(currentEquity - challengeUsdt)
-    try {
+  if (diff > 200) {
+    // Balance too high — reduce down to challenge amount
+    // Split into 100k chunks (Bybit max per call)
+    let remaining = diff
+    while (remaining > 0) {
+      const chunk = Math.min(remaining, 100000)
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 1,
-        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(Math.min(excess, 100000)) }],
+        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
       })
-    } catch (err) {
-      if (err.message === 'PERMISSION_DENIED') throw new Error('PERMISSION_DENIED')
-      // Open positions may block reduction — non-fatal, continue
-      console.warn('[BybitModePicker] Balance reduction blocked (open positions?):', err.message)
+      remaining -= chunk
     }
-  } else if (currentEquity < challengeUsdt - 200) {
-    // Need to add funds. Call with adjustType: 0 — NOT silenced
-    const needed = Math.ceil(challengeUsdt - currentEquity)
-    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: 0,
-      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(Math.min(needed, 100000)) }],
-    })
+  } else if (diff < -200) {
+    // Balance too low — add up to challenge amount
+    let remaining = Math.abs(diff)
+    while (remaining > 0) {
+      const chunk = Math.min(remaining, 100000)
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: 0,
+        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
+      })
+      remaining -= chunk
+    }
   }
 
-  // ── Step 3: Read final balance after adjustment ─────────────────────────
+  // 3. Read final balance to confirm
   let finalEquity = challengeUsdt
   try {
     const fw = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType })
     const fc = fw?.list?.[0]?.coin ?? []
     const fu = fc.find(c => c.coin === 'USDT')
     finalEquity = parseFloat(fu?.equity ?? fu?.walletBalance ?? challengeUsdt)
-  } catch { /* fallback to challengeUsdt */ }
+  } catch { /* use challengeUsdt as fallback */ }
 
   return { equity: finalEquity, challengeUsdt, accountType }
 }
@@ -102,7 +95,6 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
   const [validating,setValidating]= useState(false)
   const [error,     setError]     = useState('')
   const [equity,    setEquity]    = useState(null)
-  const [permError, setPermError] = useState(false)
 
   const tierLabel     = `$${tierKey.replace('k', ',000')}`
   const challengeUsdt = tierToUsdt(tierKey)
@@ -110,23 +102,18 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
   const handleValidate = async () => {
     if (!apiKey.trim() || !apiSecret.trim()) { setError('Both API Key and API Secret are required.'); return }
-    setValidating(true); setError(''); setPermError(false)
+    setValidating(true); setError('')
     try {
       const result = await validateAndSetupBybitDemo(apiKey.trim(), apiSecret.trim(), tierKey)
       setEquity(result.equity)
       setStep('confirmed')
     } catch (err) {
-      if (err.message === 'PERMISSION_DENIED') {
-        setPermError(true)
-        setError('Your API key is missing the Wallet → AccountTransfer permission. See the fix below.')
-      } else {
-        setError(err.message)
-      }
+      setError(err.message)
     } finally { setValidating(false) }
   }
 
   const overlay = { position:'fixed',inset:0,zIndex:10000,background:'rgba(0,0,0,0.85)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16 }
-  const card    = { background:'#0d0f14',border:'1px solid rgba(124,58,237,0.35)',borderRadius:18,padding:'28px 24px',maxWidth:480,width:'100%',boxShadow:'0 24px 60px rgba(0,0,0,0.7)',maxHeight:'90vh',overflowY:'auto' }
+  const card    = { background:'#0d0f14',border:'1px solid rgba(124,58,237,0.35)',borderRadius:18,padding:'28px 24px',maxWidth:460,width:'100%',boxShadow:'0 24px 60px rgba(0,0,0,0.7)',maxHeight:'90vh',overflowY:'auto' }
   const btnBack = { width:'100%',padding:'10px',background:'transparent',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,color:'rgba(255,255,255,0.45)',cursor:'pointer',fontSize:'0.88rem',marginTop:8 }
   const input   = { width:'100%',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:8,padding:'10px 14px',color:'#eaecef',fontSize:'0.88rem',outline:'none',boxSizing:'border-box',marginBottom:12,fontFamily:'monospace' }
 
@@ -145,13 +132,13 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
           <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>Trade Binance-listed tokens inside this platform</div></div>
         </button>
 
-        <button disabled={busy} onClick={()=>{setError('');setPermError(false);setStep('keys')}}
+        <button disabled={busy} onClick={()=>{setError('');setStep('keys')}}
           style={{width:'100%',display:'flex',alignItems:'center',gap:14,background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:12,padding:'15px 16px',cursor:busy?'not-allowed':'pointer',marginBottom:20,color:'#eaecef',opacity:busy?0.6:1,transition:'all 0.15s',textAlign:'left'}}
           onMouseEnter={e=>{if(!busy)e.currentTarget.style.borderColor='rgba(245,158,11,0.55)'}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(245,158,11,0.25)'}}>
           <span style={{fontSize:'1.6rem'}}>🔗</span>
           <div><div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>Bybit Demo Trading</div>
-          <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>Trade on Bybit's demo futures — IJGF sets your balance and tracks P&L</div></div>
+          <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>Trade on Bybit's demo futures — IJGF tracks P&L and enforces challenge rules</div></div>
         </button>
         <button disabled={busy} onClick={onCancel} style={btnBack}>← Cancel</button>
       </div>
@@ -164,60 +151,27 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
         <div style={{textAlign:'center',marginBottom:18}}>
           <div style={{width:48,height:48,borderRadius:12,margin:'0 auto 12px',background:'rgba(245,158,11,0.15)',border:'1px solid rgba(245,158,11,0.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.5rem'}}>🔗</div>
           <h3 style={{margin:'0 0 4px',fontSize:'1.1rem',fontWeight:700,color:'#eaecef'}}>Connect Bybit Demo Trading</h3>
-          <p style={{margin:0,fontSize:'0.82rem',color:'rgba(255,255,255,0.45)'}}>IJGF will set your Bybit Demo balance to <strong style={{color:'#a855f7'}}>{tierLabel}</strong></p>
+          <p style={{margin:0,fontSize:'0.82rem',color:'rgba(255,255,255,0.45)'}}>IJGF will set your <strong style={{color:'#a855f7'}}>{tierLabel}</strong> challenge balance on Bybit</p>
         </div>
 
         {/* Critical: Demo vs Testnet warning */}
-        <div style={{background:'rgba(246,70,93,0.08)',border:'1px solid rgba(246,70,93,0.25)',borderRadius:10,padding:'10px 13px',marginBottom:12,fontSize:'0.79rem',color:'rgba(255,255,255,0.6)',lineHeight:1.65}}>
-          ⚠️ <strong style={{color:'#f6465d'}}>Use Demo Trading on bybit.com</strong> — NOT testnet.bybit.com
+        <div style={{background:'rgba(246,70,93,0.08)',border:'1px solid rgba(246,70,93,0.25)',borderRadius:10,padding:'10px 13px',marginBottom:14,fontSize:'0.79rem',color:'rgba(255,255,255,0.6)',lineHeight:1.65}}>
+          ⚠️ <strong style={{color:'#f6465d'}}>Use Demo Trading on bybit.com</strong> — NOT testnet.bybit.com. The key must come from Demo mode or it won't work.
         </div>
 
-        {/* API key instructions — AccountTransfer is the critical one */}
-        <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,padding:'11px 14px',marginBottom:12,fontSize:'0.78rem',color:'rgba(255,255,255,0.5)',lineHeight:1.9}}>
-          <strong style={{color:'rgba(245,158,11,0.9)',fontSize:'0.8rem'}}>Create your Demo API key (exact steps):</strong>
-          <ol style={{margin:'6px 0 0',paddingLeft:18}}>
-            <li>Go to <strong style={{color:'rgba(255,255,255,0.85)'}}>bybit.com</strong> → click <strong style={{color:'rgba(255,255,255,0.85)'}}>Demo Trading</strong> at the top</li>
-            <li>Inside Demo mode → avatar → <strong style={{color:'rgba(255,255,255,0.85)'}}>API Management → Create New Key</strong></li>
-            <li>Choose <strong style={{color:'rgba(255,255,255,0.85)'}}>System-generated API Keys</strong></li>
-            <li>
-              Enable these permissions:
-              <div style={{marginTop:5,display:'flex',flexDirection:'column',gap:3}}>
-                {[
-                  {label:'Contract Trade → Orders & Positions', required:true},
-                  {label:'Unified Trading', required:true},
-                  {label:'Wallet → Account Transfer', required:true, critical:true},
-                ].map(p => (
-                  <div key={p.label} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 7px',borderRadius:5,background:p.critical?'rgba(245,158,11,0.12)':'rgba(255,255,255,0.04)',border:p.critical?'1px solid rgba(245,158,11,0.3)':'1px solid transparent'}}>
-                    <span style={{color:p.critical?'#f59e0b':'#22c55e',fontSize:'0.85rem'}}>{p.critical?'★':'✓'}</span>
-                    <span style={{color:p.critical?'rgba(245,158,11,0.95)':'rgba(255,255,255,0.6)',fontWeight:p.critical?700:400}}>{p.label}</span>
-                    {p.critical && <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#f59e0b',fontWeight:700}}>REQUIRED FOR BALANCE SET</span>}
-                  </div>
-                ))}
-              </div>
-            </li>
+        {/* Step-by-step instructions */}
+        <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,padding:'11px 14px',marginBottom:16,fontSize:'0.78rem',color:'rgba(255,255,255,0.5)',lineHeight:1.8}}>
+          <strong style={{color:'rgba(245,158,11,0.9)'}}>Create your Demo API key:</strong>
+          <ol style={{margin:'5px 0 0',paddingLeft:17}}>
+            <li>Go to <strong style={{color:'rgba(255,255,255,0.8)'}}>bybit.com</strong> → click <strong style={{color:'rgba(255,255,255,0.8)'}}>Demo Trading</strong> at the top</li>
+            <li>Inside Demo mode → <strong style={{color:'rgba(255,255,255,0.8)'}}>Account → API Management → Create New Key</strong></li>
+            <li>Choose <strong style={{color:'rgba(255,255,255,0.8)'}}>System-generated API Keys</strong></li>
+            <li>Enable: <strong style={{color:'rgba(255,255,255,0.8)'}}>Read-Write + Unified Trading + Assets</strong></li>
             <li>No IP restriction. Copy both keys below.</li>
           </ol>
         </div>
 
-        {/* Permission error — show targeted fix */}
-        {permError && (
-          <div style={{background:'rgba(246,70,93,0.1)',border:'1px solid rgba(246,70,93,0.4)',borderRadius:9,padding:'12px 14px',marginBottom:12,fontSize:'0.8rem',lineHeight:1.65}}>
-            <div style={{color:'#f6465d',fontWeight:700,marginBottom:6}}>🔑 Missing Permission: Wallet → Account Transfer</div>
-            <div style={{color:'rgba(255,255,255,0.6)'}}>Your API key doesn't have the permission needed to set the demo balance. Fix it:</div>
-            <ol style={{margin:'6px 0 0',paddingLeft:16,color:'rgba(255,255,255,0.7)'}}>
-              <li>On Bybit Demo Trading → <strong>API Management</strong></li>
-              <li>Delete this key and create a new one</li>
-              <li>Enable <strong style={{color:'#f59e0b'}}>Wallet → Account Transfer</strong> ← this is the missing one</li>
-              <li>Paste the new keys here</li>
-            </ol>
-          </div>
-        )}
-
-        {error && !permError && (
-          <div style={{background:'rgba(246,70,93,0.1)',border:'1px solid rgba(246,70,93,0.3)',color:'#f6465d',borderRadius:8,padding:'10px 12px',fontSize:'0.83rem',marginBottom:12,lineHeight:1.5}}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{background:'rgba(246,70,93,0.1)',border:'1px solid rgba(246,70,93,0.3)',color:'#f6465d',borderRadius:8,padding:'10px 12px',fontSize:'0.83rem',marginBottom:14,lineHeight:1.5}}>{error}</div>}
 
         <label style={{display:'block',fontSize:'0.79rem',color:'rgba(255,255,255,0.5)',marginBottom:4}}>Demo Trading API Key</label>
         <input type="text" placeholder="Paste API key here" value={apiKey} onChange={e=>setApiKey(e.target.value)} style={input} disabled={validating} autoComplete="off" spellCheck={false}/>
@@ -246,8 +200,8 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
         <div style={{background:'rgba(34,197,94,0.06)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:12,padding:'15px 17px',marginBottom:16}}>
           {[
             {label:'Bybit Demo Balance', value:`$${equity?.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})??'—'}`, color:'#22c55e'},
-            {label:'Challenge Size',    value:tierLabel,               color:'#eaecef'},
-            {label:'Environment',       value:'Bybit Demo Trading',    color:'#f59e0b'},
+            {label:'Challenge Size',     value:tierLabel,               color:'#eaecef'},
+            {label:'Environment',        value:'Bybit Demo Trading',    color:'#f59e0b'},
           ].map(r=>(
             <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
               <span style={{fontSize:'0.82rem',color:'rgba(255,255,255,0.5)'}}>{r.label}</span>
@@ -258,7 +212,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         {equity != null && Math.abs(equity - challengeUsdt) > 500 && (
           <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:9,padding:'10px 13px',marginBottom:14,fontSize:'0.77rem',color:'rgba(255,255,255,0.5)',lineHeight:1.6}}>
-            💡 Bybit shows <strong>${equity?.toLocaleString('en-US',{maximumFractionDigits:0})}</strong> — this may be due to open positions blocking the exact balance reset. IJGF tracks P&L from your <strong>{tierLabel}</strong> starting reference. Close all positions on Bybit then reconnect for an exact reset.
+            💡 Bybit shows ${equity?.toLocaleString()} — IJGF measures P&L from your {tierLabel} challenge starting balance. Balance will re-sync when all positions are closed.
           </div>
         )}
 
