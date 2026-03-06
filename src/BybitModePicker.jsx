@@ -47,17 +47,25 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   const challengeUsdt = tierToUsdt(tierKey)
 
   // 2. Adjust demo balance to match challenge amount via demo-apply-money
-  // adjustType: '0' = add funds, '1' = reduce funds
+  // Bybit V5 spec: adjustType '1' = ADD (deposit), '0' = REDUCE (withdraw)
+  // Field name is 'amount', NOT 'utAmount'
   if (currentEquity > challengeUsdt + 200) {
     const excess = Math.floor(currentEquity - challengeUsdt)
-    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: '1', utAmount: String(excess), coin: 'USDT',
-    }).catch(() => {}) // silent — open positions may block reduction
+    try {
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: '0', amount: String(excess), coin: 'USDT',
+      })
+    } catch (err) {
+      // Open positions may block reduction — non-fatal, log and continue
+      console.warn('[BybitModePicker] Balance reduction failed (open positions?):', err.message)
+    }
   } else if (currentEquity < challengeUsdt - 200) {
     const needed = Math.ceil(challengeUsdt - currentEquity)
     await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: '0', utAmount: String(needed), coin: 'USDT',
-    }).catch(() => {}) // silent — rate limited 1/min, will retry on next sync
+      adjustType: '1', amount: String(needed), coin: 'USDT',
+    })
+    // ^^^ NOT silenced — if adding funds fails, we must surface the error
+    // so the user knows their challenge balance was NOT set correctly
   }
 
   // 3. Read final balance after adjustment

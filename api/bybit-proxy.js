@@ -52,6 +52,10 @@ export default async function handler(req, res) {
     })
 
     const data = await bybitRes.json()
+    // Log non-zero retCodes to Vercel function logs for debugging
+    if (data.retCode !== 0) {
+      console.error(`[bybit-proxy] Bybit retCode ${data.retCode} on ${method} ${endpoint}: ${data.retMsg}`)
+    }
     return res.status(200).json(data)
 
   } catch (err) {

@@ -1269,18 +1269,25 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
               setAccountTradingDays(state.tradingDays ?? 0)
               if (state.account?.id) {
                 const { supabase: sb } = await import('./supabase')
-                await sb.from('demo_accounts').update({
+                const { error: updateErr } = await sb.from('demo_accounts').update({
                   trading_mode: 'bybit',
                   bybit_api_key: apiKey,
                   bybit_api_secret: apiSecret,
                   bybit_connected_at: new Date().toISOString(),
                   bybit_equity: equity,
+                  current_balance: equity,
+                  updated_at: new Date().toISOString(),
                 }).eq('id', state.account.id)
+                if (updateErr) throw new Error(`Failed to save Bybit credentials: ${updateErr.message}`)
+              } else {
+                throw new Error('Could not find challenge account after reset. Please try again.')
               }
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('bybit')
             } catch (err) {
               console.error('Bybit start failed:', err)
+              // Surface error to user — do NOT silently fail
+              alert(`Failed to start Bybit challenge: ${err.message}`)
             } finally { setStartingChallenge(false) }
           }}
         />
