@@ -2,7 +2,7 @@
  * /api/bybit-proxy.js
  *
  * Vercel serverless function.
- * Signs Bybit Testnet API requests server-side using HMAC-SHA256.
+ * Signs Bybit Demo Trading API requests server-side using HMAC-SHA256.
  * The API secret never appears in browser network logs.
  *
  * Place this file at: /api/bybit-proxy.js  (root of your repo, NOT inside /src)
@@ -10,7 +10,7 @@
 
 import crypto from 'crypto'
 
-const BYBIT_BASE = 'https://api-testnet.bybit.com'
+const BYBIT_BASE = 'https://api-demo.bybit.com'  // Bybit Demo Trading (NOT testnet)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

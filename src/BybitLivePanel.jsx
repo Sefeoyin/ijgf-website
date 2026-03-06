@@ -2,7 +2,8 @@
  * BybitLivePanel.jsx
  *
  * Shown on the Market tab when tradingMode === 'bybit'.
- * Fetches live balance + open positions from Bybit Testnet via /api/bybit-proxy
+ * Fetches live balance + open positions from Bybit Demo Trading via /api/bybit-proxy
+ * API domain: api-demo.bybit.com (proxy handles this)
  * and polls every 30 seconds.
  *
  * Also checks challenge pass/fail conditions and updates demo_accounts.status.
@@ -61,10 +62,13 @@ export default function BybitLivePanel({ userId }) {
 
       const { bybit_api_key: key, bybit_api_secret: secret } = account
 
-      // Fetch wallet balance
-      const walletResult = await bybitGet(key, secret, '/v5/account/wallet-balance', {
-        accountType: 'UNIFIED',
-      })
+      // Fetch wallet balance — try UNIFIED first, fall back to CONTRACT
+      let walletResult
+      try {
+        walletResult = await bybitGet(key, secret, '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+      } catch {
+        walletResult = await bybitGet(key, secret, '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
+      }
       const coins     = walletResult?.list?.[0]?.coin ?? []
       const usdtCoin  = coins.find(c => c.coin === 'USDT')
       const liveEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? 0)
@@ -165,20 +169,20 @@ export default function BybitLivePanel({ userId }) {
               background:'rgba(245,158,11,0.15)',color:'#f59e0b',
               border:'1px solid rgba(245,158,11,0.3)',borderRadius:20,padding:'2px 9px',
               verticalAlign:'middle',
-            }}>TESTNET</span>
+            }}>DEMO</span>
           </h2>
           <p style={{margin:'4px 0 0',fontSize:'0.82rem',color:'rgba(255,255,255,0.4)'}}>
             {lastSync ? `Last synced ${lastSync.toLocaleTimeString()}` : 'Syncing…'}
           </p>
         </div>
         <a
-          href="https://testnet.bybit.com"
+          href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
           target="_blank" rel="noopener noreferrer"
           style={{
             padding:'9px 18px',background:'linear-gradient(135deg,#f59e0b,#fbbf24)',
             color:'#000',borderRadius:9,fontWeight:700,fontSize:'0.85rem',textDecoration:'none',
           }}
-        >Open Bybit Testnet →</a>
+        >Open Bybit Demo Trading →</a>
       </div>
 
       {error && (
@@ -242,7 +246,7 @@ export default function BybitLivePanel({ userId }) {
         </div>
         {positions.length === 0 ? (
           <p style={{margin:0,fontSize:'0.83rem',color:'rgba(255,255,255,0.35)',textAlign:'center',padding:'12px 0'}}>
-            No open positions. Trade on Bybit Testnet to see them here.
+            No open positions. Trade on Bybit Demo Trading to see them here.
           </p>
         ) : (
           <div style={{overflowX:'auto'}}>
