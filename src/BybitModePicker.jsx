@@ -29,7 +29,9 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
 }
 
 async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
-  // 1. Read current balance — try UNIFIED first, fall back to CONTRACT
+  const challengeUsdt = tierToUsdt(tierKey)
+
+  // 1. Verify credentials & read all coins
   let accountType = 'UNIFIED'
   let walletResult
   try {
@@ -41,19 +43,10 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     } else throw err
   }
 
-  const challengeUsdt = tierToUsdt(tierKey)
-
-  // 2. Set balance to exact challenge amount
-  // Bybit demo accounts have mixed coins (USDT + USDC + BTC + ETH).
-  // USDT has a minimum floor Bybit won't reduce below (~5k).
-  // Strategy:
-  //   Step A — reduce ALL coins to zero (or their minimum floor)
-  //   Step B — read remaining USDT floor that Bybit left behind
-  //   Step C — add only the difference needed to reach challengeUsdt
-
+  // 2. Step A — reduce EVERY coin to zero (USDT, USDC, BTC, ETH, whatever is there)
+  // Bybit demo accounts start with a mix of coins. We zero all of them.
+  // USDT has a minimum floor Bybit won't go below — we handle that in Step B.
   const allCoins = walletResult?.list?.[0]?.coin ?? []
-
-  // Step A: reduce every coin to zero
   for (const coinEntry of allCoins) {
     const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
     if (bal <= 0) continue
@@ -63,12 +56,12 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
       await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
         adjustType: 1,
         utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
-      }).catch(() => {})
+      }).catch(() => {}) // ignore errors per coin — some may not support reduce
       rem -= chunk
     }
   }
 
-  // Step B: read what USDT floor Bybit left behind after reduction
+  // 2. Step B — read whatever USDT floor Bybit left behind after zeroing
   let usdtFloor = 0
   try {
     const mid = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType })
@@ -76,7 +69,9 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     usdtFloor = parseFloat(midUsdt?.walletBalance ?? 0)
   } catch { usdtFloor = 0 }
 
-  // Step C: add only what's needed on top of the floor to hit challengeUsdt exactly
+  // 2. Step C — add only the difference needed to reach challengeUsdt exactly
+  // e.g. floor=$5k, challenge=$10k → add $5k → total=$10k
+  // e.g. floor=$5k, challenge=$5k  → add $0  → total=$5k (nothing added)
   const toAdd = Math.max(0, challengeUsdt - usdtFloor)
   if (toAdd > 0) {
     let rem = toAdd
