@@ -185,9 +185,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     totalPNL: isBybit
       ? trueAccountValue - parseFloat(account?.initial_balance ?? 0)
       : realizedPNL,
-    // Bybit: win/loss breakdown not available without Bybit closed-PNL endpoint
+    // Bybit: win rate from closed-pnl data fetched by useBybitSync
+    // IJGF:  win rate from demo_accounts aggregate columns
     winRate: isBybit
-      ? 'N/A'
+      ? (() => {
+          const ws = bybitData?.winStats
+          if (!ws || ws.total === 0) return 'N/A'
+          return ((ws.wins / ws.total) * 100).toFixed(1)
+        })()
       : account?.total_trades > 0
         ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
         : 0,

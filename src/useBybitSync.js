@@ -106,6 +106,7 @@ async function closeBybitPosition(apiKey, apiSecret, pos) {
 export function useBybitSync(userId, tradingMode, onStatusChange) {
   const [equity,      setEquity]      = useState(null)
   const [positions,   setPositions]   = useState([])
+  const [winStats,    setWinStats]    = useState({ wins: 0, losses: 0, total: 0 })
   const [tradingDays, setTradingDays] = useState(0)
   const [account,     setAccount]     = useState(null)
   const [loading,     setLoading]     = useState(true)
@@ -181,7 +182,28 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           leverage:      parseInt(p.leverage, 10)  || 1,
         }))
 
-      // ── Step 4: TP/SL Enforcement ────────────────────────────────────────
+      // ── Step 4: Fetch closed PnL for win-rate calculation ────────────────
+      // Bybit's closed-pnl endpoint returns all closed positions.
+      // We pull the last 200 (max single page) which is sufficient for
+      // the win-rate stat card. Failures are non-critical — we catch and
+      // leave winStats at its previous value rather than crashing the sync.
+      try {
+        const closedResult = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+          category: 'linear',
+          limit: 200,
+        })
+        const closedList = closedResult?.list ?? []
+        if (closedList.length > 0) {
+          const wins   = closedList.filter(t => parseFloat(t.closedPnl) > 0).length
+          const losses = closedList.filter(t => parseFloat(t.closedPnl) < 0).length
+          setWinStats({ wins, losses, total: closedList.length })
+        }
+      } catch (e) {
+        // Non-fatal — win rate will show previous value or 0/0
+        console.warn('[useBybitSync] closed-pnl fetch failed (non-fatal):', e.message)
+      }
+
+      // ── Step 5: TP/SL Enforcement ────────────────────────────────────────
       // Clear tracker entries for positions that have been closed
       const openSymbols = new Set(openPos.map(p => p.symbol))
       for (const sym of Object.keys(noSlCycles.current)) {
@@ -207,7 +229,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         }
       }
 
-      // ── Step 5: Trading Days Tracking ────────────────────────────────────
+      // ── Step 6: Trading Days Tracking ────────────────────────────────────
       const today          = new Date().toISOString().split('T')[0]   // 'YYYY-MM-DD'
       const prevDays       = acct.bybit_trading_days    ?? 0
       const lastActiveDate = acct.bybit_last_active_date ?? null
@@ -230,7 +252,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         }
       }
 
-      // ── Step 6: Pass / Fail Evaluation ───────────────────────────────────
+      // ── Step 7: Pass / Fail Evaluation ───────────────────────────────────
       const pnl      = liveEquity - initial
       const drawdown = initial - liveEquity   // positive = net loss from initial
       const target   = parseFloat(acct.profit_target)
@@ -251,7 +273,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         }
       }
 
-      // ── Step 7: Write to Supabase ────────────────────────────────────────
+      // ── Step 8: Write to Supabase ────────────────────────────────────────
       const dbUpdate = {
         bybit_equity:    liveEquity,
         current_balance: liveEquity,
@@ -262,7 +284,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
 
       await supabase.from('demo_accounts').update(dbUpdate).eq('id', acct.id)
 
-      // ── Step 8: Update React state ────────────────────────────────────────
+      // ── Step 9: Update React state ────────────────────────────────────────
       const updatedAccount = {
         ...acct,
         current_balance:    liveEquity,
@@ -277,7 +299,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       setLastSync(new Date())
       setError(null)
 
-      // ── Step 9: Fire pass/fail once ───────────────────────────────────────
+      // ── Step 10: Fire pass/fail once ───────────────────────────────────────
       if (newStatus && !statusFired.current) {
         statusFired.current = true
         nukeBybitBalance(key, secret).catch(() => {})   // fire-and-forget
@@ -308,5 +330,5 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
     return () => clearInterval(interval)
   }, [userId, tradingMode, runSync])
 
-  return { equity, positions, tradingDays, account, loading, error, lastSync }
+  return { equity, positions, winStats, tradingDays, account, loading, error, lastSync }
 }
