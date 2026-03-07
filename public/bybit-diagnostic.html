@@ -111,7 +111,7 @@
             adjustType: 1,
             utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
           })
-          log(`  ${coinEntry.coin} reduce chunk ${chunk}`, r?.result ?? r, r?.retCode !== 0)
+          log(`  ${coinEntry.coin} reduce chunk ${chunk} — FULL RESPONSE`, r, r?.retCode !== 0)
           rem -= chunk
         }
       }
