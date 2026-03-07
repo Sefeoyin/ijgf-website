@@ -16,7 +16,7 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(30000),
   })
   if (!res.ok) throw new Error(`Proxy error ${res.status} — is /api/bybit-proxy.js deployed?`)
   const json = await res.json()
@@ -44,6 +44,8 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   }
 
   // Step 2: nuke all coins to zero (same as diagnostic nukeAll)
+  // proxyCall throws on non-zero retCode — but some coins (BTC/ETH) may not
+  // support reduce, so we catch per-coin and continue regardless
   const coins = walletResult?.list?.[0]?.coin ?? []
   for (const coinEntry of coins) {
     const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
@@ -51,15 +53,20 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     let rem = bal
     while (rem > 0) {
       const chunk = Math.min(rem, 100000)
-      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-        adjustType: 1,
-        utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
-      }).catch(() => {})
+      try {
+        await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+          adjustType: 1,
+          utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
+        })
+      } catch {
+        // coin doesn't support reduce (e.g. BTC/ETH) — skip it
+      }
       rem -= chunk
     }
   }
 
   // Step 3: add challengeUsdt in USDT (same as diagnostic addUsdt)
+  // This MUST succeed — no catch, errors will surface to the user
   let rem = challengeUsdt
   while (rem > 0) {
     const chunk = Math.min(rem, 100000)
@@ -173,7 +180,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         <button onClick={handleValidate} disabled={validating||!apiKey.trim()||!apiSecret.trim()}
           style={{width:'100%',padding:'12px',background:validating?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#f59e0b,#fbbf24)',color:validating?'rgba(255,255,255,0.4)':'#000',border:'none',borderRadius:10,fontWeight:700,fontSize:'0.93rem',cursor:validating?'not-allowed':'pointer',marginBottom:8}}>
-          {validating ? `Connecting & setting ${tierLabel} balance…` : 'Validate & Set Challenge Balance'}
+          {validating ? `Zeroing account & setting ${tierLabel} balance… (may take 20s)` : 'Validate & Set Challenge Balance'}
         </button>
         <button disabled={validating} onClick={()=>setStep('choose')} style={btnBack}>← Back</button>
       </div>
