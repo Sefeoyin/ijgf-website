@@ -1,9 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useContext } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
 import BybitModePicker from './BybitModePicker'
+import { ThemeContext } from './ThemeContext'
 
 function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) {
   const [timeRange, setTimeRange] = useState('1W')
+  const { theme } = useContext(ThemeContext)
+  const _dark = theme === 'night'
+  const liveBanner = {
+    bg:     'rgba(245,158,11,0.07)',
+    border: '1px solid rgba(245,158,11,0.2)',
+    text:   _dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.55)',
+  }
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -864,9 +872,9 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
             <div style={{
               display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
               padding: '6px 12px',
-              background: 'rgba(245,158,11,0.07)',
-              border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 8, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)',
+              background: liveBanner.bg,
+              border: liveBanner.border,
+              borderRadius: 8, fontSize: '0.75rem', color: liveBanner.text,
             }}>
               <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
               Bybit Demo syncing every 30s

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { getAccountState } from './tradingService'
+import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, d = 2) {
@@ -74,6 +75,13 @@ function RuleCard({ title, summary, detail, icon, status }) {
 export default function RulesObjectivesPage({ userId, bybitData }) {
   const [state, setState]   = useState(null)
   const [loading, setLoading] = useState(true)
+  const { theme } = useContext(ThemeContext)
+  const _dark = theme === 'night'
+  const liveBanner = {
+    bg:     'rgba(245,158,11,0.07)',
+    border: '1px solid rgba(245,158,11,0.2)',
+    text:   _dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)',
+  }
 
   useEffect(() => {
     if (!userId) return
@@ -397,9 +405,9 @@ export default function RulesObjectivesPage({ userId, bybitData }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
           padding: '8px 14px',
-          background: 'rgba(245,158,11,0.07)',
-          border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)',
+          background: liveBanner.bg,
+          border: liveBanner.border,
+          borderRadius: 10, fontSize: '0.8rem', color: liveBanner.text,
         }}>
           <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
           Data synced from Bybit Demo Trading

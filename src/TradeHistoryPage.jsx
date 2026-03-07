@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useContext } from 'react'
 import { supabase } from './supabase'
 import { getAccountState } from './tradingService'
+import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, d = 2) {
@@ -41,6 +42,24 @@ export default function TradeHistoryPage({ userId, bybitData }) {
   // Bybit: trade history lives on Bybit, not in our demo_trades table.
   const isBybit = bybitData?.account?.trading_mode === 'bybit'
 
+  const { theme } = useContext(ThemeContext)
+  const dark = theme === 'night'
+  const t = {
+    cardBg:       dark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+    cardBorder:   dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.1)',
+    statBg:       dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
+    statBorder:   dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)',
+    divider:      dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)',
+    iconBg:       'rgba(245,158,11,0.12)',
+    iconBorder:   'rgba(245,158,11,0.3)',
+    textPrimary:  dark ? '#eaecef'                : '#0f172a',
+    textSecondary:dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)',
+    textMuted:    dark ? 'rgba(255,255,255,0.4)'  : 'rgba(0,0,0,0.45)',
+    textFaint:    dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.38)',
+    textVeryFaint:dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+    textTradingDays: dark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.75)',
+    syncText:     dark ? 'rgba(255,255,255,0.2)'  : 'rgba(0,0,0,0.35)',
+  }
   // ── Load & pair open+close records by position_id ─────────────────────────
   // The DB stores two rows per round-trip: is_close=false (open leg) and
   // is_close=true (close leg). We pair them so Entry, Exit, Duration and PNL
@@ -207,15 +226,15 @@ export default function TradeHistoryPage({ userId, bybitData }) {
         <div style={{
           maxWidth: 640, margin: '60px auto', textAlign: 'center',
           padding: '48px 32px',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          background: t.cardBg,
+          border: `1px solid ${t.cardBorder}`,
           borderRadius: 20,
         }}>
           {/* Bybit icon */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
-            background: 'rgba(245,158,11,0.12)',
-            border: '1px solid rgba(245,158,11,0.3)',
+            background: t.iconBg,
+            border: `1px solid ${t.iconBorder}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 24px',
           }}>
@@ -225,43 +244,43 @@ export default function TradeHistoryPage({ userId, bybitData }) {
             </svg>
           </div>
 
-          <h2 style={{ margin: '0 0 12px', fontSize: '1.35rem', fontWeight: 700, color: '#eaecef' }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: '1.35rem', fontWeight: 700, color: t.textPrimary }}>
             Trading on Bybit Demo
           </h2>
-          <p style={{ margin: '0 0 8px', fontSize: '0.95rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 8px', fontSize: '0.95rem', color: t.textSecondary, lineHeight: 1.6 }}>
             Your full trade history lives directly on Bybit — including entry/exit prices,
             order IDs, fees, and funding. We can't copy it here without making every trade
             call both IJGF and Bybit, which would double your latency.
           </p>
-          <p style={{ margin: '0 0 32px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 32px', fontSize: '0.9rem', color: t.textFaint, lineHeight: 1.6 }}>
             The IJGF risk engine tracks your equity, drawdown, and trading days in real-time
-            — those are visible on the <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Overview</strong> and <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Rules</strong> tabs.
+            — those are visible on the <strong style={{ color: t.textSecondary }}>Overview</strong> and <strong style={{ color: t.textSecondary }}>Rules</strong> tabs.
           </p>
 
           {/* Live PnL summary pill */}
           <div style={{
             display: 'inline-flex', gap: 32, padding: '14px 28px',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: t.statBg,
+            border: `1px solid ${t.statBorder}`,
             borderRadius: 12, marginBottom: 32,
           }}>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Live Equity</div>
+              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Live Equity</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
                 ${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)' }} />
+            <div style={{ width: 1, background: t.divider }} />
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Net P&L</div>
+              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Net P&L</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
                 {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)' }} />
+            <div style={{ width: 1, background: t.divider }} />
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Trading Days</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Trading Days</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: t.textTradingDays }}>
                 {bybitData.tradingDays ?? 0}
               </div>
             </div>
@@ -288,13 +307,13 @@ export default function TradeHistoryPage({ userId, bybitData }) {
                 <line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
             </a>
-            <p style={{ marginTop: 14, fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>
+            <p style={{ marginTop: 14, fontSize: '0.78rem', color: t.textVeryFaint }}>
               Opens Bybit Demo Trading → Orders → Filled Orders
             </p>
           </div>
 
           {bybitData.lastSync && (
-            <p style={{ marginTop: 24, fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)' }}>
+            <p style={{ marginTop: 24, fontSize: '0.75rem', color: t.syncText }}>
               ● Last synced with Bybit: {bybitData.lastSync.toLocaleTimeString()}
             </p>
           )}

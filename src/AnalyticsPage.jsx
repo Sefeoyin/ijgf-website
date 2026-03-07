@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useContext } from 'react'
 import { supabase } from './supabase'
 import { getAccountState } from './tradingService'
+import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, decimals = 2) {
@@ -205,6 +206,30 @@ export default function AnalyticsPage({ userId, bybitData }) {
   // ── Detect Bybit mode before running data fetch ───────────────────────
   const isBybit = bybitData?.account?.trading_mode === 'bybit'
 
+  // ── Theme tokens ──────────────────────────────────────────────────────
+  const { theme } = useContext(ThemeContext)
+  const dark = theme === 'night'
+  const t = {
+    pageBg:      dark ? 'transparent'               : 'transparent',
+    cardBg:      dark ? 'rgba(255,255,255,0.03)'    : '#ffffff',
+    cardBorder:  dark ? 'rgba(255,255,255,0.08)'    : 'rgba(0,0,0,0.1)',
+    rowBorder:   dark ? 'rgba(255,255,255,0.05)'    : 'rgba(0,0,0,0.06)',
+    rowHighlight:dark ? 'rgba(246,70,93,0.04)'      : 'rgba(246,70,93,0.06)',
+    divider:     dark ? 'rgba(255,255,255,0.07)'    : 'rgba(0,0,0,0.09)',
+    textPrimary: dark ? '#eaecef'                   : '#0f172a',
+    textSecondary:dark? 'rgba(255,255,255,0.55)'    : 'rgba(0,0,0,0.6)',
+    textMuted:   dark ? 'rgba(255,255,255,0.4)'     : 'rgba(0,0,0,0.45)',
+    textFaint:   dark ? 'rgba(255,255,255,0.35)'    : 'rgba(0,0,0,0.38)',
+    textVeryFaint:dark? 'rgba(255,255,255,0.25)'    : 'rgba(0,0,0,0.3)',
+    textCell:    dark ? 'rgba(255,255,255,0.7)'     : 'rgba(0,0,0,0.7)',
+    progressBg:  dark ? 'rgba(255,255,255,0.08)'    : 'rgba(0,0,0,0.08)',
+    bannerBg:    dark ? 'rgba(245,158,11,0.07)'     : 'rgba(245,158,11,0.08)',
+    bannerBorder:'rgba(245,158,11,0.2)',
+    bannerText:  dark ? 'rgba(255,255,255,0.55)'    : 'rgba(0,0,0,0.6)',
+    drawdownColor: (dd, max) => dd > max * 0.7 ? '#f59e0b' : (dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)'),
+    tradingDaysColor: (d, min) => d >= min ? '#22c55e' : (dark ? '#eaecef' : '#0f172a'),
+  }
+
   useEffect(() => {
     if (!userId) return
     // Bybit mode: live data comes from bybitData prop — no demo_trades to load
@@ -343,8 +368,8 @@ export default function AnalyticsPage({ userId, bybitData }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20,
           padding: '9px 14px',
-          background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)',
+          background: t.bannerBg, border: `1px solid ${t.bannerBorder}`,
+          borderRadius: 10, fontSize: '0.8rem', color: t.bannerText,
         }}>
           <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
           Bybit Demo Trading — data syncs every 30s
@@ -367,14 +392,14 @@ export default function AnalyticsPage({ userId, bybitData }) {
             { label: 'Net PnL',          value: `${pnl >= 0 ? '+' : ''}$${fmt2(pnl)}`, color: pnl >= 0 ? '#22c55e' : '#f6465d' },
             { label: 'PnL %',            value: `${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%`, color: pnlPct >= 0 ? '#22c55e' : '#f6465d' },
             { label: 'Unrealised PnL',   value: `${totalUnrPnl >= 0 ? '+' : ''}$${fmt2(totalUnrPnl)}`, color: totalUnrPnl >= 0 ? '#22c55e' : '#f6465d' },
-            { label: 'Drawdown',         value: `$${fmt2(drawdown)} (${ddPct.toFixed(2)}%)`, color: drawdown > maxDD * 0.7 ? '#f59e0b' : 'rgba(255,255,255,0.7)' },
-            { label: 'Trading Days',     value: `${tDays} / ${minDays}`, color: tDays >= minDays ? '#22c55e' : '#eaecef' },
+            { label: 'Drawdown',         value: `$${fmt2(drawdown)} (${ddPct.toFixed(2)}%)`, color: t.drawdownColor(drawdown, maxDD) },
+            { label: 'Trading Days',     value: `${tDays} / ${minDays}`, color: t.tradingDaysColor(tDays, minDays) },
           ].map(s => (
             <div key={s.label} style={{
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              background: t.cardBg, border: `1px solid ${t.cardBorder}`,
               borderRadius: 12, padding: '14px 16px',
             }}>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 5 }}>{s.label}</div>
+              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 5 }}>{s.label}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 700, color: s.color }}>{s.value}</div>
             </div>
           ))}
@@ -382,25 +407,25 @@ export default function AnalyticsPage({ userId, bybitData }) {
 
         {/* Profit target progress */}
         <div style={{
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          background: t.cardBg, border: `1px solid ${t.cardBorder}`,
           borderRadius: 12, padding: '16px 18px', marginBottom: 16,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.83rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Profit Target Progress</span>
-            <span style={{ fontSize: '0.83rem', color: progress >= 100 ? '#22c55e' : '#eaecef' }}>
+            <span style={{ fontSize: '0.83rem', fontWeight: 600, color: t.textSecondary }}>Profit Target Progress</span>
+            <span style={{ fontSize: '0.83rem', color: progress >= 100 ? '#22c55e' : t.textPrimary }}>
               ${fmt2(Math.max(0, pnl))} / ${fmt2(target)}
             </span>
           </div>
-          <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: 8, background: t.progressBg, borderRadius: 4, overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 4,
               background: progress >= 100 ? '#22c55e' : 'linear-gradient(90deg,#7c3aed,#a855f7)',
               width: `${progress}%`, transition: 'width 0.5s ease',
             }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.73rem', color: 'rgba(255,255,255,0.35)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.73rem', color: t.textFaint }}>
             <span>Max Drawdown Limit: ${fmt2(maxDD)}</span>
-            <span style={{ color: progress >= 100 ? '#22c55e' : 'rgba(255,255,255,0.35)' }}>
+            <span style={{ color: progress >= 100 ? '#22c55e' : t.textFaint }}>
               {progress >= 100 ? '🎉 Target reached!' : `${progress.toFixed(1)}% complete`}
             </span>
           </div>
@@ -409,16 +434,16 @@ export default function AnalyticsPage({ userId, bybitData }) {
         {/* Open positions table */}
         {positions.length > 0 && (
           <div style={{
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`,
             borderRadius: 12, padding: '16px 18px',
           }}>
-            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: t.textSecondary, marginBottom: 12 }}>
               Open Positions ({positions.length})
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ color: 'rgba(255,255,255,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <tr style={{ color: t.textMuted, borderBottom: `1px solid ${t.cardBorder}` }}>
                     {['Symbol','Side','Size','Entry','Mark','Unr. PnL','TP','SL'].map(h => (
                       <th key={h} style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 500 }}>{h}</th>
                     ))}
@@ -427,22 +452,22 @@ export default function AnalyticsPage({ userId, bybitData }) {
                 <tbody>
                   {positions.map((p, i) => (
                     <tr key={i} style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      background: !p.stopLoss ? 'rgba(246,70,93,0.04)' : 'transparent',
+                      borderBottom: `1px solid ${t.rowBorder}`,
+                      background: !p.stopLoss ? t.rowHighlight : 'transparent',
                     }}>
-                      <td style={{ padding: '7px 10px', color: '#eaecef', fontWeight: 600 }}>{p.symbol}</td>
+                      <td style={{ padding: '7px 10px', color: t.textPrimary, fontWeight: 600 }}>{p.symbol}</td>
                       <td style={{ padding: '7px 10px', textAlign: 'right', color: p.side === 'Buy' ? '#22c55e' : '#f6465d', fontWeight: 600 }}>{p.side}</td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{p.size}</td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>${fmt2(p.entryPrice)}</td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>${fmt2(p.markPrice)}</td>
+                      <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>{p.size}</td>
+                      <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>${fmt2(p.entryPrice)}</td>
+                      <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>${fmt2(p.markPrice)}</td>
                       <td style={{ padding: '7px 10px', textAlign: 'right', color: p.unrealisedPnl >= 0 ? '#22c55e' : '#f6465d', fontWeight: 600 }}>
                         {p.unrealisedPnl >= 0 ? '+' : ''}${fmt2(p.unrealisedPnl)}
                       </td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.5)' }}>
+                      <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>
                         {p.takeProfit ? `$${fmt2(p.takeProfit)}` : <span style={{ color: '#f59e0b' }}>⚠ None</span>}
                       </td>
                       <td style={{ padding: '7px 10px', textAlign: 'right' }}>
-                        {p.stopLoss ? <span style={{ color: 'rgba(255,255,255,0.5)' }}>${fmt2(p.stopLoss)}</span> : <span style={{ color: '#f6465d', fontWeight: 600 }}>⚠ Required</span>}
+                        {p.stopLoss ? <span style={{ color: t.textCell }}>${fmt2(p.stopLoss)}</span> : <span style={{ color: '#f6465d', fontWeight: 600 }}>⚠ Required</span>}
                       </td>
                     </tr>
                   ))}
@@ -453,7 +478,7 @@ export default function AnalyticsPage({ userId, bybitData }) {
         )}
 
         {/* No-trade-history note */}
-        <p style={{ marginTop: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+        <p style={{ marginTop: 20, fontSize: '0.78rem', color: t.textVeryFaint, textAlign: 'center' }}>
           Bybit Demo Trading — detailed trade history is available directly on{' '}
           <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
             target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>bybit.com</a>
