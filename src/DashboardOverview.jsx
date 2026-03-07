@@ -166,15 +166,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
 
   const [realTrades, setRealTrades] = useState([])
 
-  // Margin locked in open positions — IJGF mode only
-  // (Bybit: trueAccountValue is already set from bybitData.equity above)
-  const totalMarginInUse = isBybit ? 0 : accountPositions.reduce((sum, p) => {
-    const m = (p.margin != null && p.margin > 0)
-      ? p.margin
-      : (p.entry_price * p.quantity) / (p.leverage || 1)
-    return sum + (m || 0)
-  }, 0)
-
   // Realized PNL only (from closed trades) — excludes margin distortion
   const realizedPNL = realTrades.reduce((sum, t) => sum + (t.realized_pnl || 0), 0)
 
