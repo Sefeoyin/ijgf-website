@@ -99,29 +99,30 @@ function Gauge({ value, max, label, color, size = 72, trackColor, textPrimary, t
 }
 
 // ── Challenge card ─────────────────────────────────────────────────────────
-function ChallengeCard({ account, tradingDaysMap }) {
+function ChallengeCard({ account, tradingDaysMap, bybitEquity }) {
   const t = useTokens()
 
   const isPassed = account.status === 'passed'
   const isFailed = account.status === 'failed'
+  const isBybit  = account.trading_mode === 'bybit'
 
   // ── Correct DB field names ──────────────────────────────────────────────
-  // current_balance: live balance stored after each trade
-  // profit_target:   stored on account row (e.g. 1000 for a $10K account)
-  // max_total_drawdown: stored on account row (e.g. 800 for 8% of $10K)
-  // min_trading_days:   stored on account row (default 5)
-  // trading_days:    NOT a column — counted from demo_trades by distinct day
   const initialBalance   = account.initial_balance   ?? 10000
-  const currentBalance   = account.current_balance   ?? initialBalance  // fixed: was account.balance
+  // For Bybit accounts, bybitEquity is the live value from the sync hook;
+  // fall back to current_balance stored in DB (refreshed every 30s)
+  const currentBalance   = isBybit
+    ? (bybitEquity ?? account.current_balance ?? initialBalance)
+    : (account.current_balance ?? initialBalance)
   const profitAbs        = currentBalance - initialBalance
   const profitPct        = (profitAbs / initialBalance) * 100
   const profitTarget     = account.profit_target     ?? initialBalance * 0.10
-  const maxDrawdownLimit = account.max_total_drawdown ?? initialBalance * 0.08  // 8% rule
+  const maxDrawdownLimit = account.max_total_drawdown ?? initialBalance * 0.08
   const minTradingDays   = account.min_trading_days  ?? 5
-  // drawdownUsed = how much equity has dropped below initial (same formula as useDemoTrading)
   const drawdownUsed     = Math.max(0, initialBalance - currentBalance)
-  // trading_days from the preloaded map (queried from demo_trades by the parent)
-  const tradingDays      = tradingDaysMap[account.id] ?? 0
+  // Bybit trading days are stored in the account row; IJGF days come from demo_trades map
+  const tradingDays      = isBybit
+    ? (account.bybit_trading_days ?? 0)
+    : (tradingDaysMap[account.id] ?? 0)
 
   const createdAt   = account.created_at
     ? new Date(account.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -153,6 +154,14 @@ function ChallengeCard({ account, tradingDaysMap }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: '1.05rem', fontWeight: 700, color: t.textPrimary }}>
               ${(initialBalance / 1000).toFixed(0)}K Challenge
+              {isBybit && (
+                <span style={{
+                  marginLeft: 7, fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px',
+                  borderRadius: 20, background: 'rgba(245,158,11,0.12)',
+                  color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)',
+                  verticalAlign: 'middle',
+                }}>BYBIT</span>
+              )}
             </span>
             <span style={{
               fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 20, letterSpacing: 0.5,
@@ -250,7 +259,7 @@ function ChallengeCard({ account, tradingDaysMap }) {
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
-export default function MyChallengesPage({ userId }) {
+export default function MyChallengesPage({ userId, bybitData }) {
   const t = useTokens()
   const [challenges, setChallenges] = useState([])
   const [tradingDaysMap, setTradingDaysMap] = useState({}) // { [accountId]: number }
@@ -384,7 +393,12 @@ export default function MyChallengesPage({ userId }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {filtered.map(acc => (
-            <ChallengeCard key={acc.id} account={acc} tradingDaysMap={tradingDaysMap} />
+            <ChallengeCard
+              key={acc.id}
+              account={acc}
+              tradingDaysMap={tradingDaysMap}
+              bybitEquity={acc.trading_mode === 'bybit' ? bybitData?.equity : undefined}
+            />
           ))}
         </div>
       )}

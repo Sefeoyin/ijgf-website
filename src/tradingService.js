@@ -136,6 +136,20 @@ async function findActiveAccount(userId) {
 export async function getAccountState(userId) {
   const account = await findActiveAccount(userId)
 
+  // ── Bybit mode: positions and trades live on Bybit, not in Supabase tables.
+  // Return the account row with the data useBybitSync keeps fresh.
+  // All dashboard pages receive bybitData via props from Dashboard — this
+  // early-return just avoids three unnecessary empty Supabase queries.
+  if (account?.trading_mode === 'bybit') {
+    return {
+      account,
+      positions:    [],
+      orders:       [],
+      recentTrades: [],
+      tradingDays:  account.bybit_trading_days ?? 0,
+    }
+  }
+
   const [posRes, ordRes, tradeRes] = await Promise.all([
     supabase
       .from('demo_positions')

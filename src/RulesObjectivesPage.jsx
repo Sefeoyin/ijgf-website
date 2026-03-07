@@ -71,7 +71,7 @@ function RuleCard({ title, summary, detail, icon, status }) {
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────
-export default function RulesObjectivesPage({ userId }) {
+export default function RulesObjectivesPage({ userId, bybitData }) {
   const [state, setState]   = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -83,15 +83,22 @@ export default function RulesObjectivesPage({ userId }) {
       .finally(() => setLoading(false))
   }, [userId])
 
-  const account     = state?.account
-  const positions   = state?.positions || []
-  const tradingDays = state?.tradingDays ?? 0
+  // ── Decide data source: Bybit live data or IJGF account state ──────────
+  const isBybit     = bybitData?.account?.trading_mode === 'bybit'
+  const account     = isBybit ? bybitData.account     : state?.account
+  const positions   = isBybit ? bybitData.positions   : (state?.positions || [])
+  const tradingDays = isBybit ? bybitData.tradingDays : (state?.tradingDays ?? 0)
+  const isLoading   = isBybit ? bybitData.loading     : loading
 
   // ── live metrics ──────────────────────────────────────────────────────
   const initial      = account?.initial_balance || 10000
-  const current      = account ? account.current_balance + positions.reduce((s, p) => s + (p.margin || 0), 0) : initial
+  // For Bybit: current equity comes directly from bybitData.equity (live from API)
+  // For IJGF: current = balance + margin locked in open positions
+  const current      = isBybit
+    ? (bybitData.equity ?? parseFloat(account?.current_balance ?? initial))
+    : (account ? account.current_balance + positions.reduce((s, p) => s + (p.margin || 0), 0) : initial)
   const profitTarget = account?.profit_target || initial * 0.10
-  const maxDrawdown  = initial * 0.08  // Always 8% — normalized regardless of DB value
+  const maxDrawdown  = parseFloat(account?.max_total_drawdown ?? account?.max_drawdown ?? (initial * 0.08))
   const minTradingDays = account?.min_trading_days || 5
 
   const currentProfit       = current - initial
@@ -375,7 +382,7 @@ export default function RulesObjectivesPage({ userId }) {
     },
   ]
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="analytics-loading">
       <div className="analytics-spinner" />
       <span>Loading rules…</span>
@@ -385,7 +392,24 @@ export default function RulesObjectivesPage({ userId }) {
   return (
     <div className="rules-page">
 
-      {/* ── Stat cards row ───────────────────────────────────────────────── */}
+      {/* Bybit live-data banner */}
+      {isBybit && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
+          padding: '8px 14px',
+          background: 'rgba(245,158,11,0.07)',
+          border: '1px solid rgba(245,158,11,0.2)',
+          borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)',
+        }}>
+          <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
+          Data synced from Bybit Demo Trading
+          {bybitData.lastSync && (
+            <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
+              {bybitData.lastSync.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      )}
       <div className="rules-stat-grid">
         {[
           { label: 'Active Challenges', value: account ? '1' : '0', sub: 'Currently in progress', icon: '◎', colorClass: 'rules-color-purple' },

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
 import BybitModePicker from './BybitModePicker'
 
-function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
+function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) {
   const [timeRange, setTimeRange] = useState('1W')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
@@ -18,20 +18,33 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
   const [startingChallenge, setStartingChallenge] = useState(false)
   const [pendingTierKey, setPendingTierKey] = useState(null)
   
-  // Real account data from Supabase
-  const [account, setAccount] = useState(null)
+  // Real account data from Supabase (IJGF mode) or bybitData prop (Bybit mode)
+  const [_account, setRawAccount] = useState(null)
   const [accountLoading, setAccountLoading] = useState(true)
-  const [accountPositions, setAccountPositions] = useState([])
-  const [accountTradingDays, setAccountTradingDays] = useState(0)
+  const [_accountPositions, setAccountPositions] = useState([])
+  const [_accountTradingDays, setAccountTradingDays] = useState(0)
 
-  // Load account + trades from Supabase
+  // ── Decide data source ────────────────────────────────────────────────────
+  const isBybit        = bybitData?.account?.trading_mode === 'bybit'
+  const account        = isBybit ? bybitData.account        : _account
+  const accountPositions = isBybit ? (bybitData.positions ?? []) : _accountPositions
+  const accountTradingDays = isBybit ? (bybitData.tradingDays ?? 0) : _accountTradingDays
+  // Live equity: for Bybit use the live value from the sync hook;
+  // for IJGF compute from balance + margin locked in open positions
+  const trueAccountValue = isBybit
+    ? (bybitData.equity ?? parseFloat(account?.current_balance ?? 0))
+    : (account
+        ? account.current_balance + accountPositions.reduce((s, p) => s + (p.margin || 0), 0)
+        : 0)
+
+  // Load account + trades from Supabase (IJGF only)
   useEffect(() => {
-    if (!userId) return
+    if (!userId || isBybit) return
     const load = async () => {
       try {
         setAccountLoading(true)
         const state = await getAccountState(userId)
-        setAccount(state.account)
+        setRawAccount(state.account)
         setRealTrades(state.recentTrades)
         setAccountPositions(state.positions || [])
         setAccountTradingDays(state.tradingDays ?? 0)
@@ -42,7 +55,12 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
       }
     }
     load()
-  }, [userId])
+  }, [userId, isBybit])
+
+  // When bybitData arrives (Bybit mode), clear the local loading state
+  useEffect(() => {
+    if (isBybit && !bybitData.loading) setAccountLoading(false)
+  }, [isBybit, bybitData])
 
   // Real-time market data from Binance Futures — all USDT perps
   // Pre-populated with top coins so list is never empty while fetch loads
@@ -148,17 +166,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
 
   const [realTrades, setRealTrades] = useState([])
 
-  // Margin locked in open positions — fallback to entry_price * qty / leverage if column is null
-  const totalMarginInUse = accountPositions.reduce((sum, p) => {
+  // Margin locked in open positions — IJGF mode only
+  // (Bybit: trueAccountValue is already set from bybitData.equity above)
+  const totalMarginInUse = isBybit ? 0 : accountPositions.reduce((sum, p) => {
     const m = (p.margin != null && p.margin > 0)
       ? p.margin
       : (p.entry_price * p.quantity) / (p.leverage || 1)
     return sum + (m || 0)
   }, 0)
-
-  // True account value = cash + margin (returned on close) + unrealized PNL from open positions
-  // This is what the balance card should show
-  const trueAccountValue = account ? account.current_balance + totalMarginInUse : 0
 
   // Realized PNL only (from closed trades) — excludes margin distortion
   const realizedPNL = realTrades.reduce((sum, t) => sum + (t.realized_pnl || 0), 0)
@@ -823,6 +838,24 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
         {/* Active Challenges - Bottom Left */}
         <div className="active-challenges-widget">
           <h3>Active Challenges</h3>
+          {/* Bybit live-sync indicator */}
+          {isBybit && !accountLoading && account?.status === 'active' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
+              padding: '6px 12px',
+              background: 'rgba(245,158,11,0.07)',
+              border: '1px solid rgba(245,158,11,0.2)',
+              borderRadius: 8, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)',
+            }}>
+              <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
+              Bybit Demo syncing every 30s
+              {bybitData.lastSync && (
+                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
+                  {bybitData.lastSync.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          )}
           {accountLoading ? (
             <div className="challenge-card empty-state"><p className="empty-subtext">Loading...</p></div>
           ) : account && account.status === 'active' ? (
@@ -914,14 +947,30 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
               <div>PNL</div>
             </div>
             {realTrades.length === 0 ? (
-              <div className="empty-history">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                <p>No trading history yet</p>
-                <span>Your trades will appear here</span>
-              </div>
+              isBybit ? (
+                <div className="empty-history">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.6">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  <p style={{ color: '#f59e0b' }}>Trading on Bybit Demo</p>
+                  <span>Trade history lives on Bybit — </span>
+                  <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ color: '#f59e0b', fontSize: '0.8rem' }}>
+                    View on bybit.com →
+                  </a>
+                </div>
+              ) : (
+                <div className="empty-history">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                  <p>No trading history yet</p>
+                  <span>Your trades will appear here</span>
+                </div>
+              )
             ) : (
               realTrades.slice(0, 10).map((trade) => (
                 <div key={trade.id} className="table-row">
@@ -1248,7 +1297,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
             try {
               await resetDemoAccount(userId, pendingTierKey)
               const state = await getAccountState(userId)
-              setAccount(state.account)
+              setRawAccount(state.account)
               setRealTrades(state.recentTrades)
               setAccountPositions(state.positions || [])
               setAccountTradingDays(state.tradingDays ?? 0)
@@ -1263,7 +1312,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart }) {
             try {
               await resetDemoAccount(userId, pendingTierKey)
               const state = await getAccountState(userId)
-              setAccount(state.account)
+              setRawAccount(state.account)
               setRealTrades(state.recentTrades)
               setAccountPositions(state.positions || [])
               setAccountTradingDays(state.tradingDays ?? 0)

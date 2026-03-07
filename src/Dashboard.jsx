@@ -15,6 +15,7 @@ import ChallengeResultModal from './ChallengeResultModal'
 import MyChallengesPage from './MyChallengesPage'
 import { ThemeContext } from './ThemeContext'
 import { useTPSLMonitor } from './useTPSLMonitor'
+import { useBybitSync } from './useBybitSync'
 import BybitLivePanel from './BybitLivePanel'
 import { resetDemoAccount } from './tradingService'
 
@@ -53,6 +54,31 @@ function Dashboard() {
       // the atomic .eq('status', 'open') guard in closePosition.
     }
   })
+
+  // ── Bybit status change handler ─────────────────────────────────────────
+  // Called by useBybitSync when the challenge transitions to passed / failed.
+  // We seed prevAccountStatusRef so the background Supabase poll below
+  // does NOT also fire a second modal for the same event.
+  const handleBybitStatusChange = useCallback((status, acct, bybitTradingDays) => {
+    prevAccountStatusRef.current = status
+    setTradingMode('none')
+    setChallengeResultData({
+      result:      status,
+      account:     acct,
+      tradingDays: bybitTradingDays,
+      onStartNew:  async (type, mode = 'ijgf') => {
+        await resetDemoAccount(userId, type)
+        setTradingMode(mode)
+        if (mode === 'ijgf') setActiveTab('market')
+        await checkUserAndLoadProfile()
+      },
+    })
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Background Bybit sync — always active regardless of active tab ────────
+  // Returns { equity, positions, tradingDays, account, loading, error, lastSync }
+  // Passed down as bybitData to every dashboard page that needs live Bybit values.
+  const bybitSync = useBybitSync(userId, tradingMode, handleBybitStatusChange)
 
   useEffect(() => { checkUserAndLoadProfile() }, [])
 
@@ -171,7 +197,7 @@ function Dashboard() {
   // own challengeResult detection can't fire.  Poll here every 8s so the
   // modal fires regardless of which tab is active.
   useEffect(() => {
-    if (!userId || activeTab === 'market') return // Market tab handles its own detection
+    if (!userId || activeTab === 'market' || tradingMode === 'bybit') return // Bybit: useBybitSync handles pass/fail
 
     const poll = async () => {
       try {
@@ -383,7 +409,7 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} />}
+          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} />}
           {activeTab === 'market'     && (
             tradingMode === 'ijgf' ? (
               <MarketsPage
@@ -397,7 +423,7 @@ function Dashboard() {
                 {tradingMode === null ? (
                   <p>Loading...</p>
                 ) : tradingMode === 'bybit' ? (
-                  <BybitLivePanel userId={userId} />
+                  <BybitLivePanel userId={userId} bybitData={bybitSync} />
                 ) : (
                   <>
                     <p style={{fontSize:'1rem',fontWeight:500}}>No Active Challenge</p>
@@ -407,10 +433,10 @@ function Dashboard() {
               </div>
             )
           )}
-          {activeTab === 'challenges' && <MyChallengesPage userId={userId} />}
-          {activeTab === 'analytics'  && <AnalyticsPage userId={userId} />}
-          {activeTab === 'history'    && <TradeHistoryPage userId={userId} />}
-          {activeTab === 'rules'      && <RulesObjectivesPage userId={userId} />}
+          {activeTab === 'challenges' && <MyChallengesPage userId={userId} bybitData={bybitSync} />}
+          {activeTab === 'analytics'  && <AnalyticsPage userId={userId} bybitData={bybitSync} />}
+          {activeTab === 'history'    && <TradeHistoryPage userId={userId} bybitData={bybitSync} />}
+          {activeTab === 'rules'      && <RulesObjectivesPage userId={userId} bybitData={bybitSync} />}
           {activeTab === 'ai'         && (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

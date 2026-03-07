@@ -26,7 +26,7 @@ function tradeDuration(trade) {
   return new Date(trade.closed_at) - new Date(trade.opened_at)
 }
 
-export default function TradeHistoryPage({ userId }) {
+export default function TradeHistoryPage({ userId, bybitData }) {
   const [trades, setTrades]             = useState([])
   const [loading, setLoading]           = useState(true)
   const [search, setSearch]             = useState('')
@@ -38,11 +38,17 @@ export default function TradeHistoryPage({ userId }) {
   const [page, setPage]                 = useState(1)
   const PER_PAGE = 20
 
+  // Bybit: trade history lives on Bybit, not in our demo_trades table.
+  const isBybit = bybitData?.account?.trading_mode === 'bybit'
+
   // ── Load & pair open+close records by position_id ─────────────────────────
   // The DB stores two rows per round-trip: is_close=false (open leg) and
   // is_close=true (close leg). We pair them so Entry, Exit, Duration and PNL
   // all appear on a single row — exactly how Binance/Bybit display history.
   const loadTrades = useCallback(async () => {
+    // Bybit mode: trades are on Bybit — nothing to load from Supabase.
+    if (isBybit) { setLoading(false); return }
+
     setLoading(true)
     try {
       const state = await getAccountState(userId)
@@ -113,7 +119,7 @@ export default function TradeHistoryPage({ userId }) {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, isBybit])
 
   useEffect(() => {
     if (!userId) return
@@ -186,6 +192,115 @@ export default function TradeHistoryPage({ userId }) {
   const SortArrow = ({ col }) => {
     if (sortCol !== col) return <span style={{ opacity: 0.2, fontSize: 10 }}>↕</span>
     return <span style={{ color: '#8b5cf6', fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  // ── Bybit mode: full redirect screen ─────────────────────────────────────
+  // Trade history for Bybit challenges lives on bybit.com — we have no copy
+  // in demo_trades. Show a branded screen linking to Bybit's own history page.
+  if (isBybit) {
+    const acct       = bybitData.account
+    const initial    = parseFloat(acct?.initial_balance ?? 0)
+    const liveEquity = bybitData.equity ?? initial
+    const pnl        = liveEquity - initial
+    return (
+      <div className="history-page">
+        <div style={{
+          maxWidth: 640, margin: '60px auto', textAlign: 'center',
+          padding: '48px 32px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 20,
+        }}>
+          {/* Bybit icon */}
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            background: 'rgba(245,158,11,0.12)',
+            border: '1px solid rgba(245,158,11,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+
+          <h2 style={{ margin: '0 0 12px', fontSize: '1.35rem', fontWeight: 700, color: '#eaecef' }}>
+            Trading on Bybit Demo
+          </h2>
+          <p style={{ margin: '0 0 8px', fontSize: '0.95rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+            Your full trade history lives directly on Bybit — including entry/exit prices,
+            order IDs, fees, and funding. We can't copy it here without making every trade
+            call both IJGF and Bybit, which would double your latency.
+          </p>
+          <p style={{ margin: '0 0 32px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+            The IJGF risk engine tracks your equity, drawdown, and trading days in real-time
+            — those are visible on the <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Overview</strong> and <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Rules</strong> tabs.
+          </p>
+
+          {/* Live PnL summary pill */}
+          <div style={{
+            display: 'inline-flex', gap: 32, padding: '14px 28px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12, marginBottom: 32,
+          }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Live Equity</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
+                ${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)' }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Net P&L</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
+                {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)' }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Trading Days</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+                {bybitData.tradingDays ?? 0}
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div>
+            <a
+              href="https://www.bybit.com/en/order/filled/?orderType=trade&mode=demo"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '12px 28px',
+                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                color: '#000', fontWeight: 700, fontSize: '0.9rem',
+                borderRadius: 10, textDecoration: 'none',
+              }}
+            >
+              View Full Trade History on Bybit
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </a>
+            <p style={{ marginTop: 14, fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>
+              Opens Bybit Demo Trading → Orders → Filled Orders
+            </p>
+          </div>
+
+          {bybitData.lastSync && (
+            <p style={{ marginTop: 24, fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)' }}>
+              ● Last synced with Bybit: {bybitData.lastSync.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (loading) return (
