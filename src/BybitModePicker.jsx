@@ -16,7 +16,7 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
-    signal: AbortSignal.timeout(30000),  // 30s — proxy has 25s to Bybit + margin
+    // timeout controlled by proxy
   })
   if (!res.ok) throw new Error(`Proxy error ${res.status} — is /api/bybit-proxy.js deployed?`)
   const json = await res.json()
@@ -31,62 +31,49 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
 async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   const challengeUsdt = tierToUsdt(tierKey)
 
-  // Step 1: verify credentials
+  // ── Step 1: Verify credentials with wallet-balance ──────────────────────
+  // We use UNIFIED first; fall back to CONTRACT for older account types.
   let accountType = 'UNIFIED'
-  let walletResult
   try {
-    walletResult = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+    await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
   } catch (err) {
-    if (!err.message.startsWith('Invalid')) {
-      accountType = 'CONTRACT'
-      walletResult = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
-    } else throw err
+    if (err.message.startsWith('Invalid')) throw err   // bad keys — surface immediately
+    // Not UNIFIED account — try CONTRACT
+    accountType = 'CONTRACT'
+    await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
   }
 
-  // Step 2: nuke all coins to zero
-  // We try each coin. USDT has a floor Bybit won't reduce below — that's ok, we add on top.
-  // BTC/ETH/USDC: fully reducible to 0.
-  // Add 250ms delay between calls to respect 5 req/sec rate limit.
-  const delay = (ms) => new Promise(r => setTimeout(r, ms))
-  const coins = walletResult?.list?.[0]?.coin ?? []
-  for (const coinEntry of coins) {
-    const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
-    if (bal <= 0) continue
-    let rem = bal
-    while (rem > 0) {
-      const chunk = Math.min(rem, 100000)
-      try {
-        await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-          adjustType: 1,
-          utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
-        })
-      } catch (err) {
-        // Log but don't abort — USDT floor is expected, BTC/ETH may not support reduce
-        console.warn(`[BybitModePicker] reduce ${coinEntry.coin} by ${chunk} failed:`, err.message)
-      }
-      rem -= chunk
-      await delay(250)  // rate limit: 5 req/sec max
-    }
-  }
-
-  // Step 3: add challengeUsdt in USDT — this MUST succeed, no catch
-  let rem = challengeUsdt
-  while (rem > 0) {
-    const chunk = Math.min(rem, 100000)
+  // ── Step 2: Reduce ALL known Bybit demo coins to zero ────────────────────
+  // DO NOT rely on wallet-balance response to discover coins.
+  // Bybit demo accounts always carry USDT, USDC, BTC, ETH.
+  // We attempt to reduce each by a large amount — Bybit will reduce to its
+  // minimum floor. Failures (coin not supported, already zero) are ignored.
+  const DEMO_COINS = [
+    { coin: 'USDT',  amount: '200000' },
+    { coin: 'USDC',  amount: '200000' },
+    { coin: 'BTC',   amount: '10'     },
+    { coin: 'ETH',   amount: '500'    },
+  ]
+  for (const { coin, amount } of DEMO_COINS) {
     await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: 0,
-      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
-    })
-    rem -= chunk
-    await delay(250)
+      adjustType: 1,
+      utaDemoApplyMoney: [{ coin, amountStr: amount }],
+    }).catch(() => {})   // ignore: coin at floor, zero balance, or unsupported
   }
 
-  // Step 4: read final balance
+  // ── Step 3: Add exact challenge amount in USDT ───────────────────────────
+  // This MUST succeed — any failure is a real error, surfaced to user.
+  await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+    adjustType: 0,
+    utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(challengeUsdt) }],
+  })
+
+  // ── Step 4: Read final balance to confirm ───────────────────────────────
   let finalEquity = challengeUsdt
   try {
     const fw = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType })
     finalEquity = parseFloat(fw?.list?.[0]?.totalWalletBalance ?? challengeUsdt)
-  } catch { /* fallback */ }
+  } catch { /* non-critical — show challengeUsdt as fallback */ }
 
   return { equity: finalEquity, challengeUsdt, accountType }
 }
@@ -184,7 +171,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         <button onClick={handleValidate} disabled={validating||!apiKey.trim()||!apiSecret.trim()}
           style={{width:'100%',padding:'12px',background:validating?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#f59e0b,#fbbf24)',color:validating?'rgba(255,255,255,0.4)':'#000',border:'none',borderRadius:10,fontWeight:700,fontSize:'0.93rem',cursor:validating?'not-allowed':'pointer',marginBottom:8}}>
-          {validating ? `Setting ${tierLabel} balance on Bybit… (up to 30s)` : 'Validate & Set Challenge Balance'}
+          {validating ? '⏳ Resetting demo balance… (15–30s)' : 'Validate & Set Challenge Balance'}
         </button>
         <button disabled={validating} onClick={()=>setStep('choose')} style={btnBack}>← Back</button>
       </div>

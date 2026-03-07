@@ -48,47 +48,14 @@ export default async function handler(req, res) {
       method,
       headers,
       body:   method !== 'GET' ? bodyString : undefined,
-      signal: AbortSignal.timeout(25000),  // 25s — demo-apply-money can be slow
+      signal: AbortSignal.timeout(20000),
     })
 
-    // Read as text first — Bybit returns HTML 403 pages when geo-blocked
-    const text = await bybitRes.text()
-    if (!bybitRes.ok) {
-      console.error(`[bybit-proxy] Bybit HTTP ${bybitRes.status} for ${endpoint}`)
-      // Return a valid JSON structure so proxyCall can read retCode
-      return res.status(200).json({
-        retCode: bybitRes.status === 403 ? -403 : -bybitRes.status,
-        retMsg: `Bybit HTTP ${bybitRes.status} — possible geo-block or invalid endpoint`,
-        result: {},
-      })
-    }
-
-    let data
-    try {
-      data = JSON.parse(text)
-    } catch {
-      console.error(`[bybit-proxy] Non-JSON response from Bybit for ${endpoint}:`, text.slice(0, 200))
-      return res.status(200).json({
-        retCode: -1,
-        retMsg: `Bybit returned non-JSON response — possible geo-block`,
-        result: {},
-      })
-    }
-
-    if (data.retCode !== 0) {
-      console.warn(`[bybit-proxy] Bybit retCode ${data.retCode} for ${endpoint}: ${data.retMsg}`)
-    }
+    const data = await bybitRes.json()
     return res.status(200).json(data)
 
   } catch (err) {
-    const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError'
-    console.error(`[bybit-proxy] ${isTimeout ? 'Timeout' : 'Fetch error'} for ${endpoint}:`, err.message)
-    return res.status(200).json({
-      retCode: isTimeout ? -408 : -502,
-      retMsg: isTimeout
-        ? `Bybit request timed out after 25s — server may be slow, try again`
-        : `Bybit request failed: ${err.message}`,
-      result: {},
-    })
+    console.error('[bybit-proxy] Fetch error:', err.message)
+    return res.status(502).json({ error: `Bybit request failed: ${err.message}` })
   }
 }
