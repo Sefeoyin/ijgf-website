@@ -19,6 +19,72 @@ import { useState } from 'react'
 import { supabase } from './supabase'
 import { getOrCreateDemoAccount } from './tradingService'
 
+// ── Bybit Demo balance reset (proven working via diagnostic) ─────────────────
+const BYBIT_PROXY = '/api/bybit-proxy'
+
+async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
+  const res = await fetch(BYBIT_PROXY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
+  })
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status} — is /api/bybit-proxy.js deployed?`)
+  const json = await res.json()
+  if (json.retCode !== 0) {
+    if ([10003, 10004, 33004].includes(json.retCode))
+      throw new Error('Invalid API credentials. Make sure you created the key inside Demo Trading mode on bybit.com — not testnet.')
+    throw new Error(`Bybit error ${json.retCode}: ${json.retMsg}`)
+  }
+  return json.result
+}
+
+async function resetBybitDemoBalance(apiKey, apiSecret, challengeUsdt) {
+  // Step 1: verify credentials + get coins
+  const wallet = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+  const coins = wallet?.list?.[0]?.coin ?? []
+
+  // Step 2: nuke ALL coins to zero (proven working in diagnostic)
+  for (const coinEntry of coins) {
+    const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
+    if (bal <= 0) continue
+    let rem = bal
+    while (rem > 0) {
+      const chunk = Math.min(rem, 100000)
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: 1,
+        utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
+      }).catch(() => {})
+      rem -= chunk
+    }
+  }
+
+  // Step 3: read USDT floor (Bybit won't reduce below minimum)
+  const after = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+  const afterCoins = after?.list?.[0]?.coin ?? []
+  const usdtAfter = afterCoins.find(c => c.coin === 'USDT')
+  const usdtFloor = parseFloat(usdtAfter?.walletBalance ?? 0)
+
+  // Step 4: add only the difference to reach challengeUsdt
+  const toAdd = Math.max(0, Math.ceil(challengeUsdt - usdtFloor))
+  if (toAdd > 0) {
+    let rem = toAdd
+    while (rem > 0) {
+      const chunk = Math.min(rem, 100000)
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: 0,
+        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
+      })
+      rem -= chunk
+    }
+  }
+
+  // Step 5: read final balance
+  const final = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+  const finalCoins = final?.list?.[0]?.coin ?? []
+  const finalUsdt = finalCoins.find(c => c.coin === 'USDT')
+  return parseFloat(finalUsdt?.walletBalance ?? challengeUsdt)
+}
+
 // ── Challenge tier definitions (mirrors tradingService CHALLENGE_CONFIGS) ───
 const TIERS = [
   { key: '5k',   label: '$5,000',   profit: '$500',   drawdown: '$400',   fee: '$49'  },
@@ -58,13 +124,7 @@ export default function OnboardingModal({ userId, onComplete }) {
     setStep('bybit')
   }
 
-  // ── Step 3: save Bybit credentials + create challenge ────────────────────
-  // NOTE: requires DB migration before columns exist:
-  //   ALTER TABLE demo_accounts
-  //     ADD COLUMN IF NOT EXISTS trading_mode        TEXT DEFAULT 'ijgf',
-  //     ADD COLUMN IF NOT EXISTS bybit_api_key       TEXT,
-  //     ADD COLUMN IF NOT EXISTS bybit_api_secret    TEXT,
-  //     ADD COLUMN IF NOT EXISTS bybit_connected_at  TIMESTAMPTZ;
+  // ── Step 3: reset Bybit balance + save credentials + create challenge ───────
   const handleBybitConnect = async () => {
     if (!apiKey.trim() || !apiSecret.trim()) {
       setApiError('Both API Key and API Secret are required')
@@ -73,7 +133,15 @@ export default function OnboardingModal({ userId, onComplete }) {
     setSaving(true)
     setApiError('')
     try {
+      const challengeUsdt = parseInt(tier.replace('k', ''), 10) * 1000
+
+      // Reset Bybit demo balance to challenge amount
+      const finalEquity = await resetBybitDemoBalance(apiKey.trim(), apiSecret.trim(), challengeUsdt)
+
+      // Create/get the challenge account
       const account = await getOrCreateDemoAccount(userId, tier)
+
+      // Save Bybit credentials + equity to DB
       const { error } = await supabase
         .from('demo_accounts')
         .update({
@@ -81,6 +149,9 @@ export default function OnboardingModal({ userId, onComplete }) {
           bybit_api_key:      apiKey.trim(),
           bybit_api_secret:   apiSecret.trim(),
           bybit_connected_at: new Date().toISOString(),
+          bybit_equity:       finalEquity,
+          initial_balance:    finalEquity,
+          current_balance:    finalEquity,
         })
         .eq('id', account.id)
       if (error) throw error
@@ -369,10 +440,10 @@ export default function OnboardingModal({ userId, onComplete }) {
             }}>
               <strong style={{ color: 'rgba(245,158,11,0.85)' }}>How to get your API key:</strong>
               <ol style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                <li>Log in to <strong style={{ color: 'rgba(255,255,255,0.65)' }}>Bybit Testnet</strong> (testnet.bybit.com)</li>
-                <li>Go to Account → API Management → Create New Key</li>
-                <li>Enable <strong style={{ color: 'rgba(255,255,255,0.65)' }}>Trade</strong> permission only — do NOT enable withdrawals</li>
-                <li>Paste both keys below</li>
+                <li>Go to <strong style={{ color: 'rgba(255,255,255,0.85)' }}>bybit.com</strong> → click <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Demo Trading</strong> at the top</li>
+                <li>Avatar → <strong style={{ color: 'rgba(255,255,255,0.85)' }}>API Management → Create New Key</strong></li>
+                <li>Enable: <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Read-Write + Unified Trading + Assets (Account Transfer)</strong></li>
+                <li>No IP restriction → paste both keys below</li>
               </ol>
             </div>
 
@@ -447,7 +518,7 @@ export default function OnboardingModal({ userId, onComplete }) {
                   transition: 'all 0.2s',
                 }}
               >
-                {saving ? 'Connecting...' : 'Connect & Start Challenge'}
+                {saving ? '⏳ Resetting balance & connecting… (20–30s)' : 'Connect & Start Challenge'}
               </button>
             </div>
           </>

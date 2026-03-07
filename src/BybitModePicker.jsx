@@ -2,6 +2,14 @@
  * BybitModePicker.jsx
  * Uses Bybit DEMO TRADING (bybit.com → Demo mode), NOT testnet.bybit.com
  * Demo API domain: api-demo.bybit.com (handled by /api/bybit-proxy.js)
+ *
+ * PROVEN FLOW (confirmed via diagnostic tool):
+ *   Step 1 — Read wallet balance to verify credentials
+ *   Step 2 — Nuke ALL coins to zero (USDC, BTC, ETH, USDT) via demo-apply-money adjustType:1
+ *            Loop each coin, reduce by Math.floor(walletBalance) in ≤100k chunks
+ *   Step 3 — Read USDT floor (Bybit won't reduce USDT below a minimum ~$5k)
+ *   Step 4 — ADD only the difference needed to reach challengeUsdt
+ *   Step 5 — Read final balance to confirm
  */
 import { useState } from 'react'
 
@@ -16,75 +24,82 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
-    // timeout controlled by proxy
   })
-  if (!res.ok) throw new Error(`Proxy error ${res.status} — is /api/bybit-proxy.js deployed?`)
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status} — is /api/bybit-proxy.js deployed?`)
   const json = await res.json()
   if (json.retCode !== 0) {
     if ([10003, 10004, 33004].includes(json.retCode))
       throw new Error('Invalid API credentials. Make sure you created the key inside Demo Trading mode on bybit.com — not from your live account.')
-    throw new Error(`Bybit ${json.retCode}: ${json.retMsg}`)
+    throw new Error(`Bybit error ${json.retCode}: ${json.retMsg}`)
   }
   return json.result
+}
+
+async function getCoins(apiKey, apiSecret) {
+  const r = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+  return r?.list?.[0]?.coin ?? []
 }
 
 async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
   const challengeUsdt = tierToUsdt(tierKey)
 
-  // ── Step 1: Verify credentials with wallet-balance ──────────────────────
-  // We use UNIFIED first; fall back to CONTRACT for older account types.
-  let accountType = 'UNIFIED'
-  try {
-    await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
-  } catch (err) {
-    if (err.message.startsWith('Invalid')) throw err   // bad keys — surface immediately
-    // Not UNIFIED account — try CONTRACT
-    accountType = 'CONTRACT'
-    await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
+  // ── Step 1: Verify credentials ────────────────────────────────────────────
+  const coins = await getCoins(apiKey, apiSecret)
+
+  // ── Step 2: Nuke ALL coins to zero ────────────────────────────────────────
+  // This is exactly what the diagnostic nukeAll() function does — proven working.
+  for (const coinEntry of coins) {
+    const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
+    if (bal <= 0) continue
+    let rem = bal
+    while (rem > 0) {
+      const chunk = Math.min(rem, 100000)
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: 1,
+        utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
+      }).catch(() => {})  // coin at floor — continue regardless
+      rem -= chunk
+    }
   }
 
-  // ── Step 2: Reduce ALL known Bybit demo coins to zero ────────────────────
-  // DO NOT rely on wallet-balance response to discover coins.
-  // Bybit demo accounts always carry USDT, USDC, BTC, ETH.
-  // We attempt to reduce each by a large amount — Bybit will reduce to its
-  // minimum floor. Failures (coin not supported, already zero) are ignored.
-  const DEMO_COINS = [
-    { coin: 'USDT',  amount: '200000' },
-    { coin: 'USDC',  amount: '200000' },
-    { coin: 'BTC',   amount: '10'     },
-    { coin: 'ETH',   amount: '500'    },
-  ]
-  for (const { coin, amount } of DEMO_COINS) {
-    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-      adjustType: 1,
-      utaDemoApplyMoney: [{ coin, amountStr: amount }],
-    }).catch(() => {})   // ignore: coin at floor, zero balance, or unsupported
+  // ── Step 3: Read remaining USDT (Bybit floor — can't go below it) ─────────
+  const coinsAfter = await getCoins(apiKey, apiSecret)
+  const usdtAfter = coinsAfter.find(c => c.coin === 'USDT')
+  const usdtFloor = parseFloat(usdtAfter?.walletBalance ?? 0)
+
+  // ── Step 4: Add only the difference to reach challengeUsdt ───────────────
+  // If floor is 5000 and challenge is 10000, add 5000 — NOT 10000
+  const toAdd = Math.max(0, Math.ceil(challengeUsdt - usdtFloor))
+  if (toAdd > 0) {
+    let rem = toAdd
+    while (rem > 0) {
+      const chunk = Math.min(rem, 100000)
+      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+        adjustType: 0,
+        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
+      })
+      rem -= chunk
+    }
   }
 
-  // ── Step 3: Add exact challenge amount in USDT ───────────────────────────
-  // This MUST succeed — any failure is a real error, surfaced to user.
-  await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-    adjustType: 0,
-    utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(challengeUsdt) }],
-  })
-
-  // ── Step 4: Read final balance to confirm ───────────────────────────────
+  // ── Step 5: Read final balance ────────────────────────────────────────────
   let finalEquity = challengeUsdt
   try {
-    const fw = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType })
-    finalEquity = parseFloat(fw?.list?.[0]?.totalWalletBalance ?? challengeUsdt)
-  } catch { /* non-critical — show challengeUsdt as fallback */ }
+    const final = await getCoins(apiKey, apiSecret)
+    const finalUsdt = final.find(c => c.coin === 'USDT')
+    finalEquity = parseFloat(finalUsdt?.walletBalance ?? challengeUsdt)
+  } catch { /* fallback */ }
 
-  return { equity: finalEquity, challengeUsdt, accountType }
+  return { equity: finalEquity, challengeUsdt }
 }
 
 export default function BybitModePicker({ tierKey, startingChallenge, onCancel, onSelectIJGF, onSelectBybit }) {
-  const [step,      setStep]      = useState('choose')
-  const [apiKey,    setApiKey]    = useState('')
-  const [apiSecret, setApiSecret] = useState('')
-  const [validating,setValidating]= useState(false)
-  const [error,     setError]     = useState('')
-  const [equity,    setEquity]    = useState(null)
+  const [step,       setStep]      = useState('choose')
+  const [apiKey,     setApiKey]    = useState('')
+  const [apiSecret,  setApiSecret] = useState('')
+  const [validating, setValidating]= useState(false)
+  const [error,      setError]     = useState('')
+  const [equity,     setEquity]    = useState(null)
 
   const tierLabel     = `$${tierKey.replace('k', ',000')}`
   const challengeUsdt = tierToUsdt(tierKey)
@@ -128,7 +143,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
           onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(245,158,11,0.25)'}}>
           <span style={{fontSize:'1.6rem'}}>🔗</span>
           <div><div style={{fontWeight:700,fontSize:'0.97rem',marginBottom:2}}>Bybit Demo Trading</div>
-          <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>Trade on Bybit's demo futures — IJGF tracks P&L and enforces challenge rules</div></div>
+          <div style={{fontSize:'0.78rem',color:'rgba(255,255,255,0.45)'}}>Trade on Bybit's demo futures — IJGF sets your balance and tracks P&L</div></div>
         </button>
         <button disabled={busy} onClick={onCancel} style={btnBack}>← Cancel</button>
       </div>
@@ -141,22 +156,20 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
         <div style={{textAlign:'center',marginBottom:18}}>
           <div style={{width:48,height:48,borderRadius:12,margin:'0 auto 12px',background:'rgba(245,158,11,0.15)',border:'1px solid rgba(245,158,11,0.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.5rem'}}>🔗</div>
           <h3 style={{margin:'0 0 4px',fontSize:'1.1rem',fontWeight:700,color:'#eaecef'}}>Connect Bybit Demo Trading</h3>
-          <p style={{margin:0,fontSize:'0.82rem',color:'rgba(255,255,255,0.45)'}}>IJGF will set your <strong style={{color:'#a855f7'}}>{tierLabel}</strong> challenge balance on Bybit</p>
+          <p style={{margin:0,fontSize:'0.82rem',color:'rgba(255,255,255,0.45)'}}>IJGF will reset your Bybit Demo balance to <strong style={{color:'#a855f7'}}>{tierLabel}</strong></p>
         </div>
 
-        {/* Critical: Demo vs Testnet warning */}
         <div style={{background:'rgba(246,70,93,0.08)',border:'1px solid rgba(246,70,93,0.25)',borderRadius:10,padding:'10px 13px',marginBottom:14,fontSize:'0.79rem',color:'rgba(255,255,255,0.6)',lineHeight:1.65}}>
-          ⚠️ <strong style={{color:'#f6465d'}}>Use Demo Trading on bybit.com</strong> — NOT testnet.bybit.com. The key must come from Demo mode or it won't work.
+          ⚠️ <strong style={{color:'#f6465d'}}>Use Demo Trading on bybit.com</strong> — NOT testnet.bybit.com
         </div>
 
-        {/* Step-by-step instructions */}
         <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,padding:'11px 14px',marginBottom:16,fontSize:'0.78rem',color:'rgba(255,255,255,0.5)',lineHeight:1.8}}>
           <strong style={{color:'rgba(245,158,11,0.9)'}}>Create your Demo API key:</strong>
           <ol style={{margin:'5px 0 0',paddingLeft:17}}>
             <li>Go to <strong style={{color:'rgba(255,255,255,0.8)'}}>bybit.com</strong> → click <strong style={{color:'rgba(255,255,255,0.8)'}}>Demo Trading</strong> at the top</li>
-            <li>Inside Demo mode → <strong style={{color:'rgba(255,255,255,0.8)'}}>Account → API Management → Create New Key</strong></li>
+            <li>Avatar → <strong style={{color:'rgba(255,255,255,0.8)'}}>API Management → Create New Key</strong></li>
             <li>Choose <strong style={{color:'rgba(255,255,255,0.8)'}}>System-generated API Keys</strong></li>
-            <li>Enable: <strong style={{color:'rgba(255,255,255,0.8)'}}>Read-Write + Unified Trading + Assets</strong></li>
+            <li>Enable: <strong style={{color:'rgba(255,255,255,0.8)'}}>Read-Write + Unified Trading + Assets (Account Transfer)</strong></li>
             <li>No IP restriction. Copy both keys below.</li>
           </ol>
         </div>
@@ -171,7 +184,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         <button onClick={handleValidate} disabled={validating||!apiKey.trim()||!apiSecret.trim()}
           style={{width:'100%',padding:'12px',background:validating?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#f59e0b,#fbbf24)',color:validating?'rgba(255,255,255,0.4)':'#000',border:'none',borderRadius:10,fontWeight:700,fontSize:'0.93rem',cursor:validating?'not-allowed':'pointer',marginBottom:8}}>
-          {validating ? '⏳ Resetting demo balance… (15–30s)' : 'Validate & Set Challenge Balance'}
+          {validating ? `⏳ Resetting demo balance to ${tierLabel}… (20–30s)` : 'Validate & Set Challenge Balance'}
         </button>
         <button disabled={validating} onClick={()=>setStep('choose')} style={btnBack}>← Back</button>
       </div>
@@ -202,7 +215,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         {equity != null && Math.abs(equity - challengeUsdt) > 500 && (
           <div style={{background:'rgba(245,158,11,0.07)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:9,padding:'10px 13px',marginBottom:14,fontSize:'0.77rem',color:'rgba(255,255,255,0.5)',lineHeight:1.6}}>
-            💡 Bybit shows ${equity?.toLocaleString()} — IJGF measures P&L from your {tierLabel} challenge starting balance. Balance will re-sync when all positions are closed.
+            💡 Balance shows ${equity?.toLocaleString()} — close all open positions on Bybit then reconnect for an exact reset.
           </div>
         )}
 
