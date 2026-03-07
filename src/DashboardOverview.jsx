@@ -172,10 +172,17 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
   // Derived stats from real account data
   const stats = {
     activeChallenges: account?.status === 'active' ? 1 : 0,
-    totalPNL: realizedPNL,
-    winRate: account?.total_trades > 0
-      ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
-      : 0,
+    // Bybit: PNL = live equity minus starting balance (trades live on Bybit, not demo_trades)
+    // IJGF:  PNL = sum of realized_pnl from demo_trades
+    totalPNL: isBybit
+      ? trueAccountValue - parseFloat(account?.initial_balance ?? 0)
+      : realizedPNL,
+    // Bybit: win/loss breakdown not available without Bybit closed-PNL endpoint
+    winRate: isBybit
+      ? 'N/A'
+      : account?.total_trades > 0
+        ? ((account.winning_trades / account.total_trades) * 100).toFixed(1)
+        : 0,
     currentEquity: trueAccountValue,
   }
 
@@ -477,7 +484,30 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     '1Y': ['Q1', 'Q2', 'Q3', 'Q4'],
   }
 
-  const builtChart = buildChartFromTrades(realTrades, hoursMap[timeRange] || 24)
+  // Bybit equity chart: two-point line from initial_balance → live equity.
+  // We don't have historical snapshots, so we draw start → now.
+  // This correctly reflects the actual equity movement vs the flat-at-initial
+  // line that appears when realTrades is empty.
+  const buildBybitChart = useCallback((initial, currentEquity) => {
+    const pad = Math.max(initial, currentEquity) * 0.12
+    const yMin = Math.min(initial, currentEquity) - pad
+    const yMax = Math.max(initial, currentEquity) + pad
+    const range = yMax - yMin || 1
+    const normalize = (e) => 170 - ((e - yMin) / range) * 160
+    const y1 = normalize(initial)
+    const y2 = normalize(currentEquity)
+    const path      = `M 50 ${y1.toFixed(1)} L 750 ${y2.toFixed(1)}`
+    const fillPath  = `${path} L 750 170 L 50 170 Z`
+    const change    = initial > 0 ? ((currentEquity - initial) / initial) * 100 : 0
+    return { path, fillPath, equity: currentEquity, change, dates: [], yMin, yMax }
+  }, [])
+
+  const builtChart = isBybit
+    ? buildBybitChart(
+        parseFloat(account?.initial_balance ?? 0),
+        trueAccountValue
+      )
+    : buildChartFromTrades(realTrades, hoursMap[timeRange] || 24)
   const currentChart = { ...builtChart, dates: dateLabels[timeRange] }
 
   const formatCurrency = (value) => {
@@ -561,7 +591,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
             </div>
             <span className="stats-label">Win Rate</span>
           </div>
-          <div className="stats-value">{stats.winRate}%</div>
+          <div className="stats-value">{stats.winRate === 'N/A' ? 'N/A' : `${stats.winRate}%`}</div>
           <div className="stats-subtitle">Success rate</div>
         </div>
 
