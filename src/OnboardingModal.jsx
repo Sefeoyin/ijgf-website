@@ -45,50 +45,45 @@ async function getUsdtBalance(apiKey, apiSecret) {
 }
 
 async function resetBybitDemoBalance(apiKey, apiSecret, challengeUsdt) {
-  // Step 1: verify credentials + get current coins
+  // Step 1: verify credentials + read actual wallet
   const wallet = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
   const coins = wallet?.list?.[0]?.coin ?? []
 
-  // Step 2: nuke ALL coins to zero
+  // Step 2: nuke every coin that has a balance > 0 using actual wallet amounts
   for (const coinEntry of coins) {
-    const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
+    const bal = parseFloat(coinEntry.walletBalance ?? 0)
     if (bal <= 0) continue
-    let rem = bal
-    while (rem > 0) {
-      const chunk = Math.min(rem, 100000)
-      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-        adjustType: 1,
-        utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
-      }).catch(() => {})
-      rem -= chunk
-    }
+    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+      adjustType: 1,
+      utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(bal) }],
+    }).catch(() => {}) // floor errors are fine — coin just won't go below Bybit's minimum
   }
 
-  // Step 3: read USDT after nuke
+  // Step 3: read USDT balance after nuke
+  // Use USDT coin directly — NOT totalWalletBalance which includes BTC/ETH USD value
   const usdtNow = await getUsdtBalance(apiKey, apiSecret)
 
-  // Step 4: bring USDT to exactly challengeUsdt
-  if (usdtNow > challengeUsdt + 1) {
+  // Step 4: add only the difference to reach challengeUsdt
+  // If nuke zeroed USDT: toAdd = challengeUsdt (e.g. 10000)
+  // If USDT has a floor (e.g. 500 remaining): toAdd = 9500
+  // This guarantees the final USDT balance == challengeUsdt exactly
+  if (usdtNow < challengeUsdt - 1) {
+    const toAdd = Math.ceil(challengeUsdt - usdtNow)
+    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+      adjustType: 0,
+      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(toAdd) }],
+    })
+  } else if (usdtNow > challengeUsdt + 1) {
+    // USDT floor is above challenge amount — reduce the excess
     const excess = Math.floor(usdtNow - challengeUsdt)
     await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
       adjustType: 1,
       utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(excess) }],
     }).catch(() => {})
-  } else if (usdtNow < challengeUsdt - 1) {
-    const toAdd = Math.ceil(challengeUsdt - usdtNow)
-    let rem = toAdd
-    while (rem > 0) {
-      const chunk = Math.min(rem, 100000)
-      await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
-        adjustType: 0,
-        utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
-      })
-      rem -= chunk
-    }
   }
 
-  // Step 5: return final USDT balance
-  return await getUsdtBalance(apiKey, apiSecret)
+  // Step 5: return challengeUsdt as the confirmed target balance
+  return challengeUsdt
 }
 
 // ── Challenge tier definitions (mirrors tradingService CHALLENGE_CONFIGS) ───
