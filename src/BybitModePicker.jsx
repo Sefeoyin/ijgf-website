@@ -16,7 +16,7 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(30000),  // 30s — proxy has 25s to Bybit + margin
   })
   if (!res.ok) throw new Error(`Proxy error ${res.status} — is /api/bybit-proxy.js deployed?`)
   const json = await res.json()
@@ -43,9 +43,11 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
     } else throw err
   }
 
-  // Step 2: nuke all coins to zero (same as diagnostic nukeAll)
-  // proxyCall throws on non-zero retCode — but some coins (BTC/ETH) may not
-  // support reduce, so we catch per-coin and continue regardless
+  // Step 2: nuke all coins to zero
+  // We try each coin. USDT has a floor Bybit won't reduce below — that's ok, we add on top.
+  // BTC/ETH/USDC: fully reducible to 0.
+  // Add 250ms delay between calls to respect 5 req/sec rate limit.
+  const delay = (ms) => new Promise(r => setTimeout(r, ms))
   const coins = walletResult?.list?.[0]?.coin ?? []
   for (const coinEntry of coins) {
     const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
@@ -58,15 +60,16 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
           adjustType: 1,
           utaDemoApplyMoney: [{ coin: coinEntry.coin, amountStr: String(chunk) }],
         })
-      } catch {
-        // coin doesn't support reduce (e.g. BTC/ETH) — skip it
+      } catch (err) {
+        // Log but don't abort — USDT floor is expected, BTC/ETH may not support reduce
+        console.warn(`[BybitModePicker] reduce ${coinEntry.coin} by ${chunk} failed:`, err.message)
       }
       rem -= chunk
+      await delay(250)  // rate limit: 5 req/sec max
     }
   }
 
-  // Step 3: add challengeUsdt in USDT (same as diagnostic addUsdt)
-  // This MUST succeed — no catch, errors will surface to the user
+  // Step 3: add challengeUsdt in USDT — this MUST succeed, no catch
   let rem = challengeUsdt
   while (rem > 0) {
     const chunk = Math.min(rem, 100000)
@@ -75,6 +78,7 @@ async function validateAndSetupBybitDemo(apiKey, apiSecret, tierKey) {
       utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(chunk) }],
     })
     rem -= chunk
+    await delay(250)
   }
 
   // Step 4: read final balance
@@ -180,7 +184,7 @@ export default function BybitModePicker({ tierKey, startingChallenge, onCancel, 
 
         <button onClick={handleValidate} disabled={validating||!apiKey.trim()||!apiSecret.trim()}
           style={{width:'100%',padding:'12px',background:validating?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#f59e0b,#fbbf24)',color:validating?'rgba(255,255,255,0.4)':'#000',border:'none',borderRadius:10,fontWeight:700,fontSize:'0.93rem',cursor:validating?'not-allowed':'pointer',marginBottom:8}}>
-          {validating ? `Zeroing account & setting ${tierLabel} balance… (may take 20s)` : 'Validate & Set Challenge Balance'}
+          {validating ? `Setting ${tierLabel} balance on Bybit… (up to 30s)` : 'Validate & Set Challenge Balance'}
         </button>
         <button disabled={validating} onClick={()=>setStep('choose')} style={btnBack}>← Back</button>
       </div>

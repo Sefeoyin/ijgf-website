@@ -3,12 +3,14 @@
  *
  * Vercel serverless function.
  * Signs Bybit Demo Trading API requests server-side using HMAC-SHA256.
- * Place this file at: /api/bybit-proxy.js  (root of repo, NOT inside /src)
+ * The API secret never appears in browser network logs.
+ *
+ * Place this file at: /api/bybit-proxy.js  (root of your repo, NOT inside /src)
  */
 
 import crypto from 'crypto'
 
-const BYBIT_BASE = 'https://api-demo.bybit.com'
+const BYBIT_BASE = 'https://api-demo.bybit.com'  // Bybit Demo Trading (NOT testnet)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -24,10 +26,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: apiKey, apiSecret, method, endpoint' })
   }
 
+  // Never log API keys or secrets
   const timestamp   = Date.now().toString()
   const recvWindow  = '5000'
-  const queryString = method === 'GET' ? new URLSearchParams(params).toString() : ''
-  const bodyString  = method !== 'GET' ? JSON.stringify(params) : ''
+  const queryString = method === 'GET'  ? new URLSearchParams(params).toString() : ''
+  const bodyString  = method !== 'GET'  ? JSON.stringify(params)                 : ''
   const signPayload = `${timestamp}${apiKey}${recvWindow}${queryString || bodyString}`
   const signature   = crypto.createHmac('sha256', apiSecret).update(signPayload).digest('hex')
 
@@ -41,55 +44,51 @@ export default async function handler(req, res) {
 
   try {
     const url = `${BYBIT_BASE}${endpoint}${queryString ? '?' + queryString : ''}`
-
     const bybitRes = await fetch(url, {
       method,
       headers,
       body:   method !== 'GET' ? bodyString : undefined,
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(25000),  // 25s — demo-apply-money can be slow
     })
 
-    // ── Read raw text first, THEN parse ──────────────────────────────────
-    // If Bybit returns an HTML error page (403, 429, 5xx), .json() throws
-    // "Unexpected token '<'" which completely hides the real error.
-    // We read text first so we always know what Bybit actually sent.
-    const rawText = await bybitRes.text()
-
-    // Log non-200 HTTP status so it appears in Vercel function logs
+    // Read as text first — Bybit returns HTML 403 pages when geo-blocked
+    const text = await bybitRes.text()
     if (!bybitRes.ok) {
-      console.error(
-        `[bybit-proxy] HTTP ${bybitRes.status} from Bybit on ${method} ${endpoint}. ` +
-        `Body: ${rawText.slice(0, 300)}`
-      )
+      console.error(`[bybit-proxy] Bybit HTTP ${bybitRes.status} for ${endpoint}`)
+      // Return a valid JSON structure so proxyCall can read retCode
       return res.status(200).json({
-        retCode: -bybitRes.status,
-        retMsg:  `Bybit HTTP ${bybitRes.status}: ${rawText.slice(0, 200)}`,
-        result:  {},
+        retCode: bybitRes.status === 403 ? -403 : -bybitRes.status,
+        retMsg: `Bybit HTTP ${bybitRes.status} — possible geo-block or invalid endpoint`,
+        result: {},
       })
     }
 
-    // Parse JSON — if it fails, Bybit sent something unexpected
     let data
     try {
-      data = JSON.parse(rawText)
+      data = JSON.parse(text)
     } catch {
-      console.error(`[bybit-proxy] Non-JSON response from Bybit on ${method} ${endpoint}: ${rawText.slice(0, 300)}`)
+      console.error(`[bybit-proxy] Non-JSON response from Bybit for ${endpoint}:`, text.slice(0, 200))
       return res.status(200).json({
         retCode: -1,
-        retMsg:  `Bybit returned non-JSON response: ${rawText.slice(0, 200)}`,
-        result:  {},
+        retMsg: `Bybit returned non-JSON response — possible geo-block`,
+        result: {},
       })
     }
 
-    // Log non-zero retCodes to Vercel function logs for visibility
     if (data.retCode !== 0) {
-      console.error(`[bybit-proxy] retCode ${data.retCode} on ${method} ${endpoint}: ${data.retMsg}`)
+      console.warn(`[bybit-proxy] Bybit retCode ${data.retCode} for ${endpoint}: ${data.retMsg}`)
     }
-
     return res.status(200).json(data)
 
   } catch (err) {
-    console.error('[bybit-proxy] Fetch error:', err.message)
-    return res.status(502).json({ error: `Bybit request failed: ${err.message}` })
+    const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError'
+    console.error(`[bybit-proxy] ${isTimeout ? 'Timeout' : 'Fetch error'} for ${endpoint}:`, err.message)
+    return res.status(200).json({
+      retCode: isTimeout ? -408 : -502,
+      retMsg: isTimeout
+        ? `Bybit request timed out after 25s — server may be slow, try again`
+        : `Bybit request failed: ${err.message}`,
+      result: {},
+    })
   }
 }
