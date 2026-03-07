@@ -19,7 +19,6 @@ import { useState } from 'react'
 import { supabase } from './supabase'
 import { getOrCreateDemoAccount } from './tradingService'
 
-// ── Bybit Demo balance reset (proven working via diagnostic) ─────────────────
 const BYBIT_PROXY = '/api/bybit-proxy'
 
 async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
@@ -28,22 +27,29 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, apiSecret, method, endpoint, params }),
   })
-  if (!res.ok) throw new Error(`Proxy HTTP ${res.status} — is /api/bybit-proxy.js deployed?`)
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`)
   const json = await res.json()
   if (json.retCode !== 0) {
     if ([10003, 10004, 33004].includes(json.retCode))
-      throw new Error('Invalid API credentials. Make sure you created the key inside Demo Trading mode on bybit.com — not testnet.')
+      throw new Error('Invalid API credentials. Create the key inside Demo Trading mode on bybit.com — not testnet.')
     throw new Error(`Bybit error ${json.retCode}: ${json.retMsg}`)
   }
   return json.result
 }
 
+async function getUsdtBalance(apiKey, apiSecret) {
+  const r = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
+  const coins = r?.list?.[0]?.coin ?? []
+  const usdt = coins.find(c => c.coin === 'USDT')
+  return parseFloat(usdt?.walletBalance ?? 0)
+}
+
 async function resetBybitDemoBalance(apiKey, apiSecret, challengeUsdt) {
-  // Step 1: verify credentials + get coins
+  // Step 1: verify credentials + get current coins
   const wallet = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
   const coins = wallet?.list?.[0]?.coin ?? []
 
-  // Step 2: nuke ALL coins to zero (proven working in diagnostic)
+  // Step 2: nuke ALL coins to zero
   for (const coinEntry of coins) {
     const bal = Math.floor(parseFloat(coinEntry.walletBalance ?? 0))
     if (bal <= 0) continue
@@ -58,15 +64,18 @@ async function resetBybitDemoBalance(apiKey, apiSecret, challengeUsdt) {
     }
   }
 
-  // Step 3: read USDT floor (Bybit won't reduce below minimum)
-  const after = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
-  const afterCoins = after?.list?.[0]?.coin ?? []
-  const usdtAfter = afterCoins.find(c => c.coin === 'USDT')
-  const usdtFloor = parseFloat(usdtAfter?.walletBalance ?? 0)
+  // Step 3: read USDT after nuke
+  const usdtNow = await getUsdtBalance(apiKey, apiSecret)
 
-  // Step 4: add only the difference to reach challengeUsdt
-  const toAdd = Math.max(0, Math.ceil(challengeUsdt - usdtFloor))
-  if (toAdd > 0) {
+  // Step 4: bring USDT to exactly challengeUsdt
+  if (usdtNow > challengeUsdt + 1) {
+    const excess = Math.floor(usdtNow - challengeUsdt)
+    await proxyCall(apiKey, apiSecret, 'POST', '/v5/account/demo-apply-money', {
+      adjustType: 1,
+      utaDemoApplyMoney: [{ coin: 'USDT', amountStr: String(excess) }],
+    }).catch(() => {})
+  } else if (usdtNow < challengeUsdt - 1) {
+    const toAdd = Math.ceil(challengeUsdt - usdtNow)
     let rem = toAdd
     while (rem > 0) {
       const chunk = Math.min(rem, 100000)
@@ -78,11 +87,8 @@ async function resetBybitDemoBalance(apiKey, apiSecret, challengeUsdt) {
     }
   }
 
-  // Step 5: read final balance
-  const final = await proxyCall(apiKey, apiSecret, 'GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' })
-  const finalCoins = final?.list?.[0]?.coin ?? []
-  const finalUsdt = finalCoins.find(c => c.coin === 'USDT')
-  return parseFloat(finalUsdt?.walletBalance ?? challengeUsdt)
+  // Step 5: return final USDT balance
+  return await getUsdtBalance(apiKey, apiSecret)
 }
 
 // ── Challenge tier definitions (mirrors tradingService CHALLENGE_CONFIGS) ───
@@ -135,13 +141,13 @@ export default function OnboardingModal({ userId, onComplete }) {
     try {
       const challengeUsdt = parseInt(tier.replace('k', ''), 10) * 1000
 
-      // Reset Bybit demo balance to challenge amount
+      // Reset Bybit demo balance to exact challenge amount
       const finalEquity = await resetBybitDemoBalance(apiKey.trim(), apiSecret.trim(), challengeUsdt)
 
-      // Create/get the challenge account
+      // Create/get the challenge account row
       const account = await getOrCreateDemoAccount(userId, tier)
 
-      // Save Bybit credentials + equity to DB
+      // Overwrite balances with actual Bybit equity
       const { error } = await supabase
         .from('demo_accounts')
         .update({
@@ -518,7 +524,7 @@ export default function OnboardingModal({ userId, onComplete }) {
                   transition: 'all 0.2s',
                 }}
               >
-                {saving ? '⏳ Resetting balance & connecting… (20–30s)' : 'Connect & Start Challenge'}
+                {saving ? '⏳ Resetting balance… (20–30s)' : 'Connect & Start Challenge'}
               </button>
             </div>
           </>
