@@ -7525,7 +7525,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 }
 .auth-terms-check span {
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.6);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 .auth-terms-check a {
@@ -7538,7 +7538,7 @@ body[data-theme="day"] ::-webkit-scrollbar-thumb:hover {
 .auth-terms-hint {
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.35);
+  color: var(--text-muted);
   margin: 4px 0 0;
 }
 
