@@ -21,7 +21,7 @@
  *   3. Simulated — mathematical fallback, always works
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 
 // ── Proxy endpoints ───────────────────────────────────────────────────────────
 const PROXY_PRICES    = '/api/prices'
@@ -161,6 +161,11 @@ export function useBinanceWebSocket(symbols = []) {
   // Track last-update timestamps per symbol so CoinGecko doesn't overwrite
   // fresh proxy data. Stored as { BTCUSDT: timestampMs, ... }
   const lastProxyUpdate = useRef({})
+  // WS messages can fire 5-10×/sec per symbol — batch them and flush to state
+  // at most every PRICE_FLUSH_MS. This prevents per-tick React re-renders which
+  // cause visible price flickering in the UI.
+  const pendingWsUpdates = useRef({})  // { BTCUSDT: { price, change, ... } }
+  const wsFlushRef       = useRef(null)
 
   const symbolsKey = symbols.slice().sort().join(',')
 
@@ -285,6 +290,23 @@ export function useBinanceWebSocket(symbols = []) {
           }, BYBIT_PING_MS)
           setIsConnected(true)
           setMode('ws')
+
+          // Flush batched WS updates to React state every 250ms.
+          // Decouples high-frequency Bybit ticks from React render cycles,
+          // eliminating visible price flickering caused by per-tick setState.
+          if (wsFlushRef.current) clearInterval(wsFlushRef.current)
+          wsFlushRef.current = setInterval(() => {
+            const batch = pendingWsUpdates.current
+            if (!mounted.current || Object.keys(batch).length === 0) return
+            pendingWsUpdates.current = {}
+            setPrices(prev => {
+              const next = { ...prev }
+              for (const [sym, data] of Object.entries(batch)) {
+                next[sym] = data
+              }
+              return next
+            })
+          }, 250)
         }
 
         ws.onmessage = (event) => {
@@ -295,18 +317,31 @@ export function useBinanceWebSocket(symbols = []) {
             if (!d?.symbol) return
             const now = Date.now()
             lastProxyUpdate.current[d.symbol] = now  // WS counts as "fresh"
-            setPrices(prev => ({
-              ...prev,
-              [d.symbol]: {
-                price:       parseFloat(d.lastPrice)     || 0,
-                change:      (parseFloat(d.price24hPcnt) || 0) * 100,
-                high:        parseFloat(d.highPrice24h)  || 0,
-                low:         parseFloat(d.lowPrice24h)   || 0,
-                volume:      parseFloat(d.volume24h)     || 0,
-                quoteVolume: parseFloat(d.turnover24h)   || 0,
-                lastUpdate:  now,
-              },
-            }))
+
+            // Bybit sends two message types:
+            //   snapshot — all fields present (first message per symbol)
+            //   delta    — only CHANGED fields; absent fields must NOT overwrite
+            //              the existing value with 0.
+            // Fix: merge into pendingWsUpdates, preserving existing values for
+            //      any field that is missing or would parse to NaN/0.
+            const existing = pendingWsUpdates.current[d.symbol] || {}
+
+            const newPrice  = parseFloat(d.lastPrice)
+            const newChange = parseFloat(d.price24hPcnt)
+            const newHigh   = parseFloat(d.highPrice24h)
+            const newLow    = parseFloat(d.lowPrice24h)
+            const newVol    = parseFloat(d.volume24h)
+            const newQuote  = parseFloat(d.turnover24h)
+
+            pendingWsUpdates.current[d.symbol] = {
+              price:       (newPrice  > 0) ? newPrice  : (existing.price       || 0),
+              change:      !isNaN(newChange) ? newChange * 100 : (existing.change || 0),
+              high:        (newHigh   > 0) ? newHigh   : (existing.high        || 0),
+              low:         (newLow    > 0) ? newLow    : (existing.low         || 0),
+              volume:      (newVol    > 0) ? newVol    : (existing.volume      || 0),
+              quoteVolume: (newQuote  > 0) ? newQuote  : (existing.quoteVolume || 0),
+              lastUpdate:  now,
+            }
           } catch { /* ignore malformed message */ }
         }
 
@@ -314,6 +349,8 @@ export function useBinanceWebSocket(symbols = []) {
           clearTimeout(timeout)
           if (!mounted.current) return
           clearInterval(pingRef.current); pingRef.current = null
+          if (wsFlushRef.current) { clearInterval(wsFlushRef.current); wsFlushRef.current = null }
+          pendingWsUpdates.current = {}  // discard any unflushed deltas from dead connection
           wsRef.current = null
           setIsConnected(false)
           setMode('proxy')
@@ -419,13 +456,22 @@ export function useBinanceWebSocket(symbols = []) {
       closeWS()
       stopProxyPoll()
       stopCoinGecko()
+      if (wsFlushRef.current) { clearInterval(wsFlushRef.current); wsFlushRef.current = null }
+      pendingWsUpdates.current = {}
     }
   }, [symbolsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const priceMap = {}
-  for (const [sym, data] of Object.entries(prices)) {
-    priceMap[sym] = data.price
-  }
+  // useMemo ensures priceMap is only recomputed when the prices state object
+  // changes (i.e. after the 250ms flush), not on every unrelated render.
+  // The inline version created a new object reference on every render, which
+  // caused downstream useMemo/useEffect consumers to re-run unnecessarily.
+  const priceMap = useMemo(() => {
+    const map = {}
+    for (const [sym, data] of Object.entries(prices)) {
+      map[sym] = data.price
+    }
+    return map
+  }, [prices])
 
   return { prices, priceMap, isConnected, mode }
 }
