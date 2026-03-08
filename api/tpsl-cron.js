@@ -1,4 +1,3 @@
-/* global require, Buffer, module, process */
 /* eslint-disable no-unused-vars */
 /**
  * api/tpsl-cron.js
@@ -19,7 +18,7 @@
  *   SUPABASE_SERVICE_ROLE_KEY — service role key (NOT the anon key)
  */
 
-const https = require('https')
+import https from 'https'
 
 // ---------------------------------------------------------------------------
 // Minimal HTTPS helpers (no npm dependencies)
@@ -356,7 +355,7 @@ async function closePosition(db, position, currentPrice, reason) {
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
