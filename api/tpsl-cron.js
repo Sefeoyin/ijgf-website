@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* global Buffer, process */
 /**
  * api/tpsl-cron.js
  *
