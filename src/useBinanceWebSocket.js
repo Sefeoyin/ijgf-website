@@ -166,6 +166,16 @@ export function useBinanceWebSocket(symbols = []) {
   // cause visible price flickering in the UI.
   const pendingWsUpdates = useRef({})  // { BTCUSDT: { price, change, ... } }
   const wsFlushRef       = useRef(null)
+  // Mirrors the prices state object so the onmessage handler (which runs inside
+  // a stale closure) can always read the last COMMITTED price for a symbol.
+  // Without this, the first delta after a flush has no pendingWsUpdates entry
+  // and no existing.price, so missing fields default to 0 — causing a blink.
+  const pricesRef        = useRef({})
+
+  // Sync pricesRef on every state change so onmessage always has the latest
+  // committed prices available without being inside a stale closure.
+  // This is a ref sync, not business logic — no perf cost, no render triggered.
+  pricesRef.current = prices
 
   const symbolsKey = symbols.slice().sort().join(',')
 
@@ -322,9 +332,17 @@ export function useBinanceWebSocket(symbols = []) {
             //   snapshot — all fields present (first message per symbol)
             //   delta    — only CHANGED fields; absent fields must NOT overwrite
             //              the existing value with 0.
-            // Fix: merge into pendingWsUpdates, preserving existing values for
-            //      any field that is missing or would parse to NaN/0.
-            const existing = pendingWsUpdates.current[d.symbol] || {}
+            //
+            // Three-level fallback for "existing" values:
+            //   1. pendingWsUpdates — value set earlier in THIS flush window
+            //   2. pricesRef        — last value committed to React state (post-flush)
+            //   3. {}               — only on the very first snapshot ever
+            //
+            // Without level 2, the first delta after a flush clears pendingWsUpdates
+            // and existing.price becomes undefined → 0 → blink.
+            const existing = pendingWsUpdates.current[d.symbol]
+              || pricesRef.current[d.symbol]
+              || {}
 
             const newPrice  = parseFloat(d.lastPrice)
             const newChange = parseFloat(d.price24hPcnt)
