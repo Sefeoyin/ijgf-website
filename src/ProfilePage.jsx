@@ -174,6 +174,7 @@ function ProfilePage({ isSetup = false }) {
     if (!username.trim())  { setError('Username is required'); return }
     if (username.trim().length < 3) { setError('Username must be at least 3 characters'); return }
     if (!country)          { setError('Please select your country'); return }
+    if (isSetup && !dateOfBirth)   { setError('Date of birth is required'); return }
     setLoading(true); setError(''); setSuccess('')
     try {
       const payload = {
@@ -387,7 +388,7 @@ function ProfilePage({ isSetup = false }) {
                     </select>
                   </div>
                   <div className="profile-input-group">
-                    <label>Date of Birth</label>
+                    <label>Date of Birth <span className="required">*</span></label>
                     <input
                       type="date"
                       value={dateOfBirth}
@@ -465,7 +466,7 @@ function ProfilePage({ isSetup = false }) {
                     onChange={e => setWalletAddress(e.target.value)}
                     className="profile-input"
                   />
-                  <p className="profile-input-note">Double-check — payouts sent here cannot be recovered.</p>
+                  <p className="profile-input-note">Double-check: payouts sent here cannot be recovered.</p>
                 </div>
               </div>
             </div>
@@ -701,7 +702,7 @@ function ProfilePage({ isSetup = false }) {
                 onChange={e => setWalletAddress(e.target.value)}
                 className="profile-input"
               />
-              <p className="profile-input-note">Double-check — payouts sent here cannot be recovered.</p>
+              <p className="profile-input-note">Double-check: payouts sent here cannot be recovered.</p>
             </div>
           </div>
 

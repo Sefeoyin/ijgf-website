@@ -33,10 +33,17 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (!isLogin && !termsAccepted) {
+      setError('You must accept the Terms of Service and Privacy Policy to continue.')
+      return
+    }
 
     if (!isLogin && password !== confirmPassword) {
       setError('Passwords do not match')
@@ -97,18 +104,24 @@ function AuthPage() {
           navigate('/dashboard')
         }
       } else {
+        // Redirect must go through AuthCallback so profile-completion check runs
+        const redirectTo = `${window.location.origin}/auth/callback`
+
         const { data, error } = await supabase.auth.signUp({
           email: email.toLowerCase().trim(),
           password: password,
           options: {
-            emailRedirectTo: `${window.location.origin}/profile-setup`,
+            emailRedirectTo: redirectTo,
           }
         })
 
         if (error) throw error
 
         if (data?.user) {
-          navigate('/profile-setup')
+          // Show the "check your email" screen — do not navigate yet.
+          // Supabase sends a confirmation link; clicking it hits /auth/callback
+          // which then routes to /profile-setup or /dashboard as appropriate.
+          setEmailSent(true)
         }
       }
     } catch (err) {
@@ -137,6 +150,47 @@ function AuthPage() {
     } catch (err) {
       setError(err.message || 'Failed to sign in with Google')
     }
+  }
+
+  // ── Email verification screen (shown after successful signup) ───────────────
+  if (emailSent) {
+    return (
+      <section className="auth-page-new">
+        <div className="auth-logo-header">
+          <a href="/" className="auth-logo-link">
+            <img src="/images/logo-icon.png" alt="IJGF" className="auth-logo-icon" />
+          </a>
+        </div>
+        <div className="auth-container-new" style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', margin: '0 auto 20px',
+            background: 'rgba(34,197,94,0.12)',
+            border: '1px solid rgba(34,197,94,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <h1 className="auth-title-new" style={{ fontSize: '1.4rem' }}>Check your email</h1>
+          <p className="auth-subtitle-new" style={{ marginBottom: 24 }}>
+            We sent a verification link to{' '}
+            <strong style={{ color: dark ? '#eaecef' : '#0f172a' }}>{email}</strong>.
+            Click the link in that email to activate your account and set up your profile.
+          </p>
+          <p style={{ fontSize: '0.82rem', color: dark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.4)', lineHeight: 1.6 }}>
+            No email? Check your spam folder or{' '}
+            <a
+              onClick={() => setEmailSent(false)}
+              style={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              go back and try again
+            </a>.
+          </p>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -311,7 +365,26 @@ function AuthPage() {
             </div>
           )}
 
-          <button type="submit" className="auth-submit-btn-new" disabled={loading}>
+          {/* Terms & Privacy acceptance — signup only */}
+          {!isLogin && (
+            <label className="auth-terms-check">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={e => setTermsAccepted(e.target.checked)}
+                disabled={loading}
+              />
+              <span>
+                I have read and agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+                I confirm I am 18 years of age or older.
+              </span>
+            </label>
+          )}
+
+          <button type="submit" className="auth-submit-btn-new" disabled={loading || (!isLogin && !termsAccepted)}>
             {loading ? 'Please wait...' : (isLogin ? 'Log in' : 'Create Account')}
           </button>
         </form>

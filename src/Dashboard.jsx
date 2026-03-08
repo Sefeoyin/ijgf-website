@@ -446,7 +446,7 @@ function Dashboard() {
                 <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
                 <path d="M9 8h.01M12 8h.01M15 8h.01M9 12h6"/>
               </svg>
-              <p style={{ fontSize: '1rem', fontWeight: 500 }}>AI Assistant — Coming Soon</p>
+              <p style={{ fontSize: '1rem', fontWeight: 500 }}>AI Assistant: Coming Soon</p>
               <p style={{ fontSize: '0.85rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
                 Your AI trading coach is in development. It will analyze your trades, flag risk patterns, and give personalized strategy feedback.
               </p>

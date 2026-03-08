@@ -11,9 +11,7 @@ const CATEGORIES = [
   'Other',
 ]
 
-const MOCK_TICKETS = [
-  { id: 'TIC 001', subject: 'Issue with wallet funding and trading challenge', status: 'Pending', updatedAt: '16/02/2026  12:34pm' },
-]
+const MOCK_TICKETS = []
 
 const STATUS_COLOR = { Pending: '#f59e0b', Open: '#4ade80', Resolved: 'rgba(255,255,255,0.4)', Closed: 'rgba(255,255,255,0.3)' }
 

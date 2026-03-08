@@ -103,8 +103,50 @@ class SupabaseClient {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch all live Binance Futures prices in one call
+// Fetch all live prices — Bybit first (cloud-IP friendly), OKX fallback,
+// Binance last resort. fapi.binance.com blocks Vercel/AWS IPs at the
+// network layer; Bybit and OKX have permissive cloud-provider policies.
+// All three return a map of { BTCUSDT: 43000, ETHUSDT: 2300, ... }
 // ---------------------------------------------------------------------------
+
+async function fetchBybitPrices() {
+  try {
+    const data = await httpsGet('https://api.bybit.com/v5/market/tickers?category=linear')
+    const map = {}
+    if (data?.result?.list && Array.isArray(data.result.list)) {
+      for (const item of data.result.list) {
+        if (item.symbol && item.lastPrice) {
+          map[item.symbol] = parseFloat(item.lastPrice)
+        }
+      }
+    }
+    return map
+  } catch (err) {
+    console.error('[tpsl-cron] Bybit price fetch failed:', err.message)
+    return {}
+  }
+}
+
+async function fetchOKXPrices() {
+  try {
+    const data = await httpsGet('https://www.okx.com/api/v5/market/tickers?instType=SWAP')
+    const map = {}
+    if (data?.data && Array.isArray(data.data)) {
+      for (const item of data.data) {
+        // OKX format: BTC-USDT-SWAP → BTCUSDT (matches Bybit/Binance symbol format)
+        if (item.instId && item.instId.endsWith('-USDT-SWAP') && item.last) {
+          const base = item.instId.replace('-USDT-SWAP', '')
+          map[`${base}USDT`] = parseFloat(item.last)
+        }
+      }
+    }
+    return map
+  } catch (err) {
+    console.error('[tpsl-cron] OKX price fetch failed:', err.message)
+    return {}
+  }
+}
+
 async function fetchBinancePrices() {
   try {
     const data = await httpsGet('https://fapi.binance.com/fapi/v1/ticker/price')
@@ -119,6 +161,22 @@ async function fetchBinancePrices() {
     console.error('[tpsl-cron] Binance price fetch failed:', fetchErr.message)
     return {}
   }
+}
+
+// Cascade: Bybit → OKX → Binance
+async function fetchPrices() {
+  const bybit = await fetchBybitPrices()
+  if (Object.keys(bybit).length > 0) {
+    console.log(`[tpsl-cron] Prices from Bybit (${Object.keys(bybit).length} symbols)`)
+    return bybit
+  }
+  const okx = await fetchOKXPrices()
+  if (Object.keys(okx).length > 0) {
+    console.log(`[tpsl-cron] Prices from OKX (${Object.keys(okx).length} symbols)`)
+    return okx
+  }
+  console.warn('[tpsl-cron] Bybit and OKX both failed, trying Binance (may be blocked on cloud IPs)')
+  return fetchBinancePrices()
 }
 
 // ---------------------------------------------------------------------------
@@ -311,7 +369,7 @@ module.exports = async function handler(req, res) {
   if (!supabaseUrl || !serviceKey) {
     console.error('[tpsl-cron] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
     // Return 200 so cron-job.org never counts this as a job failure
-    return res.status(200).json({ ok: false, error: 'Server misconfiguration — check Vercel env vars' })
+    return res.status(200).json({ ok: false, error: 'Server misconfiguration: check Vercel env vars' })
   }
 
   const db        = new SupabaseClient(supabaseUrl, serviceKey)
@@ -332,13 +390,13 @@ module.exports = async function handler(req, res) {
       })
     }
 
-    // 2. Single Binance call fetches all symbols at once
-    const priceMap = await fetchBinancePrices()
+    // 2. Single call fetches all symbols at once (Bybit → OKX → Binance cascade)
+    const priceMap = await fetchPrices()
 
     if (!Object.keys(priceMap).length) {
       return res.status(200).json({
         ok:            true,
-        message:       'Binance unavailable — skipping this cycle',
+        message:       'All price sources unavailable, skipping this cycle',
         positionCount: positions.length,
         elapsed:       Date.now() - startTime,
       })

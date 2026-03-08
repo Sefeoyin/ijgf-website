@@ -31,7 +31,7 @@ async function proxyCall(apiKey, apiSecret, method, endpoint, params = {}) {
   const json = await res.json()
   if (json.retCode !== 0) {
     if ([10003, 10004, 33004].includes(json.retCode))
-      throw new Error('Invalid API credentials. Create the key inside Demo Trading mode on bybit.com — not testnet.')
+      throw new Error('Invalid API credentials. Create the key inside Demo Trading mode on bybit.com (not testnet).')
     throw new Error(`Bybit error ${json.retCode}: ${json.retMsg}`)
   }
   return json.result
@@ -218,7 +218,7 @@ export default function OnboardingModal({ userId, onComplete }) {
                 Welcome to IJGF!
               </h2>
               <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-                Choose your challenge size to get started. This is a demo challenge — no payment required.
+                Choose your challenge size to get started. This is a demo challenge. No payment required.
               </p>
             </div>
 
