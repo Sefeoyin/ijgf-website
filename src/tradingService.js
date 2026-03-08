@@ -678,6 +678,39 @@ async function checkChallengeRules(accountId, userId) {
       })
     } catch { /* non-critical */ }
 
+    // ── Force-close ALL open positions before marking failed ─────────────
+    // Without this, positions remain in DB with status='open'. The TP/SL
+    // monitor keeps scanning them and can write PnL to a failed account,
+    // permanently corrupting balance accounting.
+    // We close at entry_price (breakeven) because live prices are not
+    // available inside this server-side rules check. The challenge is
+    // already failed — clean DB state matters more than PnL precision here.
+    try {
+      const { data: posToClose } = await supabase
+        .from('demo_positions')
+        .select('id, entry_price, quantity, side, symbol')
+        .eq('demo_account_id', accountId)
+        .eq('status', 'open')
+
+      if (posToClose?.length) {
+        for (const pos of posToClose) {
+          try {
+            await closePosition({
+              userId,
+              positionId:   pos.id,
+              currentPrice: pos.entry_price,  // breakeven — no live price available here
+              reason:       'liquidation',
+            })
+          } catch (e) {
+            // Log and continue — never let a single bad close block the others
+            console.error('[Trading] Force-close on drawdown breach failed:', pos.id, e.message)
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Trading] Failed to fetch positions for drawdown force-close:', e.message)
+    }
+
     await supabase
       .from('demo_accounts')
       .update({ status: 'failed', updated_at: new Date().toISOString() })
@@ -707,6 +740,32 @@ async function checkChallengeRules(accountId, userId) {
         balance_at_violation: trueEquity, violation_amount: dailyLoss,
       })
     } catch { /* non-critical */ }
+
+    // ── Force-close ALL open positions before marking failed (same as MAX_DRAWDOWN) ──
+    try {
+      const { data: posToClose } = await supabase
+        .from('demo_positions')
+        .select('id, entry_price, quantity, side, symbol')
+        .eq('demo_account_id', accountId)
+        .eq('status', 'open')
+
+      if (posToClose?.length) {
+        for (const pos of posToClose) {
+          try {
+            await closePosition({
+              userId,
+              positionId:   pos.id,
+              currentPrice: pos.entry_price,
+              reason:       'liquidation',
+            })
+          } catch (e) {
+            console.error('[Trading] Force-close on daily-loss breach failed:', pos.id, e.message)
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Trading] Failed to fetch positions for daily-loss force-close:', e.message)
+    }
 
     await supabase
       .from('demo_accounts')

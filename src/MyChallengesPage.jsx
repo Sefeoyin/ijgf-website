@@ -238,6 +238,20 @@ function ChallengeCard({ account, tradingDaysMap, bybitEquity }) {
         ))}
       </div>
 
+      {/* TP/SL enforcement warning — Bybit active challenges only */}
+      {isBybit && !isPassed && !isFailed && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 7,
+          padding: '8px 12px',
+          background: 'rgba(246,70,93,0.07)', border: '1px solid rgba(246,70,93,0.28)',
+          borderRadius: 8, fontSize: '0.75rem', lineHeight: 1.55,
+          color: t.textSecondary,
+        }}>
+          <span style={{ color: '#f6465d', fontWeight: 700, flexShrink: 0 }}>⚠ Rule</span>
+          Every Bybit position <strong style={{ color: t.textPrimary }}>must have a Stop Loss</strong>. Positions without one are <strong style={{ color: '#f6465d' }}>force-closed within ~60 seconds</strong>.
+        </div>
+      )}
+
       {/* CTA — demo mode: no funded account setup yet */}
       {isPassed && (
         <div style={{

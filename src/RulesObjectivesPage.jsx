@@ -311,6 +311,23 @@ export default function RulesObjectivesPage({ userId, bybitData }) {
             <li>Long positions: Stop Loss must be <em>below</em> entry price, Take Profit must be <em>above</em> entry price.</li>
             <li>Short positions: Stop Loss must be <em>above</em> entry price, Take Profit must be <em>below</em> entry price.</li>
           </ul>
+          {isBybit && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 14,
+              padding: '10px 13px',
+              background: 'rgba(246,70,93,0.08)', border: '1px solid rgba(246,70,93,0.3)',
+              borderRadius: 8, fontSize: '0.83rem', lineHeight: 1.65,
+            }}>
+              <span style={{ color: '#f6465d', fontWeight: 700, flexShrink: 0 }}>⚠ Bybit</span>
+              <span>
+                Because you trade directly on Bybit, IJGF cannot block orders at the point of entry.
+                Instead, the risk engine scans all open positions every 30 seconds.
+                Any position found <strong>without a Stop Loss will be force-closed</strong> via a
+                reduce-only market order within approximately 60 seconds of detection.
+                There is no extension to this grace period.
+              </span>
+            </div>
+          )}
           <div className="rules-example">
             <span className="rules-example-label">Why this rule exists</span>
             <p>Prop firms that have failed (like FTMO controversies) often cite uncontrolled emotional trading as a cause. Mandatory SL/TP keeps every trade defined and removes the temptation to "wait for recovery."</p>

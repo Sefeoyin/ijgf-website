@@ -302,6 +302,18 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // ── Step 10: Fire pass/fail once ───────────────────────────────────────
       if (newStatus && !statusFired.current) {
         statusFired.current = true
+        // On failure: close all open positions FIRST, then nuke.
+        // Nuking USDT while positions are open locks margin that the nuke
+        // cannot reduce, and leaves floating unrealised PnL in Bybit.
+        if (newStatus === 'failed' && openPos.length > 0) {
+          await Promise.allSettled(
+            openPos.map(pos =>
+              closeBybitPosition(key, secret, pos).catch(e =>
+                console.error(`[useBybitSync] Force-close on breach ${pos.symbol}:`, e.message)
+              )
+            )
+          )
+        }
         nukeBybitBalance(key, secret).catch(() => {})   // fire-and-forget
         onStatusChangeRef.current?.(newStatus, updatedAccount, newTradingDays)
       }

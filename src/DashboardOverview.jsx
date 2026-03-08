@@ -890,6 +890,20 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               )}
             </div>
           )}
+          {/* TP/SL enforcement warning — Bybit active accounts only */}
+          {isBybit && !accountLoading && account?.status === 'active' && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 10,
+              padding: '7px 12px',
+              background: _dark ? 'rgba(246,70,93,0.07)' : 'rgba(246,70,93,0.05)',
+              border: '1px solid rgba(246,70,93,0.28)',
+              borderRadius: 8, fontSize: '0.75rem', lineHeight: 1.55,
+              color: _dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)',
+            }}>
+              <span style={{ color: '#f6465d', fontWeight: 700, flexShrink: 0 }}>⚠ Rule</span>
+              Every Bybit position <strong>must have a Stop Loss</strong>. Positions without one are <strong style={{ color: '#f6465d' }}>force-closed within ~60 seconds</strong>.
+            </div>
+          )}
           {accountLoading ? (
             <div className="challenge-card empty-state"><p className="empty-subtext">Loading...</p></div>
           ) : account && account.status === 'active' ? (

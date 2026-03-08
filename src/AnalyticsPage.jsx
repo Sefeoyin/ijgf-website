@@ -385,6 +385,18 @@ export default function AnalyticsPage({ userId, bybitData }) {
           </a>
         </div>
 
+        {/* TP/SL enforcement warning */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 20,
+          padding: '9px 14px',
+          background: 'rgba(246,70,93,0.07)', border: '1px solid rgba(246,70,93,0.28)',
+          borderRadius: 10, fontSize: '0.8rem', lineHeight: 1.55,
+          color: t.bannerText,
+        }}>
+          <span style={{ color: '#f6465d', fontWeight: 700, flexShrink: 0 }}>⚠ Rule</span>
+          Every Bybit position <strong style={{ color: t.textPrimary }}>must have a Stop Loss</strong>. Any position opened without one will be <strong style={{ color: '#f6465d' }}>force-closed within ~60 seconds</strong> of detection by the IJGF risk engine.
+        </div>
+
         {/* Core stat cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12, marginBottom: 20 }}>
           {[
