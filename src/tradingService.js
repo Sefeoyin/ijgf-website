@@ -889,9 +889,6 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
 
   // Step 3: Archive all active accounts in a single batch update (not a loop)
   if (activeAccounts?.length) {
-    const archiveIds = activeAccounts.map(a => a.id)
-    // Build a CASE expression to rename each account's challenge_type individually
-    // while marking all of them failed in a single round-trip
     for (const acct of activeAccounts) {
       await supabase.from('demo_accounts')
         .update({
