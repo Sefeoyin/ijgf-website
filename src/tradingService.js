@@ -129,12 +129,22 @@ async function findActiveAccount(userId) {
 
   if (any) return any
 
-  // 3. No account at all — create a default 10k to bootstrap
-  return getOrCreateDemoAccount(userId, '10k')
+  // 3. No account yet — return null; callers must handle this gracefully.
+  // BUGFIX: Never auto-create here. DashboardOverview calls getAccountState()
+  // on every mount, which previously silently created a phantom 10k account
+  // before the user ever selected a challenge tier via OnboardingModal.
+  return null
 }
 
 export async function getAccountState(userId) {
   const account = await findActiveAccount(userId)
+
+  // No challenge started yet — return empty state so callers render an empty UI
+  // instead of auto-creating a phantom account. This fires for brand-new users
+  // before they complete OnboardingModal.
+  if (!account) {
+    return { account: null, positions: [], orders: [], recentTrades: [], tradingDays: 0 }
+  }
 
   // ── Bybit mode: positions and trades live on Bybit, not in Supabase tables.
   // Return the account row with the data useBybitSync keeps fresh.
@@ -861,14 +871,29 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('user_id', userId).eq('status', 'open')
 
-  // Archive the old account by renaming its challenge_type with a timestamp suffix.
-  // This preserves all trade history and analytics while allowing a fresh account
-  // with the original challenge_type to be created.
+  // Archive the current active account(s) — whatever type they are.
+  // BUGFIX: The old code used `.eq('challenge_type', challengeType)` which matched
+  // the NEW type being started, not the current one. Switching tiers (e.g. 10k → 50k)
+  // would skip archiving entirely, leaving two active accounts concurrently.
+  // Fix: fetch all current active accounts and archive them by their actual type.
   const archiveSuffix = `_archived_${Date.now()}`
-  await supabase.from('demo_accounts')
-    .update({ challenge_type: `${challengeType}${archiveSuffix}`, updated_at: new Date().toISOString() })
+  const { data: activeAccounts } = await supabase
+    .from('demo_accounts')
+    .select('id, challenge_type')
     .eq('user_id', userId)
-    .eq('challenge_type', challengeType)
+    .eq('status', 'active')
+    .not('challenge_type', 'like', '%_archived_%')
+
+  if (activeAccounts?.length) {
+    for (const acct of activeAccounts) {
+      await supabase.from('demo_accounts')
+        .update({
+          challenge_type: `${acct.challenge_type}${archiveSuffix}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', acct.id)
+    }
+  }
 
   return getOrCreateDemoAccount(userId, challengeType)
 }

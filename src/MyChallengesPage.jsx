@@ -99,7 +99,7 @@ function Gauge({ value, max, label, color, size = 72, trackColor, textPrimary, t
 }
 
 // ── Challenge card ─────────────────────────────────────────────────────────
-function ChallengeCard({ account, tradingDaysMap, bybitEquity }) {
+function ChallengeCard({ account, tradingDaysMap, positionsMap, bybitEquity }) {
   const t = useTokens()
 
   const isPassed = account.status === 'passed'
@@ -118,7 +118,16 @@ function ChallengeCard({ account, tradingDaysMap, bybitEquity }) {
   const profitTarget     = account.profit_target     ?? initialBalance * 0.10
   const maxDrawdownLimit = account.max_total_drawdown ?? initialBalance * 0.08
   const minTradingDays   = account.min_trading_days  ?? 5
-  const drawdownUsed     = Math.max(0, initialBalance - currentBalance)
+  // BUGFIX: current_balance in DB has margin DEDUCTED on every position open.
+  // Without reconstructing true equity we falsely show margin-in-use as drawdown
+  // (e.g. a $10K margin trade on a $50K account showed $10,059 dd used with $0 real loss).
+  // For Bybit accounts live equity already reflects true value from the sync hook.
+  // For IJGF accounts: true equity = cash + lockedMargin + unrealizedPnl —
+  // mirrors the exact formula used in checkChallengeRules() in tradingService.js.
+  const lockedMargin    = isBybit ? 0 : (positionsMap?.[account.id]?.margin        ?? 0)
+  const unrealizedPnl   = isBybit ? 0 : (positionsMap?.[account.id]?.unrealizedPnl ?? 0)
+  const trueEquity      = currentBalance + lockedMargin + unrealizedPnl
+  const drawdownUsed    = Math.max(0, initialBalance - trueEquity)
   // Bybit trading days are stored in the account row; IJGF days come from demo_trades map
   const tradingDays      = isBybit
     ? (account.bybit_trading_days ?? 0)
@@ -277,6 +286,7 @@ export default function MyChallengesPage({ userId, bybitData }) {
   const t = useTokens()
   const [challenges, setChallenges] = useState([])
   const [tradingDaysMap, setTradingDaysMap] = useState({}) // { [accountId]: number }
+  const [positionsMap,   setPositionsMap]   = useState({}) // { [accountId]: { margin, unrealizedPnl } }
   const [loading, setLoading]       = useState(true)
   const [tab, setTab]               = useState('active')
 
@@ -306,6 +316,29 @@ export default function MyChallengesPage({ userId, bybitData }) {
     setTradingDaysMap(counts)
   }, [])
 
+  // Load locked margin + unrealized PnL per account from open positions.
+  // BUGFIX: Without this, ChallengeCard computed drawdownUsed as (initialBalance - currentBalance).
+  // But current_balance in DB has margin DEDUCTED on every position open — so a $10K margin
+  // trade on a $50K account falsely showed $10K drawdown before a cent was lost.
+  // We must reconstruct true equity = cash + lockedMargin + unrealizedPnl before comparing
+  // to initialBalance, exactly mirroring checkChallengeRules() in tradingService.js.
+  const loadPositions = useCallback(async (accountIds) => {
+    if (!accountIds?.length) return
+    const { data, error } = await supabase
+      .from('demo_positions')
+      .select('demo_account_id, margin, unrealized_pnl')
+      .in('demo_account_id', accountIds)
+      .eq('status', 'open')
+    if (error) { console.error('[MyChallenges] positions error:', error); return }
+    const map = {}
+    for (const row of (data ?? [])) {
+      if (!map[row.demo_account_id]) map[row.demo_account_id] = { margin: 0, unrealizedPnl: 0 }
+      map[row.demo_account_id].margin        += row.margin          || 0
+      map[row.demo_account_id].unrealizedPnl += row.unrealized_pnl || 0
+    }
+    setPositionsMap(map)
+  }, [])
+
 
   useEffect(() => {
     if (!userId) return
@@ -322,11 +355,13 @@ export default function MyChallengesPage({ userId, bybitData }) {
         setChallenges(accounts)
         setLoading(false)
         if (accounts.length > 0) {
-          loadTradingDays(accounts.map(a => a.id))
+          const ids = accounts.map(a => a.id)
+          loadTradingDays(ids)
+          loadPositions(ids)
         }
       })
     return () => { cancelled = true }
-  }, [userId, loadTradingDays])
+  }, [userId, loadTradingDays, loadPositions])
 
   const filtered = challenges.filter(c => c.status === tab)
   const counts = {
@@ -411,6 +446,7 @@ export default function MyChallengesPage({ userId, bybitData }) {
               key={acc.id}
               account={acc}
               tradingDaysMap={tradingDaysMap}
+              positionsMap={positionsMap}
               bybitEquity={acc.trading_mode === 'bybit' ? bybitData?.equity : undefined}
             />
           ))}
