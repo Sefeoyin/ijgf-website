@@ -889,6 +889,7 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
       await supabase.from('demo_accounts')
         .update({
           challenge_type: `${acct.challenge_type}${archiveSuffix}`,
+          status:         'archived',   // explicitly mark as archived so it never surfaces as 'active' in any query that lacks the challenge_type filter
           updated_at: new Date().toISOString(),
         })
         .eq('id', acct.id)

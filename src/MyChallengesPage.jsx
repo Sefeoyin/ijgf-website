@@ -347,6 +347,7 @@ export default function MyChallengesPage({ userId, bybitData }) {
       .from('demo_accounts')
       .select('*')
       .eq('user_id', userId)
+      .not('challenge_type', 'like', '%_archived_%')   // exclude archived accounts — resetDemoAccount renames challenge_type but leaves status='active', so without this filter archived accounts appear as a second "Active" card
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return
