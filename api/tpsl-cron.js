@@ -402,13 +402,35 @@ export default async function handler(req, res) {
     // 3. Evaluate positions
     const closed  = []
     const errors  = []
+    const checked = []
     let   skipped = 0
 
     for (const position of positions) {
       const currentPrice = priceMap[position.symbol]
-      if (!currentPrice) { skipped++; continue }
+      if (!currentPrice) {
+        skipped++
+        checked.push({ id: position.id, symbol: position.symbol, action: 'no_price' })
+        continue
+      }
 
       const reason = shouldClose(position, currentPrice)
+
+      console.log(
+        `[tpsl-cron] ${position.symbol} ${position.side}`,
+        `entry=${position.entry_price} price=${currentPrice}`,
+        `tp=${position.take_profit} sl=${position.stop_loss}`,
+        `=> ${reason || 'hold'}`
+      )
+
+      checked.push({
+        symbol: position.symbol,
+        side:   position.side,
+        price:  currentPrice,
+        tp:     position.take_profit,
+        sl:     position.stop_loss,
+        action: reason || 'hold',
+      })
+
       if (!reason) continue
 
       try {
@@ -436,11 +458,13 @@ export default async function handler(req, res) {
     )
 
     return res.status(200).json({
-      ok:      true,
-      elapsed: Date.now() - startTime,
+      ok:            true,
+      elapsed:       Date.now() - startTime,
+      positionCount: positions.length,
       closed,
       errors,
       skipped,
+      checked,
     })
 
   } catch (fatalErr) {
