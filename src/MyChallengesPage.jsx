@@ -113,20 +113,19 @@ function ChallengeCard({ account, tradingDaysMap, positionsMap, bybitEquity }) {
   const currentBalance   = isBybit
     ? (bybitEquity ?? account.current_balance ?? initialBalance)
     : (account.current_balance ?? initialBalance)
-  const profitAbs        = currentBalance - initialBalance
-  const profitPct        = (profitAbs / initialBalance) * 100
   const profitTarget     = account.profit_target     ?? initialBalance * 0.10
   const maxDrawdownLimit = account.max_total_drawdown ?? initialBalance * 0.08
   const minTradingDays   = account.min_trading_days  ?? 5
-  // BUGFIX: current_balance in DB has margin DEDUCTED on every position open.
-  // Without reconstructing true equity we falsely show margin-in-use as drawdown
-  // (e.g. a $10K margin trade on a $50K account showed $10,059 dd used with $0 real loss).
-  // For Bybit accounts live equity already reflects true value from the sync hook.
-  // For IJGF accounts: true equity = cash + lockedMargin + unrealizedPnl —
-  // mirrors the exact formula used in checkChallengeRules() in tradingService.js.
+  // current_balance in DB = cash only (margin is deducted on every position open).
+  // trueEquity = cash + lockedMargin + unrealizedPnl — this is the real account value.
+  // All display values (P&L header, Current Balance row, gauges) must derive from
+  // trueEquity so the card is internally consistent. Using currentBalance directly
+  // caused the header to show -$12,500 P&L while the gauges correctly showed 0.
   const lockedMargin    = isBybit ? 0 : (positionsMap?.[account.id]?.margin        ?? 0)
   const unrealizedPnl   = isBybit ? 0 : (positionsMap?.[account.id]?.unrealizedPnl ?? 0)
   const trueEquity      = currentBalance + lockedMargin + unrealizedPnl
+  const profitAbs       = trueEquity - initialBalance
+  const profitPct       = (profitAbs / initialBalance) * 100
   const drawdownUsed    = Math.max(0, initialBalance - trueEquity)
   // Bybit trading days are stored in the account row; IJGF days come from demo_trades map
   const tradingDays      = isBybit
@@ -236,7 +235,7 @@ function ChallengeCard({ account, tradingDaysMap, positionsMap, bybitEquity }) {
         borderBottom: `1px solid ${t.divider}`,
       }}>
         {[
-          { label: 'Current Balance', value: `$${currentBalance.toFixed(2)}`,     color: t.textPrimary },
+          { label: 'Current Balance', value: `$${trueEquity.toFixed(2)}`,        color: t.textPrimary },
           { label: 'Profit Target',   value: `+$${profitTarget.toFixed(0)}`,       color: '#22c55e'     },
           { label: 'Max Drawdown',    value: `-$${maxDrawdownLimit.toFixed(0)}`,    color: '#f6465d'     },
         ].map(({ label, value, color }) => (

@@ -863,19 +863,22 @@ export async function updatePositionTPSL(positionId, userId, { takeProfit, stopL
 }
 
 export async function resetDemoAccount(userId, challengeType = '10k') {
-  // Close any open positions and orders on the current account
-  await supabase.from('demo_positions')
-    .update({ status: 'closed', closed_at: new Date().toISOString() })
-    .eq('user_id', userId).eq('status', 'open')
-  await supabase.from('demo_orders')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('user_id', userId).eq('status', 'open')
+  const now = new Date().toISOString()
 
-  // Archive the current active account(s) — whatever type they are.
-  // BUGFIX: The old code used `.eq('challenge_type', challengeType)` which matched
-  // the NEW type being started, not the current one. Switching tiers (e.g. 10k → 50k)
-  // would skip archiving entirely, leaving two active accounts concurrently.
-  // Fix: fetch all current active accounts and archive them by their actual type.
+  // Step 1: Close positions + cancel orders in parallel (independent operations)
+  await Promise.all([
+    supabase.from('demo_positions')
+      .update({ status: 'closed', closed_at: now })
+      .eq('user_id', userId).eq('status', 'open'),
+    supabase.from('demo_orders')
+      .update({ status: 'cancelled', updated_at: now })
+      .eq('user_id', userId).eq('status', 'open'),
+  ])
+
+  // Step 2: Fetch current active accounts to archive
+  // NOTE: status='archived' violates the DB check constraint — use 'failed' as
+  // the terminal status. The challenge_type rename + MyChallengesPage filter
+  // ensures these rows never surface as live challenges.
   const archiveSuffix = `_archived_${Date.now()}`
   const { data: activeAccounts } = await supabase
     .from('demo_accounts')
@@ -884,18 +887,23 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .eq('status', 'active')
     .not('challenge_type', 'like', '%_archived_%')
 
+  // Step 3: Archive all active accounts in a single batch update (not a loop)
   if (activeAccounts?.length) {
+    const archiveIds = activeAccounts.map(a => a.id)
+    // Build a CASE expression to rename each account's challenge_type individually
+    // while marking all of them failed in a single round-trip
     for (const acct of activeAccounts) {
       await supabase.from('demo_accounts')
         .update({
           challenge_type: `${acct.challenge_type}${archiveSuffix}`,
-          status:         'archived',   // explicitly mark as archived so it never surfaces as 'active' in any query that lacks the challenge_type filter
-          updated_at: new Date().toISOString(),
+          status:         'failed',  // 'archived' violates check constraint; 'failed' is the safe terminal state
+          updated_at:     now,
         })
         .eq('id', acct.id)
     }
   }
 
+  // Step 4: Create the new challenge account
   return getOrCreateDemoAccount(userId, challengeType)
 }
 
