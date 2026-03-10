@@ -238,32 +238,78 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // Safe fallback: never reset to 0 on a transient API error.
       let computedTradingDays = acct.bybit_trading_days ?? 0
 
+      // ── Compute challengeStartMs BEFORE the try block ─────────────────────
+      // BUG FIXED: Supabase TIMESTAMPTZ columns can return strings like
+      //   "2025-03-07 09:30:00.123456+00" (space instead of T, microseconds)
+      // new Date() parses this inconsistently across JS environments.
+      // In Safari / strict V8, the result is NaN. When NaN:
+      //   parseInt(t.updatedTime, 10) >= NaN  =>  ALWAYS FALSE
+      //   => ALL trades fail the filter, even one closed a second ago.
+      // Fix: normalise the string to ISO-8601 before parsing, and guard with isNaN.
+      const rawStart = acct.bybit_connected_at || acct.created_at || null
+      let challengeStartMs = 0
+      if (rawStart) {
+        // Normalise: replace space separator with T, strip sub-second precision
+        // and timezone offset that Date() may choke on ("+00" without minutes).
+        const iso = String(rawStart)
+          .replace(' ', 'T')           // "2025-03-07 09:30..." -> "2025-03-07T09:30..."
+          .replace(/(\+\d{2})$/, '$1:00') // "+00" -> "+00:00" (RFC 3339 compliant)
+        const parsed = new Date(iso).getTime()
+        challengeStartMs = isNaN(parsed) ? 0 : parsed
+      }
+      console.log('[useBybitSync] Step 4 challengeStart:', {
+        raw: rawStart,
+        ms:  challengeStartMs,
+        iso: challengeStartMs > 0 ? new Date(challengeStartMs).toISOString() : 'FALLBACK(0)',
+      })
+
+      // thisChallengeList declared OUTSIDE the try so setters are ALWAYS called
+      // regardless of whether the API call succeeds, throws, or returns empty.
+      // An API error must never leave closedTrades frozen at a stale value.
+      let thisChallengeList = []
+
       try {
-        const closedResult = await proxyGet(key, secret, '/v5/position/closed-pnl', {
-          category: 'linear',
-          limit: 200,
+        // Attempt 1: pass startTime for server-side filtering.
+        // Bybit demo MAY reject startTime (retCode != 0) -> proxyGet throws.
+        // Catch it here and fall through to Attempt 2.
+        let rawList = []
+        if (challengeStartMs > 0) {
+          try {
+            const r = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+              category:  'linear',
+              limit:     200,
+              startTime: String(challengeStartMs),
+            })
+            rawList = r?.list ?? []
+            console.log('[useBybitSync] Step 4 (startTime) rawCount:', rawList.length)
+          } catch (startTimeErr) {
+            console.warn('[useBybitSync] Step 4 startTime rejected:', startTimeErr.message, '-- retrying without startTime')
+          }
+        }
+
+        // Attempt 2 (fallback): no startTime -- returns most recent 200 closes.
+        // Used when challengeStartMs=0 OR when Attempt 1 was rejected by Bybit.
+        if (rawList.length === 0) {
+          const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+            category: 'linear',
+            limit:    200,
+          })
+          rawList = r2?.list ?? []
+          console.log('[useBybitSync] Step 4 (no-startTime fallback) rawCount:', rawList.length)
+        }
+
+        // Client-side filter: keep only trades closed AFTER challenge start.
+        thisChallengeList = challengeStartMs > 0
+          ? rawList.filter(t => t.updatedTime && parseInt(t.updatedTime, 10) >= challengeStartMs)
+          : rawList
+
+        console.log('[useBybitSync] Step 4 filtered:', thisChallengeList.length, 'of', rawList.length, {
+          sample: rawList[0]
+            ? { sym: rawList[0].symbol, t: rawList[0].updatedTime, pnl: rawList[0].closedPnl }
+            : 'EMPTY -- settlement lag ~30-90s, or no trades yet',
         })
-        const closedList = closedResult?.list ?? []
-
-        // Filter to ONLY trades closed during this challenge.
-        // bybit_connected_at marks challenge start -- prevents prior-challenge trades
-        // from inflating win rate or trading days. Same filter for both.
-        const challengeStartMs = acct.bybit_connected_at
-          ? new Date(acct.bybit_connected_at).getTime()
-          : (acct.created_at ? new Date(acct.created_at).getTime() : 0)
-
-        const thisChallengeList = closedList.filter(
-          t => t.updatedTime && parseInt(t.updatedTime, 10) >= challengeStartMs
-        )
 
         if (thisChallengeList.length > 0) {
-          const wins   = thisChallengeList.filter(t => parseFloat(t.closedPnl) > 0).length
-          const losses = thisChallengeList.filter(t => parseFloat(t.closedPnl) < 0).length
-          setWinStats({ wins, losses, total: thisChallengeList.length })
-          setClosedTrades(thisChallengeList)
-
-          // Trading days = distinct calendar days where >=1 trade was closed.
-          // Mirrors IJGF tradingService.js is_close logic exactly.
           computedTradingDays = new Set(
             thisChallengeList.map(
               t => new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0]
@@ -271,9 +317,17 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           ).size
         }
       } catch (e) {
-        // Non-fatal -- win rate and trading days show previous DB values
-        console.warn('[useBybitSync] closed-pnl fetch failed (non-fatal):', e.message)
+        // Both attempts failed (auth, network, etc.).
+        // thisChallengeList stays [] -- the setters below will correctly show
+        // "no trades" rather than freezing on whatever was shown last cycle.
+        console.warn('[useBybitSync] Step 4 closed-pnl fully failed (non-fatal):', e.message)
       }
+
+      // ALWAYS set state after try/catch -- never leave UI frozen on stale data.
+      const wins   = thisChallengeList.filter(t => parseFloat(t.closedPnl) > 0).length
+      const losses = thisChallengeList.filter(t => parseFloat(t.closedPnl) < 0).length
+      setWinStats({ wins, losses, total: thisChallengeList.length })
+      setClosedTrades(thisChallengeList)
 
       // ── Step 5: TP/SL Enforcement ────────────────────────────────────────
       // Clear tracker entries for positions that have been closed
