@@ -2,15 +2,15 @@
  * useBybitSync.js
  *
  * Dashboard-level hook for Bybit Demo Trading challenge tracking.
- * Mounts at Dashboard root -- runs on EVERY tab, not just the Market tab.
+ * Mounts at Dashboard root — runs on EVERY tab, not just the Market tab.
  *
  * Responsibilities:
- *  1. Poll Bybit every 10s: live equity + open positions via /api/bybit-proxy
+ *  1. Poll Bybit every 30s: live equity + open positions via /api/bybit-proxy
  *  2. Sync equity → demo_accounts (current_balance, bybit_equity, bybit_last_sync)
  *  3. Trading days: increment bybit_trading_days once per calendar day when
  *     the account has open positions OR equity has moved from initial_balance
  *  4. TP/SL enforcement: track positions without a Stop Loss across sync cycles.
- *     Force-close (reduce-only IOC market order) after TPSL_GRACE_CYCLES (~60s = 6 × 10s)
+ *     Force-close (reduce-only IOC market order) after TPSL_GRACE_CYCLES (~60s)
  *  5. Pass / fail evaluation (runs every cycle, fires exactly once per challenge):
  *       FAIL: drawdown >= max_total_drawdown
  *       PASS: pnl >= profit_target AND tradingDays >= min_trading_days
@@ -24,15 +24,15 @@
  *     ADD COLUMN IF NOT EXISTS bybit_trading_days    INTEGER DEFAULT 0,
  *     ADD COLUMN IF NOT EXISTS bybit_last_active_date DATE;
  *
- * Returns: { equity, positions, winStats, closedTrades, tradingDays, account, loading, error, lastSync, syncNow }
+ * Returns: { equity, positions, tradingDays, account, loading, error, lastSync }
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
 const BYBIT_PROXY       = '/api/bybit-proxy'
-const POLL_INTERVAL_MS  = 10_000  // 10 seconds -- fast enough to catch closes within one tick
-const TPSL_GRACE_CYCLES = 6       // 6 × 10s = ~60s real-world grace before force-closing SL-less positions
+const POLL_INTERVAL_MS  = 10_000  // 10 seconds
+const TPSL_GRACE_CYCLES = 6       // ~60s grace before force-closing SL-less positions
 
 // ── Proxy helpers ─────────────────────────────────────────────────────────────
 
@@ -57,13 +57,13 @@ async function proxyPost(apiKey, apiSecret, endpoint, params = {}) {
     signal: AbortSignal.timeout(15_000),
   })
   if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`)
-  // Return raw json -- caller decides whether retCode matters
+  // Return raw json — caller decides whether retCode matters
   return await res.json()
 }
 
 // ── Nuke Bybit Demo balance to (near) zero on challenge end ──────────────────
 // adjustType:1 = reduce. Loops all coins in ≤100k USDT chunks.
-// Bybit enforces a minimum USDT floor -- hitting it returns a non-zero retCode
+// Bybit enforces a minimum USDT floor — hitting it returns a non-zero retCode
 // which we intentionally swallow. That's expected & correct.
 async function nukeBybitBalance(apiKey, apiSecret) {
   try {
@@ -83,7 +83,7 @@ async function nukeBybitBalance(apiKey, apiSecret) {
       }
     }
   } catch (err) {
-    // Non-critical -- never block the modal for a nuke failure
+    // Non-critical — never block the modal for a nuke failure
     console.warn('[useBybitSync] nukeBybitBalance non-critical error:', err.message)
   }
 }
@@ -107,12 +107,12 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
   const [equity,      setEquity]      = useState(null)
   const [positions,   setPositions]   = useState([])
   const [winStats,    setWinStats]    = useState({ wins: 0, losses: 0, total: 0 })
-  const [closedTrades, setClosedTrades] = useState([])
   const [tradingDays, setTradingDays] = useState(0)
   const [account,     setAccount]     = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
   const [lastSync,    setLastSync]    = useState(null)
+  const [closedTrades, setClosedTrades] = useState([])
 
   // Refs for concurrency safety and stable callbacks
   const isSyncing         = useRef(false)  // prevents overlapping fetches
@@ -127,7 +127,6 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
     isSyncing.current = true
 
     try {
-      console.log('[useBybitSync] Sync cycle starting. userId:', userId, 'mode:', tradingMode)
       // ── Step 1: Load active Bybit account row from Supabase ──────────────
       const { data: acct } = await supabase
         .from('demo_accounts')
@@ -139,15 +138,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         .limit(1)
         .maybeSingle()
 
-      if (!acct) {
-        // No active Bybit challenge found in DB.
-        // This can mean: status was changed to 'failed'/'passed', or no Bybit account exists.
-        // We surface this as an error so it's visible -- not a silent freeze.
-        setError('No active Bybit challenge found. Your challenge may have ended, or the account status changed unexpectedly. Check the My Challenges tab.')
-        console.warn('[useBybitSync] No active Bybit account found in DB (status=active). userId:', userId)
-        setLoading(false)
-        return
-      }
+      if (!acct) { setLoading(false); return }
 
       if (!acct.bybit_api_key || !acct.bybit_api_secret) {
         setError('No Bybit API credentials found. Please reconnect via a new challenge.')
@@ -166,49 +157,14 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         // Some Bybit demo accounts use CONTRACT account type
         walletResult = await proxyGet(key, secret, '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
       }
-      const accountRow = walletResult?.list?.[0] ?? {}
-      const coins      = accountRow.coin ?? []
+      const coins      = walletResult?.list?.[0]?.coin ?? []
       const usdtCoin   = coins.find(c => c.coin === 'USDT')
-
-      // Equity extraction with fallback chain:
-      // 1. USDT coin-level equity (includes unrealised PnL for open positions)
-      // 2. USDT coin-level walletBalance (realised cash only)
-      // 3. Account-level totalEquity (all coins combined -- safe for USDT-only accounts)
-      // 4. Account-level totalWalletBalance
-      const rawEquity = usdtCoin?.equity
-        ?? usdtCoin?.walletBalance
-        ?? accountRow.totalEquity
-        ?? accountRow.totalWalletBalance
-        ?? null
-
-      console.log('[useBybitSync] wallet-balance raw:', {
-        accountType: accountRow.accountType,
-        totalEquity: accountRow.totalEquity,
-        totalWalletBalance: accountRow.totalWalletBalance,
-        usdtCoin: usdtCoin ? { equity: usdtCoin.equity, walletBalance: usdtCoin.walletBalance } : 'NOT FOUND',
-        coinCount: coins.length,
-      })
-
-      if (rawEquity === null) {
-        throw new Error('No USDT equity value found in Bybit wallet response. Check accountType and coin array.')
-      }
-
-      const liveEquity = parseFloat(rawEquity)
+      const liveEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? '0')
 
       if (isNaN(liveEquity) || liveEquity < 0) {
-        throw new Error(`Invalid USDT equity received from Bybit: "${rawEquity}"`)
+        throw new Error('Invalid USDT equity received from Bybit')
       }
 
-      // Guard: equity of exactly zero on an account with initial_balance > 0 means
-      // the coin array was empty (wrong account type) -- NOT a real drawdown.
-      // Without this guard, a single sync with an empty coin array would trigger
-      // challenge fail, wipe the demo balance, and freeze the dashboard forever.
-      const initialForCheck = parseFloat(acct.initial_balance ?? 0)
-      if (liveEquity === 0 && initialForCheck > 100) {
-        throw new Error(`Bybit returned zero equity for an account with initial_balance ${initialForCheck}. Likely wrong accountType or empty coin array. Skipping to prevent false drawdown fail.`)
-      }
-
-      console.log('[useBybitSync] Step 2 OK: liveEquity =', liveEquity)
       // ── Step 3: Fetch open positions ─────────────────────────────────────
       const posResult = await proxyGet(key, secret, '/v5/position/list', {
         category: 'linear', settleCoin: 'USDT',
@@ -227,103 +183,52 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           leverage:      parseInt(p.leverage, 10)  || 1,
         }))
 
-      // ── Step 4: Fetch closed PnL -- win-rate + trading days calculation ───
-      // Bybit's closed-pnl endpoint returns all historical closes.
-      // We pull the last 200 filtered to the current challenge start so past
-      // challenges never inflate the trading-day count.
-      // Failures are non-critical -- winStats and computedTradingDays fall back
-      // to their last known DB values rather than crashing the sync.
-
-      // Initialise to last known DB value -- overwritten below if API succeeds.
-      // Safe fallback: never reset to 0 on a transient API error.
-      let computedTradingDays = acct.bybit_trading_days ?? 0
-
-      // ── Compute challengeStartMs BEFORE the try block ─────────────────────
-      // BUG FIXED: Supabase TIMESTAMPTZ columns can return strings like
-      //   "2025-03-07 09:30:00.123456+00" (space instead of T, microseconds)
-      // new Date() parses this inconsistently across JS environments.
-      // In Safari / strict V8, the result is NaN. When NaN:
-      //   parseInt(t.updatedTime, 10) >= NaN  =>  ALWAYS FALSE
-      //   => ALL trades fail the filter, even one closed a second ago.
-      // Fix: normalise the string to ISO-8601 before parsing, and guard with isNaN.
-      const rawStart = acct.bybit_connected_at || acct.created_at || null
-      let challengeStartMs = 0
-      if (rawStart) {
-        // Normalise: replace space separator with T, strip sub-second precision
-        // and timezone offset that Date() may choke on ("+00" without minutes).
-        const iso = String(rawStart)
-          .replace(' ', 'T')           // "2025-03-07 09:30..." -> "2025-03-07T09:30..."
-          .replace(/(\+\d{2})$/, '$1:00') // "+00" -> "+00:00" (RFC 3339 compliant)
-        const parsed = new Date(iso).getTime()
-        challengeStartMs = isNaN(parsed) ? 0 : parsed
-      }
-      console.log('[useBybitSync] Step 4 challengeStart:', {
-        raw: rawStart,
-        ms:  challengeStartMs,
-        iso: challengeStartMs > 0 ? new Date(challengeStartMs).toISOString() : 'FALLBACK(0)',
-      })
-
-      // thisChallengeList declared OUTSIDE the try so setters are ALWAYS called
-      // regardless of whether the API call succeeds, throws, or returns empty.
-      // An API error must never leave closedTrades frozen at a stale value.
+      // ── Step 4: Fetch closed PnL — win-rate + full trade history ───────────
+      // thisChallengeList is exposed via closedTrades state so TradeHistoryPage
+      // and DashboardOverview can render actual rows, not just aggregate counts.
+      // Two-attempt pattern: startTime is preferred (Bybit-side filter) but
+      // some demo accounts reject it — fall back to fetching all and filtering client-side.
       let thisChallengeList = []
-
       try {
-        // Attempt 1: pass startTime for server-side filtering.
-        // Bybit demo MAY reject startTime (retCode != 0) -> proxyGet throws.
-        // Catch it here and fall through to Attempt 2.
-        let rawList = []
-        if (challengeStartMs > 0) {
+        const rawStart     = acct.created_at ?? acct.bybit_connected_at ?? null
+        const isoStart     = rawStart
+          ? String(rawStart).replace(' ', 'T').replace(/(\+\d{2})$/, '$1:00')
+          : null
+        const parsedMs     = isoStart ? new Date(isoStart).getTime() : 0
+        const challengeStartMs = isNaN(parsedMs) ? 0 : parsedMs
+
+        let closedList = []
+        try {
+          // Attempt 1: server-side startTime filter (fastest, preferred)
+          const r1 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+            category:  'linear',
+            limit:     200,
+            startTime: String(challengeStartMs),
+          })
+          closedList = r1?.list ?? []
+        } catch (_e1) {
           try {
-            const r = await proxyGet(key, secret, '/v5/position/closed-pnl', {
-              category:  'linear',
-              limit:     200,
-              startTime: String(challengeStartMs),
+            // Attempt 2: no startTime, client-side filter below
+            const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+              category: 'linear',
+              limit:    200,
             })
-            rawList = r?.list ?? []
-            console.log('[useBybitSync] Step 4 (startTime) rawCount:', rawList.length)
-          } catch (startTimeErr) {
-            console.warn('[useBybitSync] Step 4 startTime rejected:', startTimeErr.message, '-- retrying without startTime')
+            closedList = r2?.list ?? []
+          } catch (_e2) {
+            console.warn('[useBybitSync] closed-pnl both attempts failed:', _e2.message)
           }
         }
 
-        // Attempt 2 (fallback): no startTime -- returns most recent 200 closes.
-        // Used when challengeStartMs=0 OR when Attempt 1 was rejected by Bybit.
-        if (rawList.length === 0) {
-          const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
-            category: 'linear',
-            limit:    200,
-          })
-          rawList = r2?.list ?? []
-          console.log('[useBybitSync] Step 4 (no-startTime fallback) rawCount:', rawList.length)
-        }
-
-        // Client-side filter: keep only trades closed AFTER challenge start.
+        // Client-side date filter: only trades from this challenge
         thisChallengeList = challengeStartMs > 0
-          ? rawList.filter(t => t.updatedTime && parseInt(t.updatedTime, 10) >= challengeStartMs)
-          : rawList
+          ? closedList.filter(t => parseInt(t.updatedTime, 10) >= challengeStartMs)
+          : closedList
 
-        console.log('[useBybitSync] Step 4 filtered:', thisChallengeList.length, 'of', rawList.length, {
-          sample: rawList[0]
-            ? { sym: rawList[0].symbol, t: rawList[0].updatedTime, pnl: rawList[0].closedPnl }
-            : 'EMPTY -- settlement lag ~30-90s, or no trades yet',
-        })
-
-        if (thisChallengeList.length > 0) {
-          computedTradingDays = new Set(
-            thisChallengeList.map(
-              t => new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0]
-            )
-          ).size
-        }
       } catch (e) {
-        // Both attempts failed (auth, network, etc.).
-        // thisChallengeList stays [] -- the setters below will correctly show
-        // "no trades" rather than freezing on whatever was shown last cycle.
-        console.warn('[useBybitSync] Step 4 closed-pnl fully failed (non-fatal):', e.message)
+        console.warn('[useBybitSync] Step 4 error (non-fatal):', e.message)
       }
 
-      // ALWAYS set state after try/catch -- never leave UI frozen on stale data.
+      // Always update — even empty list clears stale data from a previous challenge
       const wins   = thisChallengeList.filter(t => parseFloat(t.closedPnl) > 0).length
       const losses = thisChallengeList.filter(t => parseFloat(t.closedPnl) < 0).length
       setWinStats({ wins, losses, total: thisChallengeList.length })
@@ -342,7 +247,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           noSlCycles.current[pos.symbol] = cycles
           if (cycles >= TPSL_GRACE_CYCLES) {
             console.warn(
-              `[useBybitSync] Force-closing ${pos.symbol} - no SL for ${cycles} cycles`
+              `[useBybitSync] Force-closing ${pos.symbol} — no SL for ${cycles} cycles`
             )
             await closeBybitPosition(key, secret, pos).catch(e =>
               console.error(`[useBybitSync] Force-close ${pos.symbol} failed:`, e.message)
@@ -350,39 +255,29 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
             delete noSlCycles.current[pos.symbol]
           }
         } else {
-          // Trader added their SL -- reset counter
+          // Trader added their SL — reset counter
           delete noSlCycles.current[pos.symbol]
         }
       }
 
       // ── Step 6: Trading Days Tracking ────────────────────────────────────
-      // Derived from closed positions (computed in Step 4).
-      // A trading day is a CALENDAR DAY where the user CLOSED at least one trade
-      // this challenge -- identical to IJGF's is_close logic in tradingService.js.
-      // Opening a position alone does NOT count.
-      //
-      // CRITICAL: Trading days must NEVER decrease.
-      // The closed-pnl endpoint has a hard limit of 200 records. If the trader
-      // has more than 200 closes, older calendar days roll off the paginated
-      // response and the computed count drops. We take MAX(computed, DB stored)
-      // so a legitimately earned day is never silently un-counted.
-      // The only source of truth for "did this day happen" is what we've
-      // already verified and persisted -- we only ever move forward.
-      const initial        = parseFloat(acct.initial_balance)
-      const prevDays       = acct.bybit_trading_days ?? 0
-      const newTradingDays = Math.max(computedTradingDays, prevDays)
+      // Count distinct calendar days that have at least one CLOSED trade.
+      // Using closed trades (not open positions) matches the prop firm definition:
+      // a "trading day" is a day you completed at least one trade.
+      // Math.max prevents the count from decreasing if >200 lifetime closes scroll off.
+      const prevDays = acct.bybit_trading_days ?? 0
+      const closedDaySet = new Set(
+        thisChallengeList.map(t =>
+          new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0]
+        )
+      )
+      const computedDays   = closedDaySet.size
+      const newTradingDays = Math.max(computedDays, prevDays)
 
-      // Only write to DB when the value has actually changed
-      if (newTradingDays !== prevDays) {
-        supabase.from('demo_accounts').update({
-          bybit_trading_days: newTradingDays,
-        }).eq('id', acct.id)
-          .then(({ error: e }) => {
-            if (e) console.error('[useBybitSync] tradingDays update error:', e.message)
-          })
-      }
+
 
       // ── Step 7: Pass / Fail Evaluation ───────────────────────────────────
+      const initial  = parseFloat(acct.initial_balance)
       const pnl      = liveEquity - initial
       const drawdown = initial - liveEquity   // positive = net loss from initial
       const target   = parseFloat(acct.profit_target)
@@ -403,12 +298,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         }
       }
 
-      // ── Step 8: Update React state immediately ───────────────────────────
-      // State update MUST happen before the DB write so that a Supabase failure
-      // (network blip, rate limit, row lock) can never block the UI from showing
-      // the live data we already successfully fetched from Bybit.
-      // This is the root cause of "trade not reflecting" -- DB write was awaited
-      // first, and any failure skipped setEquity() entirely.
+      // ── Step 8: Update React state immediately (UI never waits for DB) ─────
       const updatedAccount = {
         ...acct,
         current_balance:    liveEquity,
@@ -416,7 +306,6 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         bybit_trading_days: newTradingDays,
         status:             newStatus ?? acct.status,
       }
-      console.log('[useBybitSync] Step 8 OK: updating React state. equity:', liveEquity, 'positions:', openPos.length, 'tradingDays:', newTradingDays)
       setAccount(updatedAccount)
       setEquity(liveEquity)
       setPositions(openPos)
@@ -424,20 +313,18 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       setLastSync(new Date())
       setError(null)
 
-      // ── Step 9: Persist to Supabase (fire-and-forget) ────────────────────
-      // Non-blocking -- a DB write failure must not affect the UI.
-      // The live data is already displayed above; the DB write is secondary.
+      // ── Step 9: Persist to Supabase (fire-and-forget — never blocks UI) ───
       const dbUpdate = {
-        bybit_equity:    liveEquity,
-        current_balance: liveEquity,
-        bybit_last_sync: new Date().toISOString(),
-        updated_at:      new Date().toISOString(),
+        bybit_equity:       liveEquity,
+        current_balance:    liveEquity,
+        bybit_trading_days: newTradingDays,
+        bybit_last_sync:    new Date().toISOString(),
+        updated_at:         new Date().toISOString(),
       }
       if (newStatus) dbUpdate.status = newStatus
-
       supabase.from('demo_accounts').update(dbUpdate).eq('id', acct.id)
-        .then(({ error: dbErr }) => {
-          if (dbErr) console.error('[useBybitSync] DB persist error (non-critical):', dbErr.message)
+        .then(({ error: e }) => {
+          if (e) console.error('[useBybitSync] DB write error:', e.message)
         })
 
       // ── Step 10: Fire pass/fail once ───────────────────────────────────────
@@ -460,7 +347,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       }
 
     } catch (err) {
-      console.error('[useBybitSync] Sync FAILED at step:', err.message)
+      console.error('[useBybitSync] Sync error:', err.message)
       setError(`Sync failed: ${err.message}`)
     } finally {
       isSyncing.current = false

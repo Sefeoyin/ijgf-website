@@ -70,14 +70,13 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     if (isBybit && !bybitData.loading) setAccountLoading(false)
   }, [isBybit, bybitData])
 
-  // Bybit mode: map bybitData.closedTrades into the realTrades shape so the
-  // trade history widget on the dashboard renders actual closed trades.
-  // WITHOUT this effect, realTrades stays [] forever in Bybit mode because
-  // the IJGF load() useEffect above returns early when isBybit=true.
-  // Shape required by the table: { id, executed_at, symbol, side, leverage, realized_pnl }
-  // Bybit closed-pnl side field is the CLOSING order direction:
-  //   'Sell' = was a Long position   →  side = 'long'
-  //   'Buy'  = was a Short position  →  side = 'short'
+  // Bybit mode: map bybitData.closedTrades → realTrades so the dashboard
+  // trade history widget renders actual rows instead of the dead-end message.
+  // Without this, realTrades stays [] forever because the IJGF load() useEffect
+  // above returns early when isBybit=true.
+  // Bybit closed-pnl side = CLOSING order direction:
+  //   'Sell' = was a Long position  →  side 'long'
+  //   'Buy'  = was a Short position →  side 'short'
   useEffect(() => {
     if (!isBybit) return
     const closed = bybitData?.closedTrades ?? []
@@ -896,31 +895,8 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
         {/* Active Challenges - Bottom Left */}
         <div className="active-challenges-widget">
           <h3>Active Challenges</h3>
-
-          {/* Bybit sync ERROR banner — visible on all tabs when sync is broken */}
-          {isBybit && bybitData?.error && (
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10,
-              padding: '8px 12px',
-              background: 'rgba(246,70,93,0.1)', border: '1px solid rgba(246,70,93,0.35)',
-              borderRadius: 8, fontSize: '0.75rem', lineHeight: 1.5,
-            }}>
-              <span style={{ color: '#f6465d', fontWeight: 700, flexShrink: 0 }}>⚠ Sync Error</span>
-              <span style={{ color: 'rgba(255,255,255,0.8)' }}>{bybitData.error}</span>
-              <button
-                onClick={() => bybitData?.syncNow?.()}
-                style={{
-                  marginLeft: 'auto', padding: '2px 10px', flexShrink: 0,
-                  background: 'rgba(246,70,93,0.15)', border: '1px solid rgba(246,70,93,0.4)',
-                  borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-                  color: '#f6465d', cursor: 'pointer',
-                }}
-              >Retry</button>
-            </div>
-          )}
-
           {/* Bybit live-sync indicator */}
-          {isBybit && !accountLoading && account?.status === 'active' && !bybitData?.error && (
+          {isBybit && !accountLoading && account?.status === 'active' && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10,
               padding: '6px 12px',
@@ -929,22 +905,12 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               borderRadius: 8, fontSize: '0.75rem', color: liveBanner.text,
             }}>
               <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
-              Bybit Demo syncing every 10s
+              Bybit Demo syncing every 30s
               {bybitData.lastSync && (
-                <span style={{ marginLeft: 8, opacity: 0.6 }}>
+                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
                   {bybitData.lastSync.toLocaleTimeString()}
                 </span>
               )}
-              <button
-                onClick={() => bybitData?.syncNow?.()}
-                style={{
-                  marginLeft: 'auto', padding: '2px 10px',
-                  background: 'rgba(245,158,11,0.12)',
-                  border: '1px solid rgba(245,158,11,0.3)',
-                  borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-                  color: '#f59e0b', cursor: 'pointer',
-                }}
-              >Sync Now</button>
             </div>
           )}
           {/* TP/SL enforcement warning — Bybit active accounts only */}
@@ -1055,7 +1021,8 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               isBybit ? (
                 <div className="empty-history">
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.6">
-                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                   </svg>
                   <p style={{ color: '#f59e0b' }}>No closed trades yet</p>
                   <span>Close a position on Bybit Demo — it appears here within ~30s</span>
