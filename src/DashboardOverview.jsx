@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useContext } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
+import { supabase } from './supabase'
 import BybitModePicker from './BybitModePicker'
 import { ThemeContext } from './ThemeContext'
 
@@ -1377,32 +1378,48 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
           onSelectBybit={async (apiKey, apiSecret, equity) => {
             setStartingChallenge(true)
             try {
-              await resetDemoAccount(userId, pendingTierKey)
-              const state = await getAccountState(userId)
-              setRawAccount(state.account)
-              setRealTrades(state.recentTrades)
-              setAccountPositions(state.positions || [])
-              setAccountTradingDays(state.tradingDays ?? 0)
-              if (state.account?.id) {
-                const { supabase: sb } = await import('./supabase')
-                const { error: updateErr } = await sb.from('demo_accounts').update({
-                  trading_mode: 'bybit',
-                  bybit_api_key: apiKey,
-                  bybit_api_secret: apiSecret,
-                  bybit_connected_at: new Date().toISOString(),
-                  bybit_equity: equity,
-                  current_balance: equity,
-                  updated_at: new Date().toISOString(),
-                }).eq('id', state.account.id)
-                if (updateErr) throw new Error(`Failed to save Bybit credentials: ${updateErr.message}`)
-              } else {
-                throw new Error('Could not find challenge account after reset. Please try again.')
+              // resetDemoAccount archives existing challenges and creates a fresh account.
+              // We capture its return value directly — do NOT call getAccountState() afterwards,
+              // as that may return a stale or different account if there is any timing overlap.
+              const newAccount = await resetDemoAccount(userId, pendingTierKey)
+              if (!newAccount?.id) {
+                throw new Error('Failed to create challenge account. Please try again.')
               }
+
+              // Write Bybit credentials onto the exact account we just created.
+              // Use the top-level supabase client — never a dynamic import.
+              const { error: updateErr } = await supabase
+                .from('demo_accounts')
+                .update({
+                  trading_mode:       'bybit',
+                  bybit_api_key:      apiKey,
+                  bybit_api_secret:   apiSecret,
+                  bybit_connected_at: new Date().toISOString(),
+                  bybit_equity:       equity,
+                  current_balance:    equity,
+                  updated_at:         new Date().toISOString(),
+                })
+                .eq('id', newAccount.id)
+
+              if (updateErr) {
+                throw new Error(`Failed to save Bybit credentials: ${updateErr.message}`)
+              }
+
+              // Read the final account state with Bybit fields so local UI is in sync
+              const { data: updatedAccount } = await supabase
+                .from('demo_accounts')
+                .select('*')
+                .eq('id', newAccount.id)
+                .single()
+
+              setRawAccount(updatedAccount ?? newAccount)
+              setRealTrades([])
+              setAccountPositions([])
+              setAccountTradingDays(0)
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('bybit')
             } catch (err) {
               console.error('Bybit start failed:', err)
-              // Surface error to user — do NOT silently fail
               alert(`Failed to start Bybit challenge: ${err.message}`)
             } finally { setStartingChallenge(false) }
           }}

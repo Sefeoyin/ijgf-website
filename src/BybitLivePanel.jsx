@@ -41,7 +41,6 @@ export default function BybitLivePanel({ userId, bybitData }) {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
   const [lastSync,  setLastSync]  = useState(null)
-  const [syncing,   setSyncing]   = useState(false)  // manual Sync Now button
 
   const isExternal = !!bybitData  // true → Dashboard owns sync
 
@@ -128,7 +127,7 @@ export default function BybitLivePanel({ userId, bybitData }) {
   useEffect(() => {
     if (isExternal) return
     syncBybit()
-    const interval = setInterval(syncBybit, 10_000)
+    const interval = setInterval(syncBybit, 30_000)
     return () => clearInterval(interval)
   }, [syncBybit, isExternal])
 
@@ -170,16 +169,28 @@ export default function BybitLivePanel({ userId, bybitData }) {
   )
 
   if (!resolvedAcct) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:12, color:'rgba(255,255,255,0.4)' }}>
-      <p style={{ fontSize:'1rem' }}>No active Bybit challenge found.</p>
-      <p style={{ fontSize:'0.85rem' }}>Start a new challenge and choose Connect Bybit Demo.</p>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16, textAlign:'center', padding:'0 24px' }}>
+      <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(246,70,93,0.12)', border:'1px solid rgba(246,70,93,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.6rem' }}>
+        🔌
+      </div>
+      <div>
+        <p style={{ margin:'0 0 6px', fontSize:'1rem', fontWeight:600, color:'rgba(255,255,255,0.7)' }}>
+          Bybit connection not found
+        </p>
+        <p style={{ margin:0, fontSize:'0.84rem', color:'rgba(255,255,255,0.4)', maxWidth:340, lineHeight:1.6 }}>
+          Your Bybit API credentials may have been lost during a challenge reset.
+          Start a new challenge from the Dashboard tab and choose <strong style={{ color:'#f59e0b' }}>Connect Bybit Demo</strong> to reconnect.
+        </p>
+      </div>
+      <div style={{ padding:'10px 16px', background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:10, fontSize:'0.78rem', color:'rgba(255,255,255,0.45)', maxWidth:380, lineHeight:1.65 }}>
+        💡 Your Bybit Demo trading history and P&L on bybit.com are <strong style={{ color:'rgba(255,255,255,0.65)' }}>not affected</strong> — only the IJGF tracking connection needs to be re-established.
+      </div>
     </div>
   )
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ padding:'24px 20px', maxWidth:900, margin:'0 auto' }}>
-      <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
@@ -205,52 +216,14 @@ export default function BybitLivePanel({ userId, bybitData }) {
             {resolvedLastSync ? `Last synced ${resolvedLastSync.toLocaleTimeString()}` : 'Syncing…'}
           </p>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          {/* Sync Now — triggers an immediate poll so closed trades appear instantly */}
-          <button
-            onClick={async () => {
-              setSyncing(true)
-              try {
-                if (isExternal) {
-                  await bybitData?.syncNow?.()
-                } else {
-                  await syncBybit()
-                }
-              } finally {
-                setSyncing(false)
-              }
-            }}
-            disabled={syncing}
-            style={{
-              padding:'9px 16px',
-              background: syncing ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.08)',
-              border:'1px solid rgba(255,255,255,0.15)',
-              color: syncing ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.75)',
-              borderRadius:9, fontWeight:600, fontSize:'0.82rem',
-              cursor: syncing ? 'not-allowed' : 'pointer',
-              transition:'all 0.15s',
-              display:'flex', alignItems:'center', gap:6,
-            }}
-          >
-            <svg
-              width="13" height="13" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5"
-              style={{ animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}
-            >
-              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-            {syncing ? 'Syncing…' : 'Sync Now'}
-          </button>
-          <a
-            href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
-            target="_blank" rel="noopener noreferrer"
-            style={{
-              padding:'9px 18px', background:'linear-gradient(135deg,#f59e0b,#fbbf24)',
-              color:'#000', borderRadius:9, fontWeight:700, fontSize:'0.85rem', textDecoration:'none',
-            }}
-          >Open Bybit Demo →</a>
-        </div>
+        <a
+          href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+          target="_blank" rel="noopener noreferrer"
+          style={{
+            padding:'9px 18px', background:'linear-gradient(135deg,#f59e0b,#fbbf24)',
+            color:'#000', borderRadius:9, fontWeight:700, fontSize:'0.85rem', textDecoration:'none',
+          }}
+        >Open Bybit Demo →</a>
       </div>
 
       {/* Error banner */}
