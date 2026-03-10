@@ -31,7 +31,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
 const BYBIT_PROXY       = '/api/bybit-proxy'
-const POLL_INTERVAL_MS  = 30_000  // 30 seconds
+const POLL_INTERVAL_MS  = 10_000  // 10 seconds — fast enough to catch closes within one tick
 const TPSL_GRACE_CYCLES = 2       // ~60s grace before force-closing SL-less positions
 
 // ── Proxy helpers ─────────────────────────────────────────────────────────────
@@ -182,11 +182,17 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           leverage:      parseInt(p.leverage, 10)  || 1,
         }))
 
-      // ── Step 4: Fetch closed PnL for win-rate calculation ────────────────
-      // Bybit's closed-pnl endpoint returns all closed positions.
-      // We pull the last 200 (max single page) which is sufficient for
-      // the win-rate stat card. Failures are non-critical — we catch and
-      // leave winStats at its previous value rather than crashing the sync.
+      // ── Step 4: Fetch closed PnL — win-rate + trading days calculation ───
+      // Bybit's closed-pnl endpoint returns all historical closes.
+      // We pull the last 200 filtered to the current challenge start so past
+      // challenges never inflate the trading-day count.
+      // Failures are non-critical — winStats and computedTradingDays fall back
+      // to their last known DB values rather than crashing the sync.
+
+      // Initialise to last known DB value — overwritten below if API succeeds.
+      // Safe fallback: never reset to 0 on a transient API error.
+      let computedTradingDays = acct.bybit_trading_days ?? 0
+
       try {
         const closedResult = await proxyGet(key, secret, '/v5/position/closed-pnl', {
           category: 'linear',
@@ -197,9 +203,23 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           const wins   = closedList.filter(t => parseFloat(t.closedPnl) > 0).length
           const losses = closedList.filter(t => parseFloat(t.closedPnl) < 0).length
           setWinStats({ wins, losses, total: closedList.length })
+
+          // Trading days = distinct calendar days where the user CLOSED at least
+          // one trade DURING THIS CHALLENGE. Uses updatedTime (close timestamp ms).
+          // Filtered by bybit_connected_at so closes from prior challenges don't count.
+          // Mirrors IJGF tradingService.js is_close logic exactly.
+          const challengeStartMs = acct.bybit_connected_at
+            ? new Date(acct.bybit_connected_at).getTime()
+            : (acct.created_at ? new Date(acct.created_at).getTime() : 0)
+
+          computedTradingDays = new Set(
+            closedList
+              .filter(t => t.updatedTime && parseInt(t.updatedTime, 10) >= challengeStartMs)
+              .map(t => new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0])
+          ).size
         }
       } catch (e) {
-        // Non-fatal — win rate will show previous value or 0/0
+        // Non-fatal — win rate and trading days show previous DB values
         console.warn('[useBybitSync] closed-pnl fetch failed (non-fatal):', e.message)
       }
 
@@ -230,26 +250,23 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       }
 
       // ── Step 6: Trading Days Tracking ────────────────────────────────────
-      const today          = new Date().toISOString().split('T')[0]   // 'YYYY-MM-DD'
-      const prevDays       = acct.bybit_trading_days    ?? 0
-      const lastActiveDate = acct.bybit_last_active_date ?? null
+      // Derived from closed positions (computed in Step 4).
+      // A trading day is a CALENDAR DAY where the user CLOSED at least one trade
+      // this challenge — identical to IJGF's is_close logic in tradingService.js.
+      // Opening a position alone does NOT count.
+      // This value is idempotent: same result every sync, no counter drift.
       const initial        = parseFloat(acct.initial_balance)
-      let   newTradingDays = prevDays
+      const prevDays       = acct.bybit_trading_days ?? 0
+      const newTradingDays = computedTradingDays  // set in Step 4
 
-      if (lastActiveDate !== today) {
-        // Count today only if: positions are open OR equity has changed since start
-        const hasActivity = openPos.length > 0 || Math.abs(liveEquity - initial) > 0.5
-        if (hasActivity) {
-          newTradingDays = prevDays + 1
-          // Non-blocking update — don't await here to avoid delaying pass/fail check
-          supabase.from('demo_accounts').update({
-            bybit_trading_days:     newTradingDays,
-            bybit_last_active_date: today,
-          }).eq('id', acct.id)
-            .then(({ error: e }) => {
-              if (e) console.error('[useBybitSync] tradingDays update error:', e.message)
-            })
-        }
+      // Only write to DB when the value has actually changed
+      if (newTradingDays !== prevDays) {
+        supabase.from('demo_accounts').update({
+          bybit_trading_days: newTradingDays,
+        }).eq('id', acct.id)
+          .then(({ error: e }) => {
+            if (e) console.error('[useBybitSync] tradingDays update error:', e.message)
+          })
       }
 
       // ── Step 7: Pass / Fail Evaluation ───────────────────────────────────
@@ -342,5 +359,5 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
     return () => clearInterval(interval)
   }, [userId, tradingMode, runSync])
 
-  return { equity, positions, winStats, tradingDays, account, loading, error, lastSync }
+  return { equity, positions, winStats, tradingDays, account, loading, error, lastSync, syncNow: runSync }
 }
