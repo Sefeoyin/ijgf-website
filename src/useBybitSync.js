@@ -5,7 +5,7 @@
  * Mounts at Dashboard root — runs on EVERY tab, not just the Market tab.
  *
  * Responsibilities:
- *  1. Poll Bybit every 30s: live equity + open positions via /api/bybit-proxy
+ *  1. Poll Bybit every 10s: live equity + open positions via /api/bybit-proxy
  *  2. Sync equity → demo_accounts (current_balance, bybit_equity, bybit_last_sync)
  *  3. Trading days: increment bybit_trading_days once per calendar day when
  *     the account has open positions OR equity has moved from initial_balance
@@ -127,6 +127,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
     isSyncing.current = true
 
     try {
+      console.log('[useBybitSync] Sync cycle starting. userId:', userId, 'mode:', tradingMode)
       // ── Step 1: Load active Bybit account row from Supabase ──────────────
       const { data: acct } = await supabase
         .from('demo_accounts')
@@ -138,7 +139,15 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         .limit(1)
         .maybeSingle()
 
-      if (!acct) { setLoading(false); return }
+      if (!acct) {
+        // No active Bybit challenge found in DB.
+        // This can mean: status was changed to 'failed'/'passed', or no Bybit account exists.
+        // We surface this as an error so it's visible — not a silent freeze.
+        setError('No active Bybit challenge found. Your challenge may have ended, or the account status changed unexpectedly. Check the My Challenges tab.')
+        console.warn('[useBybitSync] No active Bybit account found in DB (status=active). userId:', userId)
+        setLoading(false)
+        return
+      }
 
       if (!acct.bybit_api_key || !acct.bybit_api_secret) {
         setError('No Bybit API credentials found. Please reconnect via a new challenge.')
@@ -157,14 +166,49 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         // Some Bybit demo accounts use CONTRACT account type
         walletResult = await proxyGet(key, secret, '/v5/account/wallet-balance', { accountType: 'CONTRACT' })
       }
-      const coins      = walletResult?.list?.[0]?.coin ?? []
+      const accountRow = walletResult?.list?.[0] ?? {}
+      const coins      = accountRow.coin ?? []
       const usdtCoin   = coins.find(c => c.coin === 'USDT')
-      const liveEquity = parseFloat(usdtCoin?.equity ?? usdtCoin?.walletBalance ?? '0')
 
-      if (isNaN(liveEquity) || liveEquity < 0) {
-        throw new Error('Invalid USDT equity received from Bybit')
+      // Equity extraction with fallback chain:
+      // 1. USDT coin-level equity (includes unrealised PnL for open positions)
+      // 2. USDT coin-level walletBalance (realised cash only)
+      // 3. Account-level totalEquity (all coins combined — safe for USDT-only accounts)
+      // 4. Account-level totalWalletBalance
+      const rawEquity = usdtCoin?.equity
+        ?? usdtCoin?.walletBalance
+        ?? accountRow.totalEquity
+        ?? accountRow.totalWalletBalance
+        ?? null
+
+      console.log('[useBybitSync] wallet-balance raw:', {
+        accountType: accountRow.accountType,
+        totalEquity: accountRow.totalEquity,
+        totalWalletBalance: accountRow.totalWalletBalance,
+        usdtCoin: usdtCoin ? { equity: usdtCoin.equity, walletBalance: usdtCoin.walletBalance } : 'NOT FOUND',
+        coinCount: coins.length,
+      })
+
+      if (rawEquity === null) {
+        throw new Error('No USDT equity value found in Bybit wallet response. Check accountType and coin array.')
       }
 
+      const liveEquity = parseFloat(rawEquity)
+
+      if (isNaN(liveEquity) || liveEquity < 0) {
+        throw new Error(\`Invalid USDT equity received from Bybit: "\${rawEquity}"\`)
+      }
+
+      // Guard: equity of exactly zero on an account with initial_balance > 0 means
+      // the coin array was empty (wrong account type) — NOT a real drawdown.
+      // Without this guard, a single sync with an empty coin array would trigger
+      // challenge fail, wipe the demo balance, and freeze the dashboard forever.
+      const initialForCheck = parseFloat(acct.initial_balance ?? 0)
+      if (liveEquity === 0 && initialForCheck > 100) {
+        throw new Error(\`Bybit returned zero equity for an account with initial_balance \${initialForCheck}. Likely wrong accountType or empty coin array. Skipping to prevent false drawdown fail.\`)
+      }
+
+      console.log('[useBybitSync] Step 2 OK: liveEquity =', liveEquity)
       // ── Step 3: Fetch open positions ─────────────────────────────────────
       const posResult = await proxyGet(key, secret, '/v5/position/list', {
         category: 'linear', settleCoin: 'USDT',
@@ -262,10 +306,17 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // A trading day is a CALENDAR DAY where the user CLOSED at least one trade
       // this challenge — identical to IJGF's is_close logic in tradingService.js.
       // Opening a position alone does NOT count.
-      // This value is idempotent: same result every sync, no counter drift.
+      //
+      // CRITICAL: Trading days must NEVER decrease.
+      // The closed-pnl endpoint has a hard limit of 200 records. If the trader
+      // has more than 200 closes, older calendar days roll off the paginated
+      // response and the computed count drops. We take MAX(computed, DB stored)
+      // so a legitimately earned day is never silently un-counted.
+      // The only source of truth for "did this day happen" is what we've
+      // already verified and persisted — we only ever move forward.
       const initial        = parseFloat(acct.initial_balance)
       const prevDays       = acct.bybit_trading_days ?? 0
-      const newTradingDays = computedTradingDays  // set in Step 4
+      const newTradingDays = Math.max(computedTradingDays, prevDays)
 
       // Only write to DB when the value has actually changed
       if (newTradingDays !== prevDays) {
@@ -311,6 +362,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         bybit_trading_days: newTradingDays,
         status:             newStatus ?? acct.status,
       }
+      console.log('[useBybitSync] Step 8 OK: updating React state. equity:', liveEquity, 'positions:', openPos.length, 'tradingDays:', newTradingDays)
       setAccount(updatedAccount)
       setEquity(liveEquity)
       setPositions(openPos)
@@ -354,7 +406,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       }
 
     } catch (err) {
-      console.error('[useBybitSync] Sync error:', err.message)
+      console.error('[useBybitSync] Sync FAILED at step:', err.message)
       setError(`Sync failed: ${err.message}`)
     } finally {
       isSyncing.current = false

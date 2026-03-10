@@ -1,499 +1,496 @@
-import { useState, useEffect, useMemo, useCallback, useContext } from 'react'
+import { useState, useEffect, useCallback, useContext, useMemo } from 'react'
 import { supabase } from './supabase'
-import { getAccountState } from './tradingService'
 import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-function fmt(n, d = 2) {
+function fmt(n, decimals = 2) {
   if (n == null || isNaN(n)) return '—'
-  return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
-}
-function fmtDate(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }) +
-    ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-}
-function fmtDuration(ms) {
-  if (!ms || ms < 0) return '—'
-  const m = Math.floor(ms / 60000)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  const rem = m % 60
-  return rem ? `${h}h ${rem}m` : `${h}h`
-}
-function tradeDuration(trade) {
-  if (!trade.opened_at || !trade.closed_at) return null
-  return new Date(trade.closed_at) - new Date(trade.opened_at)
+  return Number(n).toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
 }
 
+function fmtDate(ts) {
+  if (!ts) return '—'
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts)
+  return d.toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 export default function TradeHistoryPage({ userId, bybitData }) {
-  const [trades, setTrades]             = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [search, setSearch]             = useState('')
-  const [sideFilter, setSideFilter]     = useState('all')
-  const [symbolFilter, setSymbolFilter] = useState('all')
-  const [showFilters, setShowFilters]   = useState(false)
-  const [sortCol, setSortCol]           = useState('executed_at')
-  const [sortDir, setSortDir]           = useState('desc')
-  const [page, setPage]                 = useState(1)
-  const PER_PAGE = 20
-
-  // Bybit: trade history lives on Bybit, not in our demo_trades table.
+  // ── Detect Bybit mode ────────────────────────────────────────────────────
   const isBybit = bybitData?.account?.trading_mode === 'bybit'
 
+  // ── Theme tokens ─────────────────────────────────────────────────────────
   const { theme } = useContext(ThemeContext)
   const dark = theme === 'night'
   const t = {
-    cardBg:       dark ? 'rgba(255,255,255,0.02)' : '#ffffff',
-    cardBorder:   dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.1)',
-    statBg:       dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
-    statBorder:   dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)',
-    divider:      dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)',
-    iconBg:       'rgba(245,158,11,0.12)',
-    iconBorder:   'rgba(245,158,11,0.3)',
-    textPrimary:  dark ? '#eaecef'                : '#0f172a',
-    textSecondary:dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)',
-    textMuted:    dark ? 'rgba(255,255,255,0.4)'  : 'rgba(0,0,0,0.45)',
-    textFaint:    dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.38)',
-    textVeryFaint:dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
-    textTradingDays: dark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.75)',
-    syncText:     dark ? 'rgba(255,255,255,0.2)'  : 'rgba(0,0,0,0.35)',
+    pageBg:       'transparent',
+    cardBg:       dark ? 'rgba(255,255,255,0.03)'  : '#ffffff',
+    cardBorder:   dark ? 'rgba(255,255,255,0.08)'  : 'rgba(0,0,0,0.1)',
+    rowBorder:    dark ? 'rgba(255,255,255,0.05)'  : 'rgba(0,0,0,0.06)',
+    rowHoverBg:   dark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)',
+    textPrimary:  dark ? '#eaecef'                 : '#0f172a',
+    textSecondary:dark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.6)',
+    textMuted:    dark ? 'rgba(255,255,255,0.4)'   : 'rgba(0,0,0,0.45)',
+    textFaint:    dark ? 'rgba(255,255,255,0.3)'   : 'rgba(0,0,0,0.35)',
+    textCell:     dark ? 'rgba(255,255,255,0.7)'   : 'rgba(0,0,0,0.7)',
+    inputBg:      dark ? 'rgba(255,255,255,0.05)'  : 'rgba(0,0,0,0.04)',
+    inputBorder:  dark ? 'rgba(255,255,255,0.1)'   : 'rgba(0,0,0,0.12)',
+    bannerBg:     dark ? 'rgba(245,158,11,0.07)'   : 'rgba(245,158,11,0.08)',
+    bannerBorder: 'rgba(245,158,11,0.2)',
+    bannerText:   dark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.6)',
+    winRow:       dark ? 'rgba(34,197,94,0.04)'    : 'rgba(34,197,94,0.05)',
+    lossRow:      dark ? 'rgba(246,70,93,0.04)'    : 'rgba(246,70,93,0.05)',
   }
-  // ── Load & pair open+close records by position_id ─────────────────────────
-  // The DB stores two rows per round-trip: is_close=false (open leg) and
-  // is_close=true (close leg). We pair them so Entry, Exit, Duration and PNL
-  // all appear on a single row — exactly how Binance/Bybit display history.
-  const loadTrades = useCallback(async () => {
-    // Bybit mode: trades are on Bybit — nothing to load from Supabase.
-    if (isBybit) { setLoading(false); return }
 
+  // ── IJGF state ────────────────────────────────────────────────────────────
+  const [ijgfTrades, setIjgfTrades] = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [page, setPage]             = useState(0)
+  const PAGE_SIZE = 50
+
+  // ── Shared filter/sort state ──────────────────────────────────────────────
+  const [search,     setSearch]     = useState('')
+  const [sideFilter, setSideFilter] = useState('all') // all | long | short
+  const [sortField,  setSortField]  = useState('date')
+  const [sortDir,    setSortDir]    = useState('desc')
+
+  // ── Load IJGF trades from Supabase ────────────────────────────────────────
+  const loadIJGF = useCallback(async () => {
+    if (isBybit || !userId) { setLoading(false); return }
     setLoading(true)
     try {
-      const state = await getAccountState(userId)
-      const demoAccountId = state.account.id
-
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('demo_trades')
         .select('*')
-        .eq('demo_account_id', demoAccountId)
+        .eq('user_id', userId)
         .order('executed_at', { ascending: false })
-
-      const raw = data || []
-
-      // Index all open legs by position_id
-      const openMap = {}
-      raw.forEach(t => {
-        if (!t.is_close) openMap[t.position_id] = t
-      })
-
-      const paired = []
-      const closedPositions = new Set()
-
-      // Match every close leg with its open leg
-      raw.forEach(t => {
-        if (!t.is_close) return
-        const openLeg = openMap[t.position_id]
-        closedPositions.add(t.position_id)
-        paired.push({
-          id:           t.id,
-          position_id:  t.position_id,
-          symbol:       t.symbol,
-          side:         openLeg ? (openLeg.side === 'BUY' ? 'LONG' : 'SHORT') : t.side,
-          entry_price:  openLeg?.price ?? null,
-          exit_price:   t.price,
-          quantity:     t.quantity,
-          leverage:     t.leverage,
-          realized_pnl: t.realized_pnl,
-          opened_at:    openLeg?.executed_at ?? null,
-          closed_at:    t.executed_at,
-          executed_at:  t.executed_at,
-        })
-      })
-
-      // Include still-open positions (no close leg yet)
-      raw.forEach(t => {
-        if (!t.is_close && !closedPositions.has(t.position_id)) {
-          paired.push({
-            id:           t.id,
-            position_id:  t.position_id,
-            symbol:       t.symbol,
-            side:         t.side === 'BUY' ? 'LONG' : 'SHORT',
-            entry_price:  t.price,
-            exit_price:   null,
-            quantity:     t.quantity,
-            leverage:     t.leverage,
-            realized_pnl: null,
-            opened_at:    t.executed_at,
-            closed_at:    null,
-            executed_at:  t.executed_at,
-          })
-        }
-      })
-
-      paired.sort((a, b) => new Date(b.executed_at) - new Date(a.executed_at))
-      setTrades(paired)
-    } catch (e) {
-      console.error(e)
+        .limit(500)
+      if (error) throw error
+      setIjgfTrades(data ?? [])
+    } catch (err) {
+      console.error('[TradeHistoryPage] IJGF load error:', err.message)
     } finally {
       setLoading(false)
     }
   }, [userId, isBybit])
 
-  useEffect(() => {
-    if (!userId) return
-    loadTrades()
-  }, [userId, loadTrades])
+  useEffect(() => { loadIJGF() }, [loadIJGF])
 
-  // ── Derived symbols for filter ────────────────────────────────────────────
-  const symbols = useMemo(() => {
-    const s = new Set(trades.map(t => t.symbol))
-    return ['all', ...Array.from(s)]
-  }, [trades])
+  // ── Bybit closed trades (from useBybitSync at Dashboard root) ─────────────
+  // These are already filtered to the current challenge by useBybitSync (Step 4).
+  // Shape: { orderId, symbol, side (closing direction), qty, entryPrice, exitPrice,
+  //          closedPnl, leverage, updatedTime (ms string), createdTime (ms string) }
+  const bybitClosed = bybitData?.closedTrades ?? []
 
-  // ── Filtered + sorted ─────────────────────────────────────────────────────
+  // ── Normalised trade shape for shared table logic ─────────────────────────
+  // Bybit side: 'Sell' = closed a Long, 'Buy' = closed a Short
+  const normalisedBybit = useMemo(() =>
+    bybitClosed.map(tr => ({
+      id:          tr.orderId ?? String(tr.createdTime),
+      symbol:      tr.symbol,
+      direction:   tr.side === 'Sell' ? 'Long' : 'Short',
+      size:        parseFloat(tr.qty)        || 0,
+      entryPrice:  parseFloat(tr.entryPrice) || 0,
+      exitPrice:   parseFloat(tr.exitPrice)  || 0,
+      pnl:         parseFloat(tr.closedPnl)  || 0,
+      leverage:    parseInt(tr.leverage, 10) || 1,
+      executedAt:  tr.updatedTime ? parseInt(tr.updatedTime, 10) : null,
+      source:      'bybit',
+    })),
+    [bybitClosed]
+  )
+
+  const normalisedIJGF = useMemo(() =>
+    ijgfTrades.map(tr => ({
+      id:         tr.id,
+      symbol:     tr.symbol,
+      direction:  (tr.side ?? '').toLowerCase() === 'long' ? 'Long' : 'Short',
+      size:       parseFloat(tr.quantity ?? tr.size) || 0,
+      entryPrice: parseFloat(tr.entry_price)         || 0,
+      exitPrice:  parseFloat(tr.exit_price)          || 0,
+      pnl:        parseFloat(tr.realized_pnl)        || 0,
+      leverage:   parseInt(tr.leverage, 10)          || 1,
+      executedAt: tr.executed_at ? new Date(tr.executed_at).getTime() : null,
+      source:     'ijgf',
+    })),
+    [ijgfTrades]
+  )
+
+  const trades = isBybit ? normalisedBybit : normalisedIJGF
+
+  // ── Filter + sort ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let list = [...trades]
-    const q = search.trim().toLowerCase()
-    if (q) {
-      list = list.filter(t =>
-        t.symbol?.toLowerCase().includes(q) ||
-        t.id?.toString().includes(q) ||
-        t.side?.toLowerCase().includes(q)
-      )
+    let list = trades
+    if (search) {
+      const q = search.toLowerCase()
+      list = list.filter(t => t.symbol.toLowerCase().includes(q))
     }
-    if (sideFilter !== 'all') list = list.filter(t => t.side?.toLowerCase() === sideFilter)
-    if (symbolFilter !== 'all') list = list.filter(t => t.symbol === symbolFilter)
-
-    list.sort((a, b) => {
-      let va = a[sortCol], vb = b[sortCol]
-      if (typeof va === 'string') va = va.toLowerCase()
-      if (typeof vb === 'string') vb = vb.toLowerCase()
-      if (va < vb) return sortDir === 'asc' ? -1 : 1
-      if (va > vb) return sortDir === 'asc' ? 1 : -1
-      return 0
+    if (sideFilter !== 'all') {
+      list = list.filter(t => t.direction.toLowerCase() === sideFilter)
+    }
+    // Sort
+    list = [...list].sort((a, b) => {
+      let va, vb
+      switch (sortField) {
+        case 'date':    va = a.executedAt ?? 0; vb = b.executedAt ?? 0; break
+        case 'symbol':  va = a.symbol;          vb = b.symbol;          break
+        case 'pnl':     va = a.pnl;             vb = b.pnl;             break
+        case 'size':    va = a.size;             vb = b.size;            break
+        default:        va = a.executedAt ?? 0; vb = b.executedAt ?? 0
+      }
+      if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+      return sortDir === 'asc' ? va - vb : vb - va
     })
     return list
-  }, [trades, search, sideFilter, symbolFilter, sortCol, sortDir])
+  }, [trades, search, sideFilter, sortField, sortDir])
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE)
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  // Pagination
+  const totalPages   = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated    = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  const toggleSort = (col) => {
-    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortCol(col); setSortDir('desc') }
-    setPage(1)
+  // ── Aggregate stats ───────────────────────────────────────────────────────
+  const aggStats = useMemo(() => {
+    if (filtered.length === 0) return null
+    const wins    = filtered.filter(t => t.pnl > 0)
+    const losses  = filtered.filter(t => t.pnl < 0)
+    const total   = filtered.reduce((s, t) => s + t.pnl, 0)
+    const avgWin  = wins.length  > 0 ? wins.reduce((s, t) => s + t.pnl, 0)   / wins.length  : 0
+    const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0
+    const grossW  = wins.reduce((s, t) => s + t.pnl, 0)
+    const grossL  = Math.abs(losses.reduce((s, t) => s + t.pnl, 0))
+    return {
+      count:    filtered.length,
+      wins:     wins.length,
+      losses:   losses.length,
+      winRate:  ((wins.length / filtered.length) * 100).toFixed(1),
+      totalPnl: total,
+      avgWin,
+      avgLoss,
+      pf:       grossL > 0 ? (grossW / grossL).toFixed(2) : wins.length > 0 ? '∞' : '—',
+    }
+  }, [filtered])
+
+  // ── Sort toggle helper ────────────────────────────────────────────────────
+  function toggleSort(field) {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+    setPage(0)
+  }
+
+  function SortIcon({ field }) {
+    if (sortField !== field) return <span style={{ opacity: 0.3, fontSize: '0.7rem' }}>⇅</span>
+    return <span style={{ fontSize: '0.7rem', color: '#7c3aed' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
   // ── CSV export ────────────────────────────────────────────────────────────
-  const exportCSV = () => {
-    const headers = ['Trade ID','Date & Time','Symbol','Side','Entry','Exit','Size','Leverage','PNL','Duration']
+  function exportCSV() {
+    const headers = ['Date','Symbol','Direction','Size','Entry','Exit','PnL','Leverage']
     const rows = filtered.map(t => [
-      `TRD-${t.id}`,
-      fmtDate(t.executed_at),
+      fmtDate(t.executedAt),
       t.symbol,
-      t.side,
-      fmt(t.entry_price),
-      fmt(t.exit_price),
-      fmt(t.quantity, 4),
+      t.direction,
+      t.size,
+      t.entryPrice.toFixed(2),
+      t.exitPrice.toFixed(2),
+      t.pnl.toFixed(4),
       `${t.leverage}x`,
-      t.realized_pnl != null ? (t.realized_pnl >= 0 ? `+${fmt(t.realized_pnl)}` : fmt(t.realized_pnl)) : '—',
-      fmtDuration(tradeDuration(t)),
     ])
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'ijgf-trade-history.csv'; a.click()
+    a.href = url
+    a.download = `ijgf_trade_history_${Date.now()}.csv`
+    a.click()
     URL.revokeObjectURL(url)
   }
 
-  const SortArrow = ({ col }) => {
-    if (sortCol !== col) return <span style={{ opacity: 0.2, fontSize: 10 }}>↕</span>
-    return <span style={{ color: '#8b5cf6', fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
-  }
-
-  // ── Bybit mode: full redirect screen ─────────────────────────────────────
-  // Trade history for Bybit challenges lives on bybit.com — we have no copy
-  // in demo_trades. Show a branded screen linking to Bybit's own history page.
-  if (isBybit) {
-    const acct       = bybitData.account
-    const initial    = parseFloat(acct?.initial_balance ?? 0)
-    const liveEquity = bybitData.equity ?? initial
-    const pnl        = liveEquity - initial
+  // ── Loading (IJGF only) ───────────────────────────────────────────────────
+  if (!isBybit && loading) {
     return (
-      <div className="history-page">
-        <div style={{
-          maxWidth: 640, margin: '60px auto', textAlign: 'center',
-          padding: '48px 32px',
-          background: t.cardBg,
-          border: `1px solid ${t.cardBorder}`,
-          borderRadius: 20,
-        }}>
-          {/* Bybit icon */}
-          <div style={{
-            width: 56, height: 56, borderRadius: 14,
-            background: t.iconBg,
-            border: `1px solid ${t.iconBorder}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px',
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2"/>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-          </div>
-
-          <h2 style={{ margin: '0 0 12px', fontSize: '1.35rem', fontWeight: 700, color: t.textPrimary }}>
-            Trading on Bybit Demo
-          </h2>
-          <p style={{ margin: '0 0 8px', fontSize: '0.95rem', color: t.textSecondary, lineHeight: 1.6 }}>
-            Your full trade history lives directly on Bybit — including entry/exit prices,
-            order IDs, fees, and funding. We can't copy it here without making every trade
-            call both IJGF and Bybit, which would double your latency.
-          </p>
-          <p style={{ margin: '0 0 32px', fontSize: '0.9rem', color: t.textFaint, lineHeight: 1.6 }}>
-            The IJGF risk engine tracks your equity, drawdown, and trading days in real-time
-            — those are visible on the <strong style={{ color: t.textSecondary }}>Overview</strong> and <strong style={{ color: t.textSecondary }}>Rules</strong> tabs.
-          </p>
-
-          {/* Live PnL summary pill */}
-          <div style={{
-            display: 'inline-flex', gap: 32, padding: '14px 28px',
-            background: t.statBg,
-            border: `1px solid ${t.statBorder}`,
-            borderRadius: 12, marginBottom: 32,
-          }}>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Live Equity</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
-                ${liveEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </div>
-            <div style={{ width: 1, background: t.divider }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Net P&L</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: (pnl >= 0) ? '#22c55e' : '#f6465d' }}>
-                {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </div>
-            <div style={{ width: 1, background: t.divider }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', color: t.textMuted, marginBottom: 4 }}>Trading Days</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: t.textTradingDays }}>
-                {bybitData.tradingDays ?? 0}
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div>
-            <a
-              href="https://www.bybit.com/en/order/filled/?orderType=trade&mode=demo"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px',
-                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                color: '#000', fontWeight: 700, fontSize: '0.9rem',
-                borderRadius: 10, textDecoration: 'none',
-              }}
-            >
-              View Full Trade History on Bybit
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-            </a>
-            <p style={{ marginTop: 14, fontSize: '0.78rem', color: t.textVeryFaint }}>
-              Opens Bybit Demo Trading → Orders → Filled Orders
-            </p>
-          </div>
-
-          {bybitData.lastSync && (
-            <p style={{ marginTop: 24, fontSize: '0.75rem', color: t.syncText }}>
-              ● Last synced with Bybit: {bybitData.lastSync.toLocaleTimeString()}
-            </p>
-          )}
-        </div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh', gap:12, flexDirection:'column', color: t.textMuted }}>
+        <div style={{ width:32, height:32, border:`3px solid rgba(124,58,237,0.2)`, borderTopColor:'#7c3aed', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        <span style={{ fontSize:'0.9rem' }}>Loading trade history…</span>
       </div>
     )
   }
 
-  if (loading) return (
-    <div className="analytics-loading">
-      <div className="analytics-spinner" />
-      <span>Loading trade history…</span>
-    </div>
-  )
+  const inputStyle = {
+    background:   t.inputBg,
+    border:       `1px solid ${t.inputBorder}`,
+    borderRadius: 8,
+    padding:      '7px 12px',
+    color:        t.textPrimary,
+    fontSize:     '0.83rem',
+    outline:      'none',
+  }
+
+  const tabStyle = (active) => ({
+    padding:      '5px 14px',
+    borderRadius: 6,
+    border:       active ? '1px solid rgba(124,58,237,0.5)' : `1px solid ${t.inputBorder}`,
+    background:   active ? 'rgba(124,58,237,0.15)' : t.inputBg,
+    color:        active ? '#a78bfa' : t.textSecondary,
+    fontSize:     '0.8rem',
+    fontWeight:   active ? 600 : 400,
+    cursor:       'pointer',
+    transition:   'all 0.15s',
+  })
+
+  const thStyle = (field) => ({
+    padding:       '8px 12px',
+    textAlign:     field === 'symbol' || field === 'direction' ? 'left' : 'right',
+    fontWeight:    600,
+    fontSize:      '0.73rem',
+    color:         sortField === field ? '#a78bfa' : t.textMuted,
+    cursor:        'pointer',
+    whiteSpace:    'nowrap',
+    userSelect:    'none',
+  })
 
   return (
-    <div className="history-page">
+    <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
-      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div className="history-toolbar">
-        <div className="history-search-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            className="history-search"
-            placeholder="Search by symbol or Trade ID…"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1) }}
-          />
-          {search && (
-            <button className="history-search-clear" onClick={() => { setSearch(''); setPage(1) }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+      {/* ── Bybit live banner ── */}
+      {isBybit && (
+        <div style={{
+          display:'flex', alignItems:'center', gap:8, marginBottom:20,
+          padding:'9px 14px',
+          background: t.bannerBg, border:`1px solid ${t.bannerBorder}`,
+          borderRadius:10, fontSize:'0.8rem', color: t.bannerText, flexWrap:'wrap',
+        }}>
+          <span style={{ color:'#f59e0b', fontWeight:700 }}>● LIVE</span>
+          Bybit Demo Trading — data syncs every 10s
+          {bybitData?.lastSync && (
+            <span style={{ opacity:0.6 }}>
+              Last sync: {bybitData.lastSync.toLocaleTimeString()}
+            </span>
           )}
-        </div>
-
-        <div className="history-toolbar-right">
-          <button className={`history-filter-btn ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(v => !v)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-            </svg>
-            Filter
-          </button>
-          <button className="history-export-btn" onClick={exportCSV}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export as CSV
-          </button>
-        </div>
-      </div>
-
-      {/* ── Filter row ───────────────────────────────────────────────────── */}
-      {showFilters && (
-        <div className="history-filter-row">
-          <div className="history-filter-group">
-            <label>Side</label>
-            <div className="history-filter-pills">
-              {['all','long','short'].map(s => (
-                <button key={s} className={`history-pill ${sideFilter === s ? 'active' : ''}`}
-                  onClick={() => { setSideFilter(s); setPage(1) }}>
-                  {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="history-filter-group">
-            <label>Symbol</label>
-            <div className="history-filter-pills">
-              {symbols.map(s => (
-                <button key={s} className={`history-pill ${symbolFilter === s ? 'active' : ''}`}
-                  onClick={() => { setSymbolFilter(s); setPage(1) }}>
-                  {s === 'all' ? 'All' : s}
-                </button>
-              ))}
-            </div>
-          </div>
-          {(sideFilter !== 'all' || symbolFilter !== 'all') && (
-            <button className="history-clear-filters" onClick={() => { setSideFilter('all'); setSymbolFilter('all'); setPage(1) }}>
-              Clear filters
-            </button>
-          )}
+          <button
+            onClick={() => bybitData?.syncNow?.()}
+            style={{
+              marginLeft:4, padding:'2px 10px',
+              background:'rgba(245,158,11,0.12)',
+              border:'1px solid rgba(245,158,11,0.3)',
+              borderRadius:6, fontSize:'0.72rem', fontWeight:600,
+              color:'#f59e0b', cursor:'pointer',
+            }}
+          >Sync Now</button>
+          <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+            target="_blank" rel="noopener noreferrer"
+            style={{ marginLeft:'auto', color:'#f59e0b', textDecoration:'none', fontWeight:600 }}
+          >Open Bybit →</a>
         </div>
       )}
 
-      {/* ── Table ────────────────────────────────────────────────────────── */}
-      <div className="history-table-wrap">
-        {filtered.length === 0 ? (
-          <div className="history-empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.3)" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      {/* ── Page header ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h2 style={{ margin:0, fontSize:'1.15rem', fontWeight:700, color: t.textPrimary }}>
+            Trade History
+            {isBybit && <span style={{ marginLeft:10, fontSize:'0.7rem', fontWeight:700, background:'rgba(245,158,11,0.15)', color:'#f59e0b', border:'1px solid rgba(245,158,11,0.3)', borderRadius:20, padding:'2px 9px', verticalAlign:'middle' }}>BYBIT DEMO</span>}
+          </h2>
+          <p style={{ margin:'3px 0 0', fontSize:'0.8rem', color: t.textMuted }}>
+            {isBybit
+              ? `${bybitClosed.length} closed trade${bybitClosed.length !== 1 ? 's' : ''} this challenge`
+              : `${ijgfTrades.length} trade${ijgfTrades.length !== 1 ? 's' : ''} recorded`}
+          </p>
+        </div>
+        <button
+          onClick={exportCSV}
+          disabled={filtered.length === 0}
+          style={{
+            padding:'8px 16px',
+            background: filtered.length === 0 ? t.inputBg : 'rgba(124,58,237,0.15)',
+            border: `1px solid ${filtered.length === 0 ? t.inputBorder : 'rgba(124,58,237,0.4)'}`,
+            borderRadius:8, color: filtered.length === 0 ? t.textFaint : '#a78bfa',
+            fontSize:'0.82rem', fontWeight:600, cursor: filtered.length === 0 ? 'default' : 'pointer',
+            display:'flex', alignItems:'center', gap:6, transition:'all 0.15s',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+
+      {/* ── Aggregate stat cards ── */}
+      {aggStats && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:10, marginBottom:20 }}>
+          {[
+            { label:'Total Trades',  value: aggStats.count,                           color: t.textPrimary },
+            { label:'Win Rate',      value:`${aggStats.winRate}%`,                    color: parseFloat(aggStats.winRate) >= 50 ? '#22c55e' : '#f6465d' },
+            { label:'Net PnL',       value:`${aggStats.totalPnl >= 0 ? '+' : ''}$${fmt(aggStats.totalPnl)}`,  color: aggStats.totalPnl >= 0 ? '#22c55e' : '#f6465d' },
+            { label:'Avg Win',       value:`+$${fmt(aggStats.avgWin)}`,               color:'#22c55e' },
+            { label:'Avg Loss',      value:`-$${fmt(Math.abs(aggStats.avgLoss))}`,    color:'#f6465d' },
+            { label:'Profit Factor', value: aggStats.pf,                              color: t.textPrimary },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: t.cardBg, border:`1px solid ${t.cardBorder}`,
+              borderRadius:10, padding:'12px 14px',
+            }}>
+              <div style={{ fontSize:'0.72rem', color: t.textMuted, marginBottom:4 }}>{s.label}</div>
+              <div style={{ fontSize:'1.0rem', fontWeight:700, color: s.color }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Filter bar ── */}
+      <div style={{
+        background: t.cardBg, border:`1px solid ${t.cardBorder}`,
+        borderRadius:12, padding:'12px 16px', marginBottom:12,
+        display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
+      }}>
+        <input
+          type="text"
+          placeholder="Search symbol…"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(0) }}
+          style={{ ...inputStyle, minWidth:160 }}
+        />
+        <div style={{ display:'flex', gap:6 }}>
+          {[['all','All'],['long','Long'],['short','Short']].map(([v,l]) => (
+            <button key={v} onClick={() => { setSideFilter(v); setPage(0) }} style={tabStyle(sideFilter === v)}>{l}</button>
+          ))}
+        </div>
+        <span style={{ marginLeft:'auto', fontSize:'0.78rem', color: t.textFaint }}>
+          {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          {filtered.length < trades.length ? ` (filtered from ${trades.length})` : ''}
+        </span>
+      </div>
+
+      {/* ── Trade table ── */}
+      <div style={{
+        background: t.cardBg, border:`1px solid ${t.cardBorder}`,
+        borderRadius:12, overflow:'hidden',
+      }}>
+        {paginated.length === 0 ? (
+          <div style={{ padding:'60px 20px', textAlign:'center', color: t.textMuted }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity:0.4, display:'block', margin:'0 auto 12px' }}>
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
             </svg>
-            <p>{search ? 'No trades match your search.' : 'No trade history yet.'}</p>
+            {isBybit
+              ? 'No closed trades for this challenge yet. Start trading on Bybit Demo.'
+              : 'No trades found. Start a challenge to begin trading.'}
+            {isBybit && (
+              <div style={{ marginTop:14 }}>
+                <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ color:'#f59e0b', fontWeight:600, fontSize:'0.85rem', textDecoration:'none' }}
+                >Open Bybit Demo →</a>
+              </div>
+            )}
           </div>
         ) : (
-          <table className="history-table">
-            <thead>
-              <tr>
-                {[
-                  ['id','Trade ID'],
-                  ['executed_at','Date & Time'],
-                  ['symbol','Symbol'],
-                  ['side','Side'],
-                  ['entry_price','Entry'],
-                  ['exit_price','Exit'],
-                  ['quantity','Size'],
-                  ['leverage','Leverage'],
-                  ['realized_pnl','PNL'],
-                  [null,'Duration'],
-                ].map(([col, label]) => (
-                  <th key={label} onClick={col ? () => toggleSort(col) : undefined}
-                    className={col ? 'sortable' : ''}>
-                    {label} {col && <SortArrow col={col} />}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map(trade => {
-                const pnl = trade.realized_pnl
-                const dur = tradeDuration(trade)
-                // ROI as % of margin used (matches Binance/Bybit convention)
-                const margin = trade.entry_price && trade.quantity && trade.leverage
-                  ? (trade.entry_price * trade.quantity) / trade.leverage : null
-                const pnlPct = pnl != null && margin ? ((pnl / margin) * 100).toFixed(2) : null
-
-                return (
-                  <tr key={trade.id}>
-                    <td className="history-id">TRD-{String(trade.id).slice(-5).toUpperCase()}</td>
-                    <td className="history-date">{fmtDate(trade.executed_at)}</td>
-                    <td className="history-symbol">{trade.symbol}</td>
-                    <td>
-                      <span className={`history-side-badge ${trade.side?.toLowerCase() === 'long' ? 'long' : 'short'}`}>
-                        {trade.side?.toLowerCase() === 'long' ? 'Buy' : 'Sell'}
-                      </span>
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.82rem' }}>
+              <thead>
+                <tr style={{ borderBottom:`1px solid ${t.cardBorder}` }}>
+                  <th onClick={() => toggleSort('date')}   style={thStyle('date')}>Date & Time <SortIcon field="date"/></th>
+                  <th onClick={() => toggleSort('symbol')} style={{ ...thStyle('symbol'), textAlign:'left' }}>Symbol <SortIcon field="symbol"/></th>
+                  <th style={{ ...thStyle('direction'), cursor:'default' }}>Direction</th>
+                  <th onClick={() => toggleSort('size')}   style={thStyle('size')}>Size <SortIcon field="size"/></th>
+                  <th style={{ ...thStyle('entry'), cursor:'default' }}>Entry</th>
+                  <th style={{ ...thStyle('exit'), cursor:'default' }}>Exit</th>
+                  <th onClick={() => toggleSort('pnl')}    style={thStyle('pnl')}>PnL <SortIcon field="pnl"/></th>
+                  <th style={{ ...thStyle('leverage'), cursor:'default' }}>Lev.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((tr, i) => (
+                  <tr
+                    key={tr.id ?? i}
+                    style={{
+                      borderBottom:`1px solid ${t.rowBorder}`,
+                      background: tr.pnl > 0 ? t.winRow : tr.pnl < 0 ? t.lossRow : 'transparent',
+                      transition:'background 0.1s',
+                    }}
+                  >
+                    <td style={{ padding:'9px 12px', color: t.textFaint, fontSize:'0.76rem', whiteSpace:'nowrap' }}>
+                      {fmtDate(tr.executedAt)}
                     </td>
-                    <td>{fmt(trade.entry_price)}</td>
-                    <td>{fmt(trade.exit_price)}</td>
-                    <td>{fmt(trade.quantity, 4)}</td>
-                    <td>{trade.leverage}x</td>
-                    <td>
-                      {pnl != null ? (
-                        <span className={pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}>
-                          {pnl >= 0 ? '+' : ''}{fmt(pnl)}
-                          {pnlPct && <span className="pnl-pct"> ({pnl >= 0 ? '+' : ''}{pnlPct}%)</span>}
-                        </span>
-                      ) : '—'}
+                    <td style={{ padding:'9px 12px', color: t.textPrimary, fontWeight:600 }}>
+                      {tr.symbol}
                     </td>
-                    <td>{fmtDuration(dur)}</td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', fontWeight:600,
+                      color: tr.direction === 'Long' ? '#22c55e' : '#f6465d' }}>
+                      {tr.direction}
+                    </td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', color: t.textCell }}>
+                      {tr.size}
+                    </td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', color: t.textCell }}>
+                      ${fmt(tr.entryPrice)}
+                    </td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', color: t.textCell }}>
+                      {tr.exitPrice > 0 ? `$${fmt(tr.exitPrice)}` : '—'}
+                    </td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', fontWeight:700,
+                      color: tr.pnl > 0 ? '#22c55e' : tr.pnl < 0 ? '#f6465d' : t.textCell }}>
+                      {tr.pnl >= 0 ? '+' : ''}${fmt(tr.pnl)}
+                    </td>
+                    <td style={{ padding:'9px 12px', textAlign:'right', color: t.textMuted }}>
+                      {tr.leverage}x
+                    </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Pagination ── */}
+        {totalPages > 1 && (
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'12px 16px', borderTop:`1px solid ${t.rowBorder}`,
+          }}>
+            <span style={{ fontSize:'0.78rem', color: t.textFaint }}>
+              Page {page + 1} of {totalPages} · {filtered.length} trades
+            </span>
+            <div style={{ display:'flex', gap:6 }}>
+              {[['← Prev', page > 0, () => setPage(p => p - 1)],
+                ['Next →', page < totalPages - 1, () => setPage(p => p + 1)]].map(([label, enabled, fn]) => (
+                <button
+                  key={label}
+                  onClick={fn}
+                  disabled={!enabled}
+                  style={{
+                    padding:'5px 12px',
+                    background: enabled ? 'rgba(124,58,237,0.12)' : t.inputBg,
+                    border:`1px solid ${enabled ? 'rgba(124,58,237,0.35)' : t.inputBorder}`,
+                    borderRadius:7, fontSize:'0.79rem', fontWeight:600,
+                    color: enabled ? '#a78bfa' : t.textFaint,
+                    cursor: enabled ? 'pointer' : 'default',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* ── Pagination ───────────────────────────────────────────────────── */}
-      {totalPages > 1 && (
-        <div className="history-pagination">
-          <span className="history-count">
-            {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} trades
-          </span>
-          <div className="history-page-btns">
-            <button disabled={page === 1} onClick={() => setPage(1)}>«</button>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const p = Math.max(1, Math.min(page - 2 + i, totalPages - 4 + i))
-              return (
-                <button key={p} className={page === p ? 'active' : ''} onClick={() => setPage(p)}>{p}</button>
-              )
-            })}
-            <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
-            <button disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
-          </div>
-        </div>
+      {/* ── Bybit footer note ── */}
+      {isBybit && (
+        <p style={{ marginTop:16, fontSize:'0.75rem', color: t.textFaint, textAlign:'center' }}>
+          Showing closed trades for this challenge. Full history on{' '}
+          <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+            target="_blank" rel="noopener noreferrer" style={{ color:'#f59e0b' }}>bybit.com</a>
+        </p>
       )}
     </div>
   )

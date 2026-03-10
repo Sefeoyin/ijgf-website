@@ -356,6 +356,7 @@ export default function AnalyticsPage({ userId, bybitData }) {
     const minDays     = parseInt(acct?.min_trading_days ?? 5, 10)
     const progress    = target > 0 ? Math.min(100, Math.max(0, (pnl / target) * 100)) : 0
     const positions   = bybitData.positions ?? []
+    const closedTrades = bybitData.closedTrades ?? []
     const totalUnrPnl = positions.reduce((s, p) => s + (p.unrealisedPnl || 0), 0)
 
     const fmt2 = (n) => n != null
@@ -372,12 +373,22 @@ export default function AnalyticsPage({ userId, bybitData }) {
           borderRadius: 10, fontSize: '0.8rem', color: t.bannerText,
         }}>
           <span style={{ color: '#f59e0b', fontWeight: 700 }}>● LIVE</span>
-          Bybit Demo Trading — data syncs every 30s
+          Bybit Demo Trading — data syncs every 10s
           {bybitData.lastSync && (
             <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
               Last sync: {bybitData.lastSync.toLocaleTimeString()}
             </span>
           )}
+          <button
+            onClick={() => bybitData?.syncNow?.()}
+            style={{
+              marginLeft: 8, padding: '2px 10px',
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
+              color: '#f59e0b', cursor: 'pointer',
+            }}
+          >Sync Now</button>
           <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
             target="_blank" rel="noopener noreferrer"
             style={{ marginLeft: 8, color: '#f59e0b', textDecoration: 'none', fontWeight: 600 }}>
@@ -489,12 +500,69 @@ export default function AnalyticsPage({ userId, bybitData }) {
           </div>
         )}
 
-        {/* No-trade-history note */}
-        <p style={{ marginTop: 20, fontSize: '0.78rem', color: t.textVeryFaint, textAlign: 'center' }}>
-          Bybit Demo Trading — detailed trade history is available directly on{' '}
-          <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
-            target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>bybit.com</a>
-        </p>
+        {/* Closed trades table */}
+        <div style={{
+          background: t.cardBg, border: `1px solid ${t.cardBorder}`,
+          borderRadius: 12, padding: '16px 18px', marginTop: 16,
+        }}>
+          <div style={{ fontSize: '0.88rem', fontWeight: 600, color: t.textSecondary, marginBottom: 12 }}>
+            Closed Trades ({closedTrades.length})
+          </div>
+          {closedTrades.length === 0 ? (
+            <p style={{ fontSize: '0.82rem', color: t.textFaint, margin: 0, textAlign: 'center', padding: '20px 0' }}>
+              No closed trades for this challenge yet.
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ color: t.textMuted, borderBottom: `1px solid ${t.cardBorder}` }}>
+                    {['Symbol','Direction','Size','Entry','Exit','PnL','Leverage','Closed At'].map(h => (
+                      <th key={h} style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 500,
+                        ...(h === 'Symbol' ? { textAlign: 'left' } : {}) }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {closedTrades.map((tr, i) => {
+                    // In Bybit closed-pnl, `side` is the CLOSING trade direction.
+                    // Sell = closed a Long. Buy = closed a Short.
+                    const direction = tr.side === 'Sell' ? 'Long' : 'Short'
+                    const pnl = parseFloat(tr.closedPnl)
+                    const closedAt = tr.updatedTime
+                      ? new Date(parseInt(tr.updatedTime, 10)).toLocaleString('en-GB', {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                        })
+                      : '—'
+                    return (
+                      <tr key={tr.orderId ?? i} style={{
+                        borderBottom: `1px solid ${t.rowBorder}`,
+                        background: pnl > 0 ? 'rgba(34,197,94,0.04)' : pnl < 0 ? 'rgba(246,70,93,0.04)' : 'transparent',
+                      }}>
+                        <td style={{ padding: '7px 10px', color: t.textPrimary, fontWeight: 600 }}>{tr.symbol}</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: direction === 'Long' ? '#22c55e' : '#f6465d', fontWeight: 600 }}>{direction}</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>{tr.qty}</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>${fmt2(parseFloat(tr.entryPrice))}</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>${fmt2(parseFloat(tr.exitPrice))}</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 600,
+                          color: pnl > 0 ? '#22c55e' : pnl < 0 ? '#f6465d' : t.textCell }}>
+                          {pnl >= 0 ? '+' : ''}{fmt2(pnl)}
+                        </td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textCell }}>{tr.leverage}x</td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', color: t.textFaint, fontSize: '0.77rem' }}>{closedAt}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p style={{ marginTop: 12, fontSize: '0.75rem', color: t.textVeryFaint, textAlign: 'center', margin: '12px 0 0' }}>
+            Full history on{' '}
+            <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+              target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>bybit.com</a>
+          </p>
+        </div>
       </div>
     )
   }
