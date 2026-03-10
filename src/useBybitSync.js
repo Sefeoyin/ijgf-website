@@ -2,7 +2,7 @@
  * useBybitSync.js
  *
  * Dashboard-level hook for Bybit Demo Trading challenge tracking.
- * Mounts at Dashboard root — runs on EVERY tab, not just the Market tab.
+ * Mounts at Dashboard root -- runs on EVERY tab, not just the Market tab.
  *
  * Responsibilities:
  *  1. Poll Bybit every 10s: live equity + open positions via /api/bybit-proxy
@@ -31,7 +31,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
 const BYBIT_PROXY       = '/api/bybit-proxy'
-const POLL_INTERVAL_MS  = 10_000  // 10 seconds — fast enough to catch closes within one tick
+const POLL_INTERVAL_MS  = 10_000  // 10 seconds -- fast enough to catch closes within one tick
 const TPSL_GRACE_CYCLES = 6       // 6 × 10s = ~60s real-world grace before force-closing SL-less positions
 
 // ── Proxy helpers ─────────────────────────────────────────────────────────────
@@ -57,13 +57,13 @@ async function proxyPost(apiKey, apiSecret, endpoint, params = {}) {
     signal: AbortSignal.timeout(15_000),
   })
   if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`)
-  // Return raw json — caller decides whether retCode matters
+  // Return raw json -- caller decides whether retCode matters
   return await res.json()
 }
 
 // ── Nuke Bybit Demo balance to (near) zero on challenge end ──────────────────
 // adjustType:1 = reduce. Loops all coins in ≤100k USDT chunks.
-// Bybit enforces a minimum USDT floor — hitting it returns a non-zero retCode
+// Bybit enforces a minimum USDT floor -- hitting it returns a non-zero retCode
 // which we intentionally swallow. That's expected & correct.
 async function nukeBybitBalance(apiKey, apiSecret) {
   try {
@@ -83,7 +83,7 @@ async function nukeBybitBalance(apiKey, apiSecret) {
       }
     }
   } catch (err) {
-    // Non-critical — never block the modal for a nuke failure
+    // Non-critical -- never block the modal for a nuke failure
     console.warn('[useBybitSync] nukeBybitBalance non-critical error:', err.message)
   }
 }
@@ -142,7 +142,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       if (!acct) {
         // No active Bybit challenge found in DB.
         // This can mean: status was changed to 'failed'/'passed', or no Bybit account exists.
-        // We surface this as an error so it's visible — not a silent freeze.
+        // We surface this as an error so it's visible -- not a silent freeze.
         setError('No active Bybit challenge found. Your challenge may have ended, or the account status changed unexpectedly. Check the My Challenges tab.')
         console.warn('[useBybitSync] No active Bybit account found in DB (status=active). userId:', userId)
         setLoading(false)
@@ -173,7 +173,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // Equity extraction with fallback chain:
       // 1. USDT coin-level equity (includes unrealised PnL for open positions)
       // 2. USDT coin-level walletBalance (realised cash only)
-      // 3. Account-level totalEquity (all coins combined — safe for USDT-only accounts)
+      // 3. Account-level totalEquity (all coins combined -- safe for USDT-only accounts)
       // 4. Account-level totalWalletBalance
       const rawEquity = usdtCoin?.equity
         ?? usdtCoin?.walletBalance
@@ -196,16 +196,16 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       const liveEquity = parseFloat(rawEquity)
 
       if (isNaN(liveEquity) || liveEquity < 0) {
-        throw new Error(\`Invalid USDT equity received from Bybit: "\${rawEquity}"\`)
+        throw new Error(`Invalid USDT equity received from Bybit: "${rawEquity}"`)
       }
 
       // Guard: equity of exactly zero on an account with initial_balance > 0 means
-      // the coin array was empty (wrong account type) — NOT a real drawdown.
+      // the coin array was empty (wrong account type) -- NOT a real drawdown.
       // Without this guard, a single sync with an empty coin array would trigger
       // challenge fail, wipe the demo balance, and freeze the dashboard forever.
       const initialForCheck = parseFloat(acct.initial_balance ?? 0)
       if (liveEquity === 0 && initialForCheck > 100) {
-        throw new Error(\`Bybit returned zero equity for an account with initial_balance \${initialForCheck}. Likely wrong accountType or empty coin array. Skipping to prevent false drawdown fail.\`)
+        throw new Error(`Bybit returned zero equity for an account with initial_balance ${initialForCheck}. Likely wrong accountType or empty coin array. Skipping to prevent false drawdown fail.`)
       }
 
       console.log('[useBybitSync] Step 2 OK: liveEquity =', liveEquity)
@@ -227,14 +227,14 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           leverage:      parseInt(p.leverage, 10)  || 1,
         }))
 
-      // ── Step 4: Fetch closed PnL — win-rate + trading days calculation ───
+      // ── Step 4: Fetch closed PnL -- win-rate + trading days calculation ───
       // Bybit's closed-pnl endpoint returns all historical closes.
       // We pull the last 200 filtered to the current challenge start so past
       // challenges never inflate the trading-day count.
-      // Failures are non-critical — winStats and computedTradingDays fall back
+      // Failures are non-critical -- winStats and computedTradingDays fall back
       // to their last known DB values rather than crashing the sync.
 
-      // Initialise to last known DB value — overwritten below if API succeeds.
+      // Initialise to last known DB value -- overwritten below if API succeeds.
       // Safe fallback: never reset to 0 on a transient API error.
       let computedTradingDays = acct.bybit_trading_days ?? 0
 
@@ -246,7 +246,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         const closedList = closedResult?.list ?? []
 
         // Filter to ONLY trades closed during this challenge.
-        // bybit_connected_at marks challenge start — prevents prior-challenge trades
+        // bybit_connected_at marks challenge start -- prevents prior-challenge trades
         // from inflating win rate or trading days. Same filter for both.
         const challengeStartMs = acct.bybit_connected_at
           ? new Date(acct.bybit_connected_at).getTime()
@@ -271,7 +271,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           ).size
         }
       } catch (e) {
-        // Non-fatal — win rate and trading days show previous DB values
+        // Non-fatal -- win rate and trading days show previous DB values
         console.warn('[useBybitSync] closed-pnl fetch failed (non-fatal):', e.message)
       }
 
@@ -288,7 +288,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           noSlCycles.current[pos.symbol] = cycles
           if (cycles >= TPSL_GRACE_CYCLES) {
             console.warn(
-              `[useBybitSync] Force-closing ${pos.symbol} — no SL for ${cycles} cycles`
+              `[useBybitSync] Force-closing ${pos.symbol} - no SL for ${cycles} cycles`
             )
             await closeBybitPosition(key, secret, pos).catch(e =>
               console.error(`[useBybitSync] Force-close ${pos.symbol} failed:`, e.message)
@@ -296,7 +296,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
             delete noSlCycles.current[pos.symbol]
           }
         } else {
-          // Trader added their SL — reset counter
+          // Trader added their SL -- reset counter
           delete noSlCycles.current[pos.symbol]
         }
       }
@@ -304,7 +304,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // ── Step 6: Trading Days Tracking ────────────────────────────────────
       // Derived from closed positions (computed in Step 4).
       // A trading day is a CALENDAR DAY where the user CLOSED at least one trade
-      // this challenge — identical to IJGF's is_close logic in tradingService.js.
+      // this challenge -- identical to IJGF's is_close logic in tradingService.js.
       // Opening a position alone does NOT count.
       //
       // CRITICAL: Trading days must NEVER decrease.
@@ -313,7 +313,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // response and the computed count drops. We take MAX(computed, DB stored)
       // so a legitimately earned day is never silently un-counted.
       // The only source of truth for "did this day happen" is what we've
-      // already verified and persisted — we only ever move forward.
+      // already verified and persisted -- we only ever move forward.
       const initial        = parseFloat(acct.initial_balance)
       const prevDays       = acct.bybit_trading_days ?? 0
       const newTradingDays = Math.max(computedTradingDays, prevDays)
@@ -353,7 +353,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       // State update MUST happen before the DB write so that a Supabase failure
       // (network blip, rate limit, row lock) can never block the UI from showing
       // the live data we already successfully fetched from Bybit.
-      // This is the root cause of "trade not reflecting" — DB write was awaited
+      // This is the root cause of "trade not reflecting" -- DB write was awaited
       // first, and any failure skipped setEquity() entirely.
       const updatedAccount = {
         ...acct,
@@ -371,7 +371,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       setError(null)
 
       // ── Step 9: Persist to Supabase (fire-and-forget) ────────────────────
-      // Non-blocking — a DB write failure must not affect the UI.
+      // Non-blocking -- a DB write failure must not affect the UI.
       // The live data is already displayed above; the DB write is secondary.
       const dbUpdate = {
         bybit_equity:    liveEquity,

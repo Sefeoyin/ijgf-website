@@ -4,7 +4,7 @@ import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, decimals = 2) {
-  if (n == null || isNaN(n)) return '—'
+  if (n == null || isNaN(n)) return '--'
   return Number(n).toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -12,7 +12,7 @@ function fmt(n, decimals = 2) {
 }
 
 function fmtDate(ts) {
-  if (!ts) return '—'
+  if (!ts) return '--'
   const d = typeof ts === 'number' ? new Date(ts) : new Date(ts)
   return d.toLocaleString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -82,16 +82,13 @@ export default function TradeHistoryPage({ userId, bybitData }) {
 
   useEffect(() => { loadIJGF() }, [loadIJGF])
 
-  // ── Bybit closed trades (from useBybitSync at Dashboard root) ─────────────
-  // These are already filtered to the current challenge by useBybitSync (Step 4).
-  // Shape: { orderId, symbol, side (closing direction), qty, entryPrice, exitPrice,
-  //          closedPnl, leverage, updatedTime (ms string), createdTime (ms string) }
-  const bybitClosed = bybitData?.closedTrades ?? []
-
   // ── Normalised trade shape for shared table logic ─────────────────────────
   // Bybit side: 'Sell' = closed a Long, 'Buy' = closed a Short
-  const normalisedBybit = useMemo(() =>
-    bybitClosed.map(tr => ({
+  // bybitData?.closedTrades is derived inside the memo to avoid a stale-closure
+  // warning -- the array reference changes each sync cycle.
+  const normalisedBybit = useMemo(() => {
+    const bybitClosed = bybitData?.closedTrades ?? []
+    return bybitClosed.map(tr => ({
       id:          tr.orderId ?? String(tr.createdTime),
       symbol:      tr.symbol,
       direction:   tr.side === 'Sell' ? 'Long' : 'Short',
@@ -102,9 +99,8 @@ export default function TradeHistoryPage({ userId, bybitData }) {
       leverage:    parseInt(tr.leverage, 10) || 1,
       executedAt:  tr.updatedTime ? parseInt(tr.updatedTime, 10) : null,
       source:      'bybit',
-    })),
-    [bybitClosed]
-  )
+    }))
+  }, [bybitData])
 
   const normalisedIJGF = useMemo(() =>
     ijgfTrades.map(tr => ({
@@ -172,7 +168,7 @@ export default function TradeHistoryPage({ userId, bybitData }) {
       totalPnl: total,
       avgWin,
       avgLoss,
-      pf:       grossL > 0 ? (grossW / grossL).toFixed(2) : wins.length > 0 ? '∞' : '—',
+      pf:       grossL > 0 ? (grossW / grossL).toFixed(2) : wins.length > 0 ? '∞' : '--',
     }
   }, [filtered])
 
@@ -272,7 +268,7 @@ export default function TradeHistoryPage({ userId, bybitData }) {
           borderRadius:10, fontSize:'0.8rem', color: t.bannerText, flexWrap:'wrap',
         }}>
           <span style={{ color:'#f59e0b', fontWeight:700 }}>● LIVE</span>
-          Bybit Demo Trading — data syncs every 10s
+          Bybit Demo Trading -- data syncs every 10s
           {bybitData?.lastSync && (
             <span style={{ opacity:0.6 }}>
               Last sync: {bybitData.lastSync.toLocaleTimeString()}
@@ -304,7 +300,7 @@ export default function TradeHistoryPage({ userId, bybitData }) {
           </h2>
           <p style={{ margin:'3px 0 0', fontSize:'0.8rem', color: t.textMuted }}>
             {isBybit
-              ? `${bybitClosed.length} closed trade${bybitClosed.length !== 1 ? 's' : ''} this challenge`
+              ? `${bybitData?.closedTrades?.length ?? 0} closed trade${(bybitData?.closedTrades?.length ?? 0) !== 1 ? 's' : ''} this challenge`
               : `${ijgfTrades.length} trade${ijgfTrades.length !== 1 ? 's' : ''} recorded`}
           </p>
         </div>
@@ -437,7 +433,7 @@ export default function TradeHistoryPage({ userId, bybitData }) {
                       ${fmt(tr.entryPrice)}
                     </td>
                     <td style={{ padding:'9px 12px', textAlign:'right', color: t.textCell }}>
-                      {tr.exitPrice > 0 ? `$${fmt(tr.exitPrice)}` : '—'}
+                      {tr.exitPrice > 0 ? `$${fmt(tr.exitPrice)}` : '--'}
                     </td>
                     <td style={{ padding:'9px 12px', textAlign:'right', fontWeight:700,
                       color: tr.pnl > 0 ? '#22c55e' : tr.pnl < 0 ? '#f6465d' : t.textCell }}>
