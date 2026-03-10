@@ -70,28 +70,24 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     if (isBybit && !bybitData.loading) setAccountLoading(false)
   }, [isBybit, bybitData])
 
-  // Bybit mode: map bybitData.closedTrades → realTrades so the dashboard
-  // trade history widget renders actual rows instead of the dead-end message.
-  // Without this, realTrades stays [] forever because the IJGF load() useEffect
-  // above returns early when isBybit=true.
-  // Bybit closed-pnl side = CLOSING order direction:
-  //   'Sell' = was a Long position  →  side 'long'
-  //   'Buy'  = was a Short position →  side 'short'
+  // Map bybitData.closedTrades → realTrades so trade history widget renders in Bybit mode.
+  // The IJGF load() effect above returns early when isBybit=true, so realTrades stays []
+  // without this explicit mapping.
   useEffect(() => {
     if (!isBybit) return
     const closed = bybitData?.closedTrades ?? []
     const mapped = closed.map(tr => ({
       id:           tr.orderId ?? String(tr.createdTime),
-      executed_at:  tr.updatedTime
-        ? new Date(parseInt(tr.updatedTime, 10)).toISOString()
-        : new Date().toISOString(),
+      executed_at:  new Date(parseInt(tr.updatedTime ?? tr.createdTime, 10)).toISOString(),
       symbol:       tr.symbol,
+      // In Bybit closed-pnl, `side` is the CLOSING direction:
+      //   Sell = closed a Long, Buy = closed a Short
       side:         tr.side === 'Sell' ? 'long' : 'short',
       leverage:     parseInt(tr.leverage, 10) || 1,
       realized_pnl: parseFloat(tr.closedPnl) || 0,
     }))
     setRealTrades(mapped)
-  }, [isBybit, bybitData])
+  }, [isBybit, bybitData?.closedTrades])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time market data from Binance Futures — all USDT perps
   // Pre-populated with top coins so list is never empty while fetch loads
@@ -1024,8 +1020,13 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
                     <rect x="2" y="7" width="20" height="14" rx="2"/>
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                   </svg>
-                  <p style={{ color: '#f59e0b' }}>No closed trades yet</p>
-                  <span>Close a position on Bybit Demo — it appears here within ~30s</span>
+                  <p style={{ color: '#f59e0b' }}>Trading on Bybit Demo</p>
+                  <span>Trade history lives on Bybit — </span>
+                  <a href="https://www.bybit.com/en/trade/usdt/BTCUSDT?mode=demo"
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ color: '#f59e0b', fontSize: '0.8rem' }}>
+                    View on bybit.com →
+                  </a>
                 </div>
               ) : (
                 <div className="empty-history">

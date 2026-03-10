@@ -32,7 +32,7 @@ import { supabase } from './supabase'
 
 const BYBIT_PROXY       = '/api/bybit-proxy'
 const POLL_INTERVAL_MS  = 10_000  // 10 seconds
-const TPSL_GRACE_CYCLES = 6       // ~60s grace before force-closing SL-less positions
+const TPSL_GRACE_CYCLES = 6       // 6 × 10s = ~60s grace before force-closing SL-less positions
 
 // ── Proxy helpers ─────────────────────────────────────────────────────────────
 
@@ -89,8 +89,11 @@ async function nukeBybitBalance(apiKey, apiSecret) {
 }
 
 // ── Force-close a single Bybit position (reduce-only IOC) ────────────────────
+// NOTE: proxyPost intentionally does NOT throw on Bybit retCode errors (needed
+// for nuke-balance flow). We must check retCode here manually so the caller's
+// .catch can fire and the noSlCycles counter is NOT reset on a failed close.
 async function closeBybitPosition(apiKey, apiSecret, pos) {
-  await proxyPost(apiKey, apiSecret, '/v5/order/create', {
+  const json = await proxyPost(apiKey, apiSecret, '/v5/order/create', {
     category:    'linear',
     symbol:      pos.symbol,
     side:        pos.side === 'Buy' ? 'Sell' : 'Buy',
@@ -100,6 +103,10 @@ async function closeBybitPosition(apiKey, apiSecret, pos) {
     timeInForce: 'IOC',
     positionIdx: 0,
   })
+  if (json.retCode !== 0) {
+    throw new Error(`Bybit ${json.retCode}: ${json.retMsg}`)
+  }
+  return json.result
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
@@ -107,12 +114,12 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
   const [equity,      setEquity]      = useState(null)
   const [positions,   setPositions]   = useState([])
   const [winStats,    setWinStats]    = useState({ wins: 0, losses: 0, total: 0 })
+  const [closedTrades, setClosedTrades] = useState([])
   const [tradingDays, setTradingDays] = useState(0)
   const [account,     setAccount]     = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
   const [lastSync,    setLastSync]    = useState(null)
-  const [closedTrades, setClosedTrades] = useState([])
 
   // Refs for concurrency safety and stable callbacks
   const isSyncing         = useRef(false)  // prevents overlapping fetches
@@ -183,59 +190,51 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
           leverage:      parseInt(p.leverage, 10)  || 1,
         }))
 
-      // ── Step 4: Fetch closed PnL — win-rate + full trade history ───────────
-      // thisChallengeList is exposed via closedTrades state so TradeHistoryPage
-      // and DashboardOverview can render actual rows, not just aggregate counts.
-      // Two-attempt pattern: startTime is preferred (Bybit-side filter) but
-      // some demo accounts reject it — fall back to fetching all and filtering client-side.
-      let thisChallengeList = []
-      try {
-        const rawStart     = acct.created_at ?? acct.bybit_connected_at ?? null
-        const isoStart     = rawStart
-          ? String(rawStart).replace(' ', 'T').replace(/(\+\d{2})$/, '$1:00')
-          : null
-        const parsedMs     = isoStart ? new Date(isoStart).getTime() : 0
-        const challengeStartMs = isNaN(parsedMs) ? 0 : parsedMs
-
-        let closedList = []
-        try {
-          // Attempt 1: server-side startTime filter
-          const r1 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
-            category:  'linear',
-            limit:     200,
-            startTime: String(challengeStartMs),
-          })
-          closedList = r1?.list ?? []
-        } catch { /* fall through to Attempt 2 */ }
-
-        // Attempt 2: no startTime — fires if Attempt 1 threw OR returned empty list.
-        // Bybit demo sometimes returns [] for valid startTime values without throwing.
-        if (closedList.length === 0) {
-          try {
-            const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
-              category: 'linear',
-              limit:    200,
-            })
-            closedList = r2?.list ?? []
-          } catch (_e2) {
-            console.warn('[useBybitSync] closed-pnl fetch failed:', _e2.message)
-          }
-        }
-
-        // Client-side date filter: only trades from this challenge
-        thisChallengeList = challengeStartMs > 0
-          ? closedList.filter(t => parseInt(t.updatedTime, 10) >= challengeStartMs)
-          : closedList
-
-      } catch (e) {
-        console.warn('[useBybitSync] Step 4 error (non-fatal):', e.message)
+      // ── Step 4: Fetch closed PnL — two-attempt pattern ─────────────────
+      // Attempt 1: with startTime (challenge start date) to filter to this challenge.
+      // Bybit sometimes returns HTTP 200 + empty list for valid startTime values
+      // instead of an error — so we ALSO fall back when the list is empty.
+      // Attempt 2: no startTime, then client-side filter by challenge start date.
+      const rawDateStr = acct.created_at ?? acct.bybit_connected_at ?? null
+      let challengeStartMs = 0
+      if (rawDateStr) {
+        const normalised = rawDateStr.includes('T') ? rawDateStr : rawDateStr.replace(' ', 'T')
+        const ts = Date.parse(normalised)
+        if (!isNaN(ts)) challengeStartMs = ts
       }
 
-      // Always update — even empty list clears stale data from a previous challenge
-      const wins   = thisChallengeList.filter(t => parseFloat(t.closedPnl) > 0).length
-      const losses = thisChallengeList.filter(t => parseFloat(t.closedPnl) < 0).length
-      setWinStats({ wins, losses, total: thisChallengeList.length })
-      setClosedTrades(thisChallengeList)
+      let closedList = []
+      try {
+        const r1 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+          category:  'linear',
+          limit:     200,
+          startTime: String(challengeStartMs),
+        })
+        closedList = r1?.list ?? []
+      } catch { /* fall through to Attempt 2 */ }
+
+      // Attempt 2: fires when Attempt 1 threw OR returned an empty list.
+      if (closedList.length === 0) {
+        try {
+          const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
+            category: 'linear',
+            limit:    200,
+          })
+          // Client-side filter to this challenge's date range
+          const allClosed = r2?.list ?? []
+          closedList = challengeStartMs > 0
+            ? allClosed.filter(t => parseInt(t.updatedTime, 10) >= challengeStartMs)
+            : allClosed
+        } catch (_e2) {
+          console.warn('[useBybitSync] closed-pnl both attempts failed:', _e2.message)
+        }
+      }
+
+      // Always update — even zero trades is a valid state
+      setClosedTrades(closedList)
+      const wins   = closedList.filter(t => parseFloat(t.closedPnl) > 0).length
+      const losses = closedList.filter(t => parseFloat(t.closedPnl) < 0).length
+      setWinStats({ wins, losses, total: closedList.length })
 
       // ── Step 5: TP/SL Enforcement ────────────────────────────────────────
       // Clear tracker entries for positions that have been closed
@@ -252,10 +251,13 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
             console.warn(
               `[useBybitSync] Force-closing ${pos.symbol} — no SL for ${cycles} cycles`
             )
-            await closeBybitPosition(key, secret, pos).catch(e =>
-              console.error(`[useBybitSync] Force-close ${pos.symbol} failed:`, e.message)
-            )
-            delete noSlCycles.current[pos.symbol]
+            try {
+              await closeBybitPosition(key, secret, pos)
+              delete noSlCycles.current[pos.symbol]  // only reset on confirmed success
+            } catch (e) {
+              // Close rejected by Bybit — keep counter, retry next cycle
+              console.error(`[useBybitSync] Force-close ${pos.symbol} failed (will retry):`, e.message)
+            }
           }
         } else {
           // Trader added their SL — reset counter
@@ -264,23 +266,39 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       }
 
       // ── Step 6: Trading Days Tracking ────────────────────────────────────
-      // Count distinct calendar days that have at least one CLOSED trade.
-      // Using closed trades (not open positions) matches the prop firm definition:
-      // a "trading day" is a day you completed at least one trade.
-      // Math.max prevents the count from decreasing if >200 lifetime closes scroll off.
-      const prevDays = acct.bybit_trading_days ?? 0
-      const closedDaySet = new Set(
-        thisChallengeList.map(t =>
-          new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0]
+      // Primary: count distinct calendar days (UTC) from closed trade timestamps.
+      // Fallback: if no closed trades yet, use open-position/equity-change detection.
+      const today          = new Date().toISOString().split('T')[0]  // 'YYYY-MM-DD'
+      const prevDays       = acct.bybit_trading_days    ?? 0
+      const lastActiveDate = acct.bybit_last_active_date ?? null
+      const initial        = parseFloat(acct.initial_balance)
+      let   newTradingDays = prevDays
+
+      if (closedList.length > 0) {
+        // Derive trading days from the set of distinct days in closed trade history
+        const tradingDaySet = new Set(
+          closedList.map(t => new Date(parseInt(t.updatedTime, 10)).toISOString().split('T')[0])
         )
-      )
-      const computedDays   = closedDaySet.size
-      const newTradingDays = Math.max(computedDays, prevDays)
+        const computedDays = tradingDaySet.size
+        // Never let the count decrease (Bybit may not return all history on every call)
+        newTradingDays = Math.max(computedDays, prevDays)
+      } else if (lastActiveDate !== today) {
+        // No closed trades yet — count today if there's live activity
+        const hasActivity = openPos.length > 0 || Math.abs(liveEquity - initial) > 0.5
+        if (hasActivity) newTradingDays = prevDays + 1
+      }
 
-
+      if (newTradingDays !== prevDays || lastActiveDate !== today) {
+        supabase.from('demo_accounts').update({
+          bybit_trading_days:     newTradingDays,
+          bybit_last_active_date: today,
+        }).eq('id', acct.id)
+          .then(({ error: e }) => {
+            if (e) console.error('[useBybitSync] tradingDays update error:', e.message)
+          })
+      }
 
       // ── Step 7: Pass / Fail Evaluation ───────────────────────────────────
-      const initial  = parseFloat(acct.initial_balance)
       const pnl      = liveEquity - initial
       const drawdown = initial - liveEquity   // positive = net loss from initial
       const target   = parseFloat(acct.profit_target)
@@ -301,7 +319,18 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
         }
       }
 
-      // ── Step 8: Update React state immediately (UI never waits for DB) ─────
+      // ── Step 8: Write to Supabase ────────────────────────────────────────
+      const dbUpdate = {
+        bybit_equity:    liveEquity,
+        current_balance: liveEquity,
+        bybit_last_sync: new Date().toISOString(),
+        updated_at:      new Date().toISOString(),
+      }
+      if (newStatus) dbUpdate.status = newStatus
+
+      await supabase.from('demo_accounts').update(dbUpdate).eq('id', acct.id)
+
+      // ── Step 9: Update React state ────────────────────────────────────────
       const updatedAccount = {
         ...acct,
         current_balance:    liveEquity,
@@ -315,20 +344,6 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
       setTradingDays(newTradingDays)
       setLastSync(new Date())
       setError(null)
-
-      // ── Step 9: Persist to Supabase (fire-and-forget — never blocks UI) ───
-      const dbUpdate = {
-        bybit_equity:       liveEquity,
-        current_balance:    liveEquity,
-        bybit_trading_days: newTradingDays,
-        bybit_last_sync:    new Date().toISOString(),
-        updated_at:         new Date().toISOString(),
-      }
-      if (newStatus) dbUpdate.status = newStatus
-      supabase.from('demo_accounts').update(dbUpdate).eq('id', acct.id)
-        .then(({ error: e }) => {
-          if (e) console.error('[useBybitSync] DB write error:', e.message)
-        })
 
       // ── Step 10: Fire pass/fail once ───────────────────────────────────────
       if (newStatus && !statusFired.current) {
@@ -358,7 +373,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
     }
   }, [userId, tradingMode])
 
-  // Mount immediately + poll every 10s
+  // Mount immediately + poll every 30s
   useEffect(() => {
     if (!userId || tradingMode !== 'bybit') {
       setLoading(false)
