@@ -206,7 +206,7 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
             startTime: String(challengeStartMs),
           })
           closedList = r1?.list ?? []
-        } catch (_e1) {
+        } catch {
           try {
             // Attempt 2: no startTime, client-side filter below
             const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
