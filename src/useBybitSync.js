@@ -199,23 +199,26 @@ export function useBybitSync(userId, tradingMode, onStatusChange) {
 
         let closedList = []
         try {
-          // Attempt 1: server-side startTime filter (fastest, preferred)
+          // Attempt 1: server-side startTime filter
           const r1 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
             category:  'linear',
             limit:     200,
             startTime: String(challengeStartMs),
           })
           closedList = r1?.list ?? []
-        } catch {
+        } catch { /* fall through to Attempt 2 */ }
+
+        // Attempt 2: no startTime — fires if Attempt 1 threw OR returned empty list.
+        // Bybit demo sometimes returns [] for valid startTime values without throwing.
+        if (closedList.length === 0) {
           try {
-            // Attempt 2: no startTime, client-side filter below
             const r2 = await proxyGet(key, secret, '/v5/position/closed-pnl', {
               category: 'linear',
               limit:    200,
             })
             closedList = r2?.list ?? []
           } catch (_e2) {
-            console.warn('[useBybitSync] closed-pnl both attempts failed:', _e2.message)
+            console.warn('[useBybitSync] closed-pnl fetch failed:', _e2.message)
           }
         }
 
