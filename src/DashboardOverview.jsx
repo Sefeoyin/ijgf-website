@@ -1,8 +1,39 @@
-import { useState, useEffect, useCallback, useContext } from 'react'
+import { useState, useEffect, useCallback, useContext, useMemo } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
-import { supabase } from './supabase'
 import BybitModePicker from './BybitModePicker'
 import { ThemeContext } from './ThemeContext'
+
+// ── Module-level constants — never change, no need to recreate on each render ──
+
+const MCAP_RANK = {
+  BTCUSDT:1,ETHUSDT:2,BNBUSDT:3,SOLUSDT:4,XRPUSDT:5,TONUSDT:6,DOGEUSDT:7,
+  ADAUSDT:8,TRXUSDT:9,AVAXUSDT:10,SHIBUSDT:11,DOTUSDT:12,LINKUSDT:13,
+  BCHUSDT:14,NEARUSDT:15,LTCUSDT:16,UNIUSDT:17,ICPUSDT:18,APTUSDT:19,
+  XLMUSDT:20,ETCUSDT:21,HBARUSDT:22,ATOMUSDT:23,ARBUSDT:24,SUIUSDT:25,
+  INJUSDT:26,VETUSDT:27,LDOUSDT:28,MATICUSDT:29,AAVEUSDT:30,RUNEUSDT:31,
+  MKRUSDT:32,PEPEUSDT:33,WLDUSDT:34,GRTUSDT:35,WIFUSDT:36,BONKUSDT:37,
+  SANDUSDT:38,MANAUSDT:39,AXSUSDT:40,GALAUSDT:41,FTMUSDT:42,GMXUSDT:43,
+  DYDXUSDT:44,CRVUSDT:45,SUSHIUSDT:46,JUPUSDT:47,ENAUSDT:48,ORDIUSDT:49,
+  FLOKIUSDT:50,CHZUSDT:51,ALGOUSDT:52,COMPUSDT:53,SNXUSDT:54,APEUSDT:55,
+}
+
+const COIN_NAMES = {
+  BTCUSDT:'Bitcoin', ETHUSDT:'Ethereum', BNBUSDT:'BNB', SOLUSDT:'Solana',
+  XRPUSDT:'XRP', ADAUSDT:'Cardano', DOGEUSDT:'Dogecoin', AVAXUSDT:'Avalanche',
+  DOTUSDT:'Polkadot', MATICUSDT:'Polygon', LINKUSDT:'Chainlink', UNIUSDT:'Uniswap',
+  ATOMUSDT:'Cosmos', LTCUSDT:'Litecoin', NEARUSDT:'NEAR Protocol', APTUSDT:'Aptos',
+  ARBUSDT:'Arbitrum', OPUSDT:'Optimism', SUIUSDT:'Sui', INJUSDT:'Injective',
+  SEIUSDT:'Sei', WLDUSDT:'Worldcoin', PEPEUSDT:'Pepe', SHIBUSDT:'Shiba Inu',
+  TONUSDT:'Toncoin', TRXUSDT:'TRON', BCHUSDT:'Bitcoin Cash', XLMUSDT:'Stellar',
+  ETCUSDT:'Ethereum Classic', FILUSDT:'Filecoin', ICPUSDT:'Internet Computer',
+  HBARUSDT:'Hedera', AAVEUSDT:'Aave', LDOUSDT:'Lido', WIFUSDT:'dogwifhat',
+  BONKUSDT:'Bonk', FLOKIUSDT:'Floki', RUNEUSDT:'THORChain', FETUSDT:'Fetch.ai',
+  RENDERUSDT:'Render', IMXUSDT:'Immutable X', KASUSDT:'Kaspa', JUPUSDT:'Jupiter',
+  TAOUSDT:'Bittensor', SANDUSDT:'The Sandbox', MANAUSDT:'Decentraland',
+  GALAUSDT:'Gala', AXSUSDT:'Axie Infinity', GMXUSDT:'GMX', PENDLEUSDT:'Pendle',
+  TIAUSDT:'Celestia', STRKUSDT:'Starknet', CRVUSDT:'Curve DAO', MKRUSDT:'Maker',
+  COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
+}
 
 function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) {
   const [timeRange, setTimeRange] = useState('1W')
@@ -70,25 +101,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
   useEffect(() => {
     if (isBybit && !bybitData.loading) setAccountLoading(false)
   }, [isBybit, bybitData])
-
-  // Map bybitData.closedTrades → realTrades so trade history widget renders in Bybit mode.
-  // The IJGF load() effect above returns early when isBybit=true, so realTrades stays []
-  // without this explicit mapping.
-  useEffect(() => {
-    if (!isBybit) return
-    const closed = bybitData?.closedTrades ?? []
-    const mapped = closed.map(tr => ({
-      id:           tr.orderId ?? String(tr.createdTime),
-      executed_at:  new Date(parseInt(tr.updatedTime ?? tr.createdTime, 10)).toISOString(),
-      symbol:       tr.symbol,
-      // In Bybit closed-pnl, `side` is the CLOSING direction:
-      //   Sell = closed a Long, Buy = closed a Short
-      side:         tr.side === 'Sell' ? 'long' : 'short',
-      leverage:     parseInt(tr.leverage, 10) || 1,
-      realized_pnl: parseFloat(tr.closedPnl) || 0,
-    }))
-    setRealTrades(mapped)
-  }, [isBybit, bybitData?.closedTrades])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time market data from Binance Futures — all USDT perps
   // Pre-populated with top coins so list is never empty while fetch loads
@@ -219,32 +231,18 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     currentEquity: trueAccountValue,
   }
 
-  // Filter markets based on search query and favorites filter
-  const filteredMarkets = markets.filter(market => {
-    // Search filter
-    const matchesSearch = !searchQuery || 
+  // Filter + sort markets — memoized so the O(n log n) sort on 90 coins only
+  // runs when markets data, search query, favorites toggle, or sort order
+  // actually changes — NOT on every modal open/close or button state change.
+  const filteredMarkets = useMemo(() => markets.filter(market => {
+    const matchesSearch = !searchQuery ||
       market.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       market.name.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    // Favorites filter
     const matchesFavorites = !showFavoritesOnly || market.favorite
-    
     return matchesSearch && matchesFavorites
-  })
+  }), [markets, searchQuery, showFavoritesOnly])
 
-  // Sort filtered markets
-  const MCAP_RANK = {
-    BTCUSDT:1,ETHUSDT:2,BNBUSDT:3,SOLUSDT:4,XRPUSDT:5,TONUSDT:6,DOGEUSDT:7,
-    ADAUSDT:8,TRXUSDT:9,AVAXUSDT:10,SHIBUSDT:11,DOTUSDT:12,LINKUSDT:13,
-    BCHUSDT:14,NEARUSDT:15,LTCUSDT:16,UNIUSDT:17,ICPUSDT:18,APTUSDT:19,
-    XLMUSDT:20,ETCUSDT:21,HBARUSDT:22,ATOMUSDT:23,ARBUSDT:24,SUIUSDT:25,
-    INJUSDT:26,VETUSDT:27,LDOUSDT:28,MATICUSDT:29,AAVEUSDT:30,RUNEUSDT:31,
-    MKRUSDT:32,PEPEUSDT:33,WLDUSDT:34,GRTUSDT:35,WIFUSDT:36,BONKUSDT:37,
-    SANDUSDT:38,MANAUSDT:39,AXSUSDT:40,GALAUSDT:41,FTMUSDT:42,GMXUSDT:43,
-    DYDXUSDT:44,CRVUSDT:45,SUSHIUSDT:46,JUPUSDT:47,ENAUSDT:48,ORDIUSDT:49,
-    FLOKIUSDT:50,CHZUSDT:51,ALGOUSDT:52,COMPUSDT:53,SNXUSDT:54,APEUSDT:55,
-  }
-  const sortedMarkets = [...filteredMarkets].sort((a, b) => {
+  const sortedMarkets = useMemo(() => [...filteredMarkets].sort((a, b) => {
     if (sortBy === 'default') {
       if (a.favorite && !b.favorite) return -1
       if (!a.favorite && b.favorite) return 1
@@ -256,7 +254,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     if (sortBy === 'change-low') return a.change - b.change
     if (sortBy === 'name') return a.name.localeCompare(b.name)
     return 0
-  })
+  }), [filteredMarkets, sortBy])
 
   // Add notification - wrapped in useCallback to prevent dependency issues
   const addNotification = useCallback((message, type = 'info') => {
@@ -345,25 +343,6 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
       }
     })
   }, [markets, priceAlerts, addNotification, removePriceAlert])
-
-  // Human-readable names for top coins — others fall back to ticker base
-  const COIN_NAMES = {
-    BTCUSDT:'Bitcoin', ETHUSDT:'Ethereum', BNBUSDT:'BNB', SOLUSDT:'Solana',
-    XRPUSDT:'XRP', ADAUSDT:'Cardano', DOGEUSDT:'Dogecoin', AVAXUSDT:'Avalanche',
-    DOTUSDT:'Polkadot', MATICUSDT:'Polygon', LINKUSDT:'Chainlink', UNIUSDT:'Uniswap',
-    ATOMUSDT:'Cosmos', LTCUSDT:'Litecoin', NEARUSDT:'NEAR Protocol', APTUSDT:'Aptos',
-    ARBUSDT:'Arbitrum', OPUSDT:'Optimism', SUIUSDT:'Sui', INJUSDT:'Injective',
-    SEIUSDT:'Sei', WLDUSDT:'Worldcoin', PEPEUSDT:'Pepe', SHIBUSDT:'Shiba Inu',
-    TONUSDT:'Toncoin', TRXUSDT:'TRON', BCHUSDT:'Bitcoin Cash', XLMUSDT:'Stellar',
-    ETCUSDT:'Ethereum Classic', FILUSDT:'Filecoin', ICPUSDT:'Internet Computer',
-    HBARUSDT:'Hedera', AAVEUSDT:'Aave', LDOUSDT:'Lido', WIFUSDT:'dogwifhat',
-    BONKUSDT:'Bonk', FLOKIUSDT:'Floki', RUNEUSDT:'THORChain', FETUSDT:'Fetch.ai',
-    RENDERUSDT:'Render', IMXUSDT:'Immutable X', KASUSDT:'Kaspa', JUPUSDT:'Jupiter',
-    TAOUSDT:'Bittensor', SANDUSDT:'The Sandbox', MANAUSDT:'Decentraland',
-    GALAUSDT:'Gala', AXSUSDT:'Axie Infinity', GMXUSDT:'GMX', PENDLEUSDT:'Pendle',
-    TIAUSDT:'Celestia', STRKUSDT:'Starknet', CRVUSDT:'Curve DAO', MKRUSDT:'Maker',
-    COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
-  }
 
   // Fetch all Binance Futures USDT pairs sorted by 24h volume
   useEffect(() => {
@@ -1364,62 +1343,45 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
             setStartingChallenge(true)
             try {
               await resetDemoAccount(userId, pendingTierKey)
-              const state = await getAccountState(userId)
-              setRawAccount(state.account)
-              setRealTrades(state.recentTrades)
-              setAccountPositions(state.positions || [])
-              setAccountTradingDays(state.tradingDays ?? 0)
+              // Navigate first — DashboardOverview is about to unmount so
+              // calling getAccountState here and setting local state is wasted
+              // work. The Market tab mounts fresh and loads its own state.
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('ijgf')
             } catch (err) {
               console.error('IJGF start failed:', err)
+              alert(`Failed to start challenge: ${err.message}`)
             } finally { setStartingChallenge(false) }
           }}
           onSelectBybit={async (apiKey, apiSecret, equity) => {
             setStartingChallenge(true)
             try {
-              // resetDemoAccount archives existing challenges and creates a fresh account.
-              // We capture its return value directly — do NOT call getAccountState() afterwards,
-              // as that may return a stale or different account if there is any timing overlap.
-              const newAccount = await resetDemoAccount(userId, pendingTierKey)
-              if (!newAccount?.id) {
-                throw new Error('Failed to create challenge account. Please try again.')
-              }
-
-              // Write Bybit credentials onto the exact account we just created.
-              // Use the top-level supabase client — never a dynamic import.
-              const { error: updateErr } = await supabase
-                .from('demo_accounts')
-                .update({
-                  trading_mode:       'bybit',
-                  bybit_api_key:      apiKey,
-                  bybit_api_secret:   apiSecret,
+              await resetDemoAccount(userId, pendingTierKey)
+              const state = await getAccountState(userId)
+              setRawAccount(state.account)
+              setRealTrades(state.recentTrades)
+              setAccountPositions(state.positions || [])
+              setAccountTradingDays(state.tradingDays ?? 0)
+              if (state.account?.id) {
+                const { supabase: sb } = await import('./supabase')
+                const { error: updateErr } = await sb.from('demo_accounts').update({
+                  trading_mode: 'bybit',
+                  bybit_api_key: apiKey,
+                  bybit_api_secret: apiSecret,
                   bybit_connected_at: new Date().toISOString(),
-                  bybit_equity:       equity,
-                  current_balance:    equity,
-                  updated_at:         new Date().toISOString(),
-                })
-                .eq('id', newAccount.id)
-
-              if (updateErr) {
-                throw new Error(`Failed to save Bybit credentials: ${updateErr.message}`)
+                  bybit_equity: equity,
+                  current_balance: equity,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', state.account.id)
+                if (updateErr) throw new Error(`Failed to save Bybit credentials: ${updateErr.message}`)
+              } else {
+                throw new Error('Could not find challenge account after reset. Please try again.')
               }
-
-              // Read the final account state with Bybit fields so local UI is in sync
-              const { data: updatedAccount } = await supabase
-                .from('demo_accounts')
-                .select('*')
-                .eq('id', newAccount.id)
-                .single()
-
-              setRawAccount(updatedAccount ?? newAccount)
-              setRealTrades([])
-              setAccountPositions([])
-              setAccountTradingDays(0)
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('bybit')
             } catch (err) {
               console.error('Bybit start failed:', err)
+              // Surface error to user — do NOT silently fail
               alert(`Failed to start Bybit challenge: ${err.message}`)
             } finally { setStartingChallenge(false) }
           }}
