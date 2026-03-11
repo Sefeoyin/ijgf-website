@@ -236,7 +236,7 @@ async function closePosition(db, position, currentPrice, reason) {
   try {
     await db.update(
       'demo_positions',
-      { status: 'closed', closed_at: now, close_price: currentPrice, realized_pnl: pnl },
+      { status: reason === 'liquidation' ? 'liquidated' : 'closed', closed_at: now, close_price: currentPrice, realized_pnl: pnl },
       `id=eq.${position.id}&status=eq.open`
     )
   } catch {
@@ -273,7 +273,7 @@ async function closePosition(db, position, currentPrice, reason) {
   try {
     const rows = await db.select(
       'demo_accounts',
-      `id=eq.${position.demo_account_id}&select=id,current_balance,initial_balance,status,profit_target,max_total_drawdown,high_water_mark,challenge_type`
+      `id=eq.${position.demo_account_id}&select=id,current_balance,initial_balance,status,profit_target,max_total_drawdown,high_water_mark,min_trading_days,total_trades,winning_trades,challenge_type`
     )
     account = rows[0] || null
   } catch (fetchErr) {
@@ -301,7 +301,7 @@ async function closePosition(db, position, currentPrice, reason) {
     try {
       await db.update(
         'demo_accounts',
-        { current_balance: newBalance, equity: newBalance, status: 'failed', updated_at: now },
+        { current_balance: newBalance, equity: newBalance, status: 'failed', total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
         `id=eq.${account.id}`
       )
     } catch (failErr) {
@@ -322,12 +322,12 @@ async function closePosition(db, position, currentPrice, reason) {
         (trades || []).map(t => t.executed_at?.split('T')[0]).filter(Boolean)
       ).size
 
-      // Must match CHALLENGE_CONFIGS.minTradingDays in tradingService.js
-      const minDays = 5
+      // Read from account row — matches CHALLENGE_CONFIGS.minTradingDays in tradingService.js
+      const minDays = account.min_trading_days || 5
       if (tradingDays >= minDays) {
         await db.update(
           'demo_accounts',
-          { current_balance: newBalance, equity: newBalance, status: 'passed', updated_at: now },
+          { current_balance: newBalance, equity: newBalance, status: 'passed', total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
           `id=eq.${account.id}`
         )
         return { pnl, reason, accountResult: 'passed' }
@@ -342,7 +342,7 @@ async function closePosition(db, position, currentPrice, reason) {
   try {
     await db.update(
       'demo_accounts',
-      { current_balance: newBalance, equity: newBalance, high_water_mark: newHWM, updated_at: now },
+      { current_balance: newBalance, equity: newBalance, high_water_mark: newHWM, total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
       `id=eq.${account.id}`
     )
   } catch (updateErr) {
