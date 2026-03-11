@@ -999,36 +999,52 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
       .eq('user_id', userId).eq('status', 'open'),
   ])
 
-  // Step 2: Fetch current active accounts to archive
-  // NOTE: status='archived' violates the DB check constraint — use 'failed' as
-  // the terminal status. The challenge_type rename + MyChallengesPage filter
-  // ensures these rows never surface as live challenges.
+  // Step 2: Fetch ALL non-archived accounts for this user (active OR same challenge_type)
+  // We need IDs of every account that might be recycled by getOrCreateDemoAccount.
+  // Critical: getOrCreateDemoAccount reuses a row IN-PLACE when the challenge_type
+  // matches — it updates the same row ID. If we don't nullify the old trades first,
+  // getAccountState will fetch them via demo_account_id and display stale PNL/history.
   const archiveSuffix = `_archived_${Date.now()}`
-  const { data: activeAccounts } = await supabase
+  const { data: accountsToReset } = await supabase
     .from('demo_accounts')
-    .select('id, challenge_type')
+    .select('id, challenge_type, status')
     .eq('user_id', userId)
-    .eq('status', 'active')
     .not('challenge_type', 'like', '%_archived_%')
 
-  // Step 3: TWO separate updates per row — critical ordering:
-  // A) status='failed' first: never violates any DB constraint, guaranteed to commit.
-  // B) challenge_type rename: best-effort (may be rejected by a CHECK constraint).
-  //    Even if B fails, A already committed so the account never surfaces as 'active'.
-  if (activeAccounts?.length) {
-    for (const acct of activeAccounts) {
-      // A: Guaranteed terminal status
+  if (accountsToReset?.length) {
+    // Step 3: For every account that will be recycled or archived, detach its
+    // trades by setting demo_account_id = NULL. This preserves the trade rows
+    // in the DB (for analytics / auditing) but removes them from the active
+    // dashboard queries which all filter by demo_account_id = account.id.
+    // This is the ONLY correct fix: the account row ID is reused in-place by
+    // getOrCreateDemoAccount, so marking status='failed' alone is not enough.
+    const accountIds = accountsToReset.map(a => a.id)
+    await supabase
+      .from('demo_trades')
+      .update({ demo_account_id: null })
+      .in('demo_account_id', accountIds)
+
+    // Also detach positions so the history widget never shows stale open positions
+    await supabase
+      .from('demo_positions')
+      .update({ demo_account_id: null })
+      .in('demo_account_id', accountIds)
+      .eq('status', 'closed') // only already-closed ones; open ones were handled in Step 1
+
+    // Step 4: Mark active accounts as failed + best-effort rename
+    for (const acct of accountsToReset.filter(a => a.status === 'active')) {
+      // A: Guaranteed terminal status — never violates DB constraints
       await supabase.from('demo_accounts')
         .update({ status: 'failed', updated_at: now })
         .eq('id', acct.id)
-      // B: Best-effort rename
+      // B: Best-effort rename (may be rejected by CHECK constraint on challenge_type)
       await supabase.from('demo_accounts')
         .update({ challenge_type: `${acct.challenge_type}${archiveSuffix}` })
         .eq('id', acct.id)
     }
   }
 
-  // Step 4: Create the new challenge account
+  // Step 5: Create / recycle the new challenge account (clean slate)
   return getOrCreateDemoAccount(userId, challengeType)
 }
 
