@@ -1342,9 +1342,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
                   className={`challenge-tier-card ${tier.comingSoon ? 'coming-soon' : ''}`}
                   onClick={() => {
                     if (tier.comingSoon || startingChallenge) return
-                    // Keep anyModalOpen = true — BybitModePicker is about to mount.
-                    // Clearing it here would let the 30s price tick fire mid-modal,
-                    // re-rendering all 90 market rows and causing visible lag.
+                    anyModalOpen.current = false
                     setShowChallengeModal(false)
                     setPendingTierKey(tier.key)
                   }}
@@ -1373,15 +1371,17 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
         <BybitModePicker
           tierKey={pendingTierKey}
           startingChallenge={startingChallenge}
-          onCancel={() => { anyModalOpen.current = false; setPendingTierKey(null) }}
+          onCancel={() => setPendingTierKey(null)}
           onSelectIJGF={async () => {
             setStartingChallenge(true)
             try {
               await resetDemoAccount(userId, pendingTierKey)
-              // Reload fresh account state immediately so the dashboard clears
-              // the old challenge's PNL, trading days, history and equity chart
-              // before navigating. Without this, stale state persists because
-              // DashboardOverview stays mounted — it does NOT unmount on tab switch.
+              // BUGFIX: DashboardOverview does NOT unmount when navigating to
+              // the Market tab — both tabs live in the same layout. If we skip
+              // getAccountState here, the stale _account / realTrades /
+              // _accountTradingDays state stays in memory and the equity chart,
+              // PNL totals, and trading days counter all carry over from the
+              // previous challenge until a full page refresh.
               const state = await getAccountState(userId)
               setRawAccount(state.account)
               setRealTrades(state.recentTrades ?? [])
@@ -1401,12 +1401,9 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               await resetDemoAccount(userId, pendingTierKey)
               const state = await getAccountState(userId)
               setRawAccount(state.account)
-              // Bybit mode: no demo_trades exist — eagerly zero all IJGF-only stats
-              // so the dashboard shows a clean slate immediately instead of waiting
-              // for useBybitSync to re-fetch (which can take up to 30 seconds).
-              setRealTrades([])
-              setAccountPositions([])
-              setAccountTradingDays(0)
+              setRealTrades(state.recentTrades)
+              setAccountPositions(state.positions || [])
+              setAccountTradingDays(state.tradingDays ?? 0)
               if (state.account?.id) {
                 const { supabase: sb } = await import('./supabase')
                 const { error: updateErr } = await sb.from('demo_accounts').update({
@@ -1422,11 +1419,11 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               } else {
                 throw new Error('Could not find challenge account after reset. Please try again.')
               }
-              anyModalOpen.current = false
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('bybit')
             } catch (err) {
               console.error('Bybit start failed:', err)
+              // Surface error to user — do NOT silently fail
               alert(`Failed to start Bybit challenge: ${err.message}`)
             } finally { setStartingChallenge(false) }
           }}

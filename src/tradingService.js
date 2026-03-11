@@ -441,7 +441,7 @@ export async function cancelOrder(userId, orderId) {
 // ---------------------------------------------------------------------------
 // Close Position
 // ---------------------------------------------------------------------------
-export async function closePosition({ userId, positionId, currentPrice, reason = 'manual', priceMap = {} }) {
+export async function closePosition({ userId, positionId, currentPrice, reason = 'manual' }) {
   // 1. Fetch the open position — locked to this user + open status
   const { data: pos, error: fetchErr } = await supabase
     .from('demo_positions')
@@ -567,13 +567,7 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
   // before the DB write lands, reads 'active', and the modal never fires.
   // "non-blocking" meant "don't throw on failure" — safeCheckRules still
   // catches its own errors internally, so this await is safe.
-  // Merge the just-closed symbol into whatever priceMap the caller supplied.
-  // If caller passes a full priceMap (useDemoTrading does this after Fix 2),
-  // all remaining open positions get accurate live unrealized PNL in
-  // checkChallengeRules — preventing the DB stale-zero fallback that was
-  // causing false drawdown breaches and force-closing unrelated positions.
-  const rulesCheckPriceMap = { ...priceMap, [pos.symbol]: currentPrice }
-  const rulesResult = await safeCheckRules(pos.demo_account_id, userId, rulesCheckPriceMap)
+  const rulesResult = await safeCheckRules(pos.demo_account_id, userId, { [pos.symbol]: currentPrice })
 
   console.log(
     '[Trading] Position closed:',  positionId,
@@ -1018,22 +1012,27 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .not('challenge_type', 'like', '%_archived_%')
 
   if (accountsToReset?.length) {
-    // Step 3: For every account that will be recycled or archived, detach its
-    // trades by setting demo_account_id = NULL. This preserves the trade rows
-    // in the DB (for analytics / auditing) but removes them from the active
-    // dashboard queries which all filter by demo_account_id = account.id.
-    // This is the ONLY correct fix: the account row ID is reused in-place by
-    // getOrCreateDemoAccount, so marking status='failed' alone is not enough.
+    // Step 3: Detach old trades and closed positions from all accounts being reset.
+    // We cannot set demo_account_id = NULL because the column has a NOT NULL + FK
+    // constraint. Instead we point them at a permanent sentinel row:
+    //   id = '00000000-0000-0000-0000-000000000000'
+    // That row must exist in demo_accounts (see DB setup note below).
+    // This preserves all trade rows for auditing but removes them from every
+    // active dashboard query (which filters by demo_account_id = account.id).
+    // Critical: getOrCreateDemoAccount reuses the row IN-PLACE (same id), so
+    // any trade still pointing at that id instantly appears in the new challenge.
+    const SENTINEL = '00000000-0000-0000-0000-000000000000'
     const accountIds = accountsToReset.map(a => a.id)
+
     await supabase
       .from('demo_trades')
-      .update({ demo_account_id: null })
+      .update({ demo_account_id: SENTINEL })
       .in('demo_account_id', accountIds)
 
-    // Also detach positions so the history widget never shows stale open positions
+    // Also detach closed positions so trade history never shows stale data
     await supabase
       .from('demo_positions')
-      .update({ demo_account_id: null })
+      .update({ demo_account_id: SENTINEL })
       .in('demo_account_id', accountIds)
       .eq('status', 'closed') // only already-closed ones; open ones were handled in Step 1
 
