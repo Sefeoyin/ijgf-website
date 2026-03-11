@@ -441,7 +441,7 @@ export async function cancelOrder(userId, orderId) {
 // ---------------------------------------------------------------------------
 // Close Position
 // ---------------------------------------------------------------------------
-export async function closePosition({ userId, positionId, currentPrice, reason = 'manual' }) {
+export async function closePosition({ userId, positionId, currentPrice, reason = 'manual', priceMap = {} }) {
   // 1. Fetch the open position — locked to this user + open status
   const { data: pos, error: fetchErr } = await supabase
     .from('demo_positions')
@@ -567,7 +567,13 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
   // before the DB write lands, reads 'active', and the modal never fires.
   // "non-blocking" meant "don't throw on failure" — safeCheckRules still
   // catches its own errors internally, so this await is safe.
-  const rulesResult = await safeCheckRules(pos.demo_account_id, userId, { [pos.symbol]: currentPrice })
+  // Merge the just-closed symbol into whatever priceMap the caller supplied.
+  // If caller passes a full priceMap (useDemoTrading does this after Fix 2),
+  // all remaining open positions get accurate live unrealized PNL in
+  // checkChallengeRules — preventing the DB stale-zero fallback that was
+  // causing false drawdown breaches and force-closing unrelated positions.
+  const rulesCheckPriceMap = { ...priceMap, [pos.symbol]: currentPrice }
+  const rulesResult = await safeCheckRules(pos.demo_account_id, userId, rulesCheckPriceMap)
 
   console.log(
     '[Trading] Position closed:',  positionId,

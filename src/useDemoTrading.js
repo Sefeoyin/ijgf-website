@@ -83,6 +83,15 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const userIdRef = useRef(userId)
   useEffect(() => { userIdRef.current = userId }, [userId])
 
+  // Mutex lock — held true while any user-triggered operation (open/close/cancel)
+  // is in-flight. The TP/SL and pending-order intervals skip their tick while
+  // this is true, preventing the race where the 3-second monitor reads a stale
+  // current_balance between the moment a position is marked 'closed' (step 3 of
+  // closePosition) and the moment the balance is actually written (step 5).
+  // That stale read was causing false drawdown breaches that force-closed every
+  // other open position whenever the user manually closed one.
+  const isProcessingRef = useRef(false)
+
   // --------------- Load account state ---------------
   const refreshState = useCallback(async () => {
     if (!userId) {
@@ -153,6 +162,12 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     if (!userId || !hasPrices || positions.length === 0) return
 
     const interval = setInterval(async () => {
+      // Skip this tick entirely while a user operation is in-flight.
+      // Prevents the race condition between closePosition step 3 (position
+      // marked closed) and step 5 (balance updated) that caused false drawdown
+      // breaches and silently force-closed every other open position.
+      if (isProcessingRef.current) return
+
       const pm = priceMapRef.current
       if (Object.keys(pm).length === 0) return
 
@@ -185,6 +200,8 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
     if (!userId || !hasPrices || openOrders.length === 0) return
 
     const interval = setInterval(async () => {
+      if (isProcessingRef.current) return
+
       const pm = priceMapRef.current
       if (Object.keys(pm).length === 0) return
 
@@ -217,6 +234,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   const submitMarketOrder = useCallback(async ({
     symbol, side, sizeUsdt, leverage, takeProfit, stopLoss,
   }) => {
+    isProcessingRef.current = true
     try {
       setError(null)
       const cp = priceMapRef.current[symbol]
@@ -244,6 +262,8 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setError(err.message)
       addNotification(`Order failed: ${err.message}`, 'error')
       throw err
+    } finally {
+      isProcessingRef.current = false
     }
   }, [refreshState, addNotification])
 
@@ -291,6 +311,7 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   }, [refreshState, addNotification])
 
   const submitClosePosition = useCallback(async (positionId) => {
+    isProcessingRef.current = true
     try {
       const pos = positions.find(p => p.id === positionId)
       if (!pos) throw new Error('Position not found')
@@ -298,10 +319,16 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       const cp = priceMapRef.current[pos.symbol]
       if (!cp) throw new Error(`No price data for ${pos.symbol}`)
 
+      // Pass the full priceMap so checkChallengeRules can compute accurate
+      // unrealized PNL for every remaining open position — not just the one
+      // being closed. Without this, remaining positions fall back to their
+      // DB unrealized_pnl (always 0), making trueEquity look higher than
+      // reality and potentially triggering false drawdown breaches.
       const result = await closePosition({
         userId: userIdRef.current,
         positionId,
         currentPrice: cp,
+        priceMap: priceMapRef.current,
       })
 
       addNotification(
@@ -329,6 +356,10 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       setError(err.message)
       addNotification(`Close failed: ${err.message}`, 'error')
       throw err
+    } finally {
+      // Always release the lock — even if close failed — so the TP/SL
+      // monitor resumes on the next tick.
+      isProcessingRef.current = false
     }
   }, [positions, refreshState, addNotification])
 
