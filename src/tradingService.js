@@ -314,8 +314,8 @@ export async function placeMarketOrder({
   const newBalance = account.current_balance - margin
   await updateAccountBalance(account.id, newBalance)
 
-  // Challenge rules (non-blocking)
-  safeCheckRules(account.id, userId)
+  // Challenge rules (non-blocking) — pass current price for live equity calc
+  safeCheckRules(account.id, userId, { [symbol]: currentPrice })
 
   console.log('[Trading] Position opened:', position.id, '| Margin:', margin, '| Fee:', fee)
   return { position, fee, margin }
@@ -511,8 +511,12 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
     console.error('[Trading] Trade log insert failed (balance already updated):', tradeLogErr)
   }
 
-  // 7. Challenge rules check (non-blocking — must never revert balance)
-  safeCheckRules(pos.demo_account_id, userId)
+  // 7. Challenge rules check — AWAITED so the account status is committed
+  // before closePosition returns. Without await, useDemoTrading calls refreshState()
+  // before the DB write lands, reads 'active', and the modal never fires.
+  // "non-blocking" meant "don't throw on failure" — safeCheckRules still
+  // catches its own errors internally, so this await is safe.
+  const rulesResult = await safeCheckRules(pos.demo_account_id, userId, { [pos.symbol]: currentPrice })
 
   console.log(
     '[Trading] Position closed:',  positionId,
@@ -521,9 +525,17 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
     '| Margin returned:',          marginToReturn.toFixed(2),
     '| New balance:',              Math.max(0, newBalance).toFixed(2),
     '| Reason:',                   reason,
+    '| Challenge status:',         rulesResult?.failed ? 'FAILED' : rulesResult?.passed ? 'PASSED' : 'active',
   )
 
-  return { pnl, fee: 0, newBalance: Math.max(0, newBalance) }
+  return {
+    pnl,
+    fee: 0,
+    newBalance:        Math.max(0, newBalance),
+    challengeFailed:   rulesResult?.failed  ?? false,
+    challengePassed:   rulesResult?.passed  ?? false,
+    challengeReason:   rulesResult?.reason  ?? null,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -616,9 +628,31 @@ export async function checkPositionTPSL(userId, priceMap) {
 
   if (!positions || positions.length === 0) return []
 
+  // ── Proactive drawdown check with live prices ────────────────────────────
+  // safeCheckRules only runs on trade events (open/close). If a position sits
+  // open and drifts into drawdown without hitting TP/SL, it was never checked.
+  // This runs every 3 seconds with a full live priceMap — the only reliable
+  // way to enforce drawdown limits in real time.
+  //
+  // We fetch the active account here. findActiveAccount prefers IJGF accounts.
+  // If the account is already failed/passed, checkChallengeRules exits early.
+  const accountForCheck = await findActiveAccount(userId)
+  if (accountForCheck?.id) {
+    await safeCheckRules(accountForCheck.id, userId, priceMap)
+  }
+
+  // Re-fetch positions — drawdown check may have force-closed all of them
+  const { data: remainingPositions } = await supabase
+    .from('demo_positions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'open')
+
+  if (!remainingPositions || remainingPositions.length === 0) return []
+
   const closed = []
 
-  for (const pos of positions) {
+  for (const pos of remainingPositions) {
     const cp = priceMap[pos.symbol]
     if (!cp) continue
 
@@ -667,15 +701,16 @@ export function computeUnrealizedPNL(positions, priceMap) {
 // ---------------------------------------------------------------------------
 // Challenge rules — WRAPPED IN TRY/CATCH so failures never block trades
 // ---------------------------------------------------------------------------
-async function safeCheckRules(accountId, userId) {
+async function safeCheckRules(accountId, userId, priceMap = {}) {
   try {
-    await checkChallengeRules(accountId, userId)
+    return await checkChallengeRules(accountId, userId, priceMap)
   } catch (err) {
     console.error('[Trading] Challenge rules check failed (non-blocking):', err)
+    return null
   }
 }
 
-async function checkChallengeRules(accountId, userId) {
+async function checkChallengeRules(accountId, userId, priceMap = {}) {
   const { data: account } = await supabase
     .from('demo_accounts')
     .select('*')
@@ -684,17 +719,31 @@ async function checkChallengeRules(accountId, userId) {
 
   if (!account || account.status !== 'active') return null
 
-  // Fetch open positions to compute true equity.
-  // current_balance has margin deducted, so without this we'd see
-  // false drawdown breaches on any open position.
+  // Fetch open positions — must include raw fields so we can compute live PNL.
+  // The unrealized_pnl column in demo_positions is set to 0 on creation and
+  // NEVER written back to the DB during the life of a position (it is calculated
+  // in-memory only). Reading it from the DB always returns 0, which makes
+  // trueEquity = initial_balance forever and the drawdown check never fires.
+  // Fix: calculate unrealized PNL from entry_price + live priceMap.
   const { data: openPositions } = await supabase
     .from('demo_positions')
-    .select('margin, unrealized_pnl')
+    .select('margin, entry_price, quantity, side, symbol, unrealized_pnl')
     .eq('demo_account_id', accountId)
     .eq('status', 'open')
 
   const lockedMargin = (openPositions || []).reduce((sum, p) => sum + (p.margin || 0), 0)
-  const unrealizedPNL = (openPositions || []).reduce((sum, p) => sum + (p.unrealized_pnl || 0), 0)
+  const unrealizedPNL = (openPositions || []).reduce((sum, p) => {
+    const cp = priceMap[p.symbol]
+    if (cp) {
+      // Live price available — calculate exact PNL
+      return sum + (p.side === 'LONG'
+        ? (cp - p.entry_price) * p.quantity
+        : (p.entry_price - cp) * p.quantity)
+    }
+    // No live price: use DB value (will be 0 for new positions, but this is
+    // only a fallback — the 3-second TP/SL monitor always passes a full priceMap)
+    return sum + (p.unrealized_pnl || 0)
+  }, 0)
 
   // True equity = cash balance + margin locked in positions + unrealized PNL
   const trueEquity = account.current_balance + lockedMargin + unrealizedPNL

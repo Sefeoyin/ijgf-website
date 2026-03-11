@@ -309,7 +309,21 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
         result.pnl >= 0 ? 'success' : 'warning'
       )
 
+      // closePosition now awaits safeCheckRules before returning, so the
+      // account status is already committed in the DB at this point.
+      // refreshState() will read the correct status ('failed'/'passed'/'active')
+      // and the status-detection effect will fire the modal immediately.
       await refreshState()
+
+      // Belt-and-suspenders: if the DB write landed but refreshState somehow
+      // returned a stale row (cache, latency), force-set the status from the
+      // return value so the modal fires in the same render cycle.
+      if (result.challengeFailed) {
+        setAccount(prev => prev ? { ...prev, status: 'failed' } : prev)
+      } else if (result.challengePassed) {
+        setAccount(prev => prev ? { ...prev, status: 'passed' } : prev)
+      }
+
       return result
     } catch (err) {
       setError(err.message)
