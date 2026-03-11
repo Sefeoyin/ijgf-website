@@ -64,32 +64,75 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     return existing
   }
 
-  // 2) Non-failed accounts only — prevents archived accounts from being resurrected
-  const { data: anyAccount } = await supabase
+  // 2) Check for ANY row with this challenge_type regardless of status.
+  //    This handles the critical case where resetDemoAccount marked the old
+  //    account 'failed' but the challenge_type rename was silently rejected by
+  //    a DB CHECK constraint (CHECK challenge_type IN ('5k','10k',...)).
+  //    A failed row with the original challenge_type remains, and a plain
+  //    INSERT violates uq_user_challenge UNIQUE(user_id, challenge_type).
+  //    Fix: UPDATE the existing row back to fresh active state instead.
+  const { data: existingRow } = await supabase
     .from('demo_accounts')
-    .select('*')
+    .select('id')
     .eq('user_id', userId)
     .eq('challenge_type', challengeType)
-    .neq('status', 'failed')
     .maybeSingle()
 
-  if (anyAccount) return anyAccount
-
-  // 3) Create new
   const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
+  const freshState = {
+    status:                'active',
+    trading_mode:          'ijgf',
+    initial_balance:       config.initial,
+    current_balance:       config.initial,
+    equity:                config.initial,
+    profit_target:         config.profitTarget,
+    max_daily_loss:        config.dailyLoss,
+    max_total_drawdown:    config.maxDrawdown,
+    high_water_mark:       config.initial,
+    trading_days:          0,
+    total_trades:          0,
+    winning_trades:        0,
+    bybit_api_key:         null,
+    bybit_api_secret:      null,
+    bybit_connected_at:    null,
+    bybit_equity:          null,
+    bybit_trading_days:    0,
+    bybit_last_active_date: null,
+    bybit_last_sync:       null,
+    updated_at:            new Date().toISOString(),
+  }
+
+  if (existingRow) {
+    // Row exists (failed/passed from a prior run) — reset it in-place.
+    // Avoids the uq_user_challenge UNIQUE constraint violation on INSERT.
+    const { data: reset, error: updateErr } = await supabase
+      .from('demo_accounts')
+      .update(freshState)
+      .eq('id', existingRow.id)
+      .select()
+      .single()
+    if (updateErr) {
+      console.error('[Trading] Reset account error:', updateErr)
+      throw new Error(`Failed to reset demo account: ${updateErr.message}`)
+    }
+    console.log('[Trading] Reset existing account to fresh state:', reset.id)
+    return reset
+  }
+
+  // 3) No row for this challenge_type at all — create new
   const { data: account, error: insertErr } = await supabase
     .from('demo_accounts')
     .insert({
-      user_id: userId,
-      challenge_type: challengeType,
-      trading_mode: 'ijgf',
-      initial_balance: config.initial,
-      current_balance: config.initial,
-      equity: config.initial,
-      profit_target: config.profitTarget,
-      max_daily_loss: config.dailyLoss,
+      user_id:            userId,
+      challenge_type:     challengeType,
+      trading_mode:       'ijgf',
+      initial_balance:    config.initial,
+      current_balance:    config.initial,
+      equity:             config.initial,
+      profit_target:      config.profitTarget,
+      max_daily_loss:     config.dailyLoss,
       max_total_drawdown: config.maxDrawdown,
-      high_water_mark: config.initial,
+      high_water_mark:    config.initial,
     })
     .select()
     .single()
