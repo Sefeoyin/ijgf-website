@@ -64,12 +64,13 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     return existing
   }
 
-  // 2) Check any status (failed/passed/expired)
+  // 2) Non-failed accounts only — prevents archived accounts from being resurrected
   const { data: anyAccount } = await supabase
     .from('demo_accounts')
     .select('*')
     .eq('user_id', userId)
     .eq('challenge_type', challengeType)
+    .neq('status', 'failed')
     .maybeSingle()
 
   if (anyAccount) return anyAccount
@@ -81,6 +82,7 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     .insert({
       user_id: userId,
       challenge_type: challengeType,
+      trading_mode: 'ijgf',
       initial_balance: config.initial,
       current_balance: config.initial,
       equity: config.initial,
@@ -104,7 +106,24 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
 // Must NOT default to a specific challenge type or it will create a ghost account
 // for users on any tier other than the default.
 async function findActiveAccount(userId) {
-  // 1. Most recently updated active account (any challenge type)
+  // 1a. IJGF active accounts (trading_mode is 'ijgf' or NULL for legacy accounts).
+  //     Bybit accounts are excluded: their positions/orders live on Bybit and are
+  //     managed by useBybitSync. If a Bybit account wins the updated_at sort,
+  //     getAccountState early-returns orders=[] causing IJGF limit orders to never fill.
+  const { data: ijgfActive } = await supabase
+    .from('demo_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .not('challenge_type', 'like', '%_archived_%')
+    .or('trading_mode.is.null,trading_mode.neq.bybit')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (ijgfActive) return ijgfActive
+
+  // 1b. Fallback: any active account (pure-Bybit users with no IJGF account)
   const { data: active } = await supabase
     .from('demo_accounts')
     .select('*')
@@ -517,9 +536,10 @@ export async function checkPendingOrders(userId, priceMap) {
     .eq('user_id', userId)
     .eq('status', 'open')
 
-  if (!orders || orders.length === 0) return []
+  if (!orders || orders.length === 0) return { filled: [], failed: [] }
 
   const filled = []
+  const failed = []
 
   for (const order of orders) {
     const cp = priceMap[order.symbol]
@@ -566,10 +586,14 @@ export async function checkPendingOrders(userId, priceMap) {
           filled.push(order)
           console.log('[Trading] Order filled:', order.id, order.symbol, order.side, '@', order.price)
         } catch (execErr) {
-          console.error('[Trading] Fill execution failed, reverting:', order.id, execErr)
+          // Permanent failure — cancel the order so it stops retrying every 3 seconds.
+          // Most common cause: DB schema constraint (e.g. leverage CHECK) not updated after
+          // platform config change. The order would otherwise loop claim→fail→revert infinitely.
+          console.error('[Trading] Fill execution failed — cancelling order to stop retry loop:', order.id, execErr.message)
           await supabase.from('demo_orders')
-            .update({ status: 'open', updated_at: new Date().toISOString() })
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
             .eq('id', order.id)
+          failed.push({ ...order, failReason: execErr.message })
         }
       } catch (err) {
         console.error('[Trading] Fill order error:', order.id, err)
@@ -577,7 +601,7 @@ export async function checkPendingOrders(userId, priceMap) {
     }
   }
 
-  return filled
+  return { filled, failed }
 }
 
 // ---------------------------------------------------------------------------
@@ -887,15 +911,19 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .eq('status', 'active')
     .not('challenge_type', 'like', '%_archived_%')
 
-  // Step 3: Archive all active accounts in a single batch update (not a loop)
+  // Step 3: TWO separate updates per row — critical ordering:
+  // A) status='failed' first: never violates any DB constraint, guaranteed to commit.
+  // B) challenge_type rename: best-effort (may be rejected by a CHECK constraint).
+  //    Even if B fails, A already committed so the account never surfaces as 'active'.
   if (activeAccounts?.length) {
     for (const acct of activeAccounts) {
+      // A: Guaranteed terminal status
       await supabase.from('demo_accounts')
-        .update({
-          challenge_type: `${acct.challenge_type}${archiveSuffix}`,
-          status:         'failed',  // 'archived' violates check constraint; 'failed' is the safe terminal state
-          updated_at:     now,
-        })
+        .update({ status: 'failed', updated_at: now })
+        .eq('id', acct.id)
+      // B: Best-effort rename
+      await supabase.from('demo_accounts')
+        .update({ challenge_type: `${acct.challenge_type}${archiveSuffix}` })
         .eq('id', acct.id)
     }
   }

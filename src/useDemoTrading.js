@@ -189,14 +189,22 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       if (Object.keys(pm).length === 0) return
 
       try {
-        const filledOrders = await checkPendingOrders(userIdRef.current, pm)
+        const { filled: filledOrders, failed: failedOrders } = await checkPendingOrders(userIdRef.current, pm)
         for (const order of filledOrders) {
           addNotification(
             `📋 ${order.side} ${order.symbol} order filled at $${order.price}`,
             'info'
           )
         }
-        if (filledOrders.length > 0) refreshState()
+        for (const order of failedOrders) {
+          // Surface the real error — most likely a DB schema constraint that wasn't
+          // updated after a platform config change (e.g. leverage limit in demo_positions)
+          addNotification(
+            `❌ ${order.side} ${order.symbol} order cancelled — fill failed: ${order.failReason}`,
+            'error'
+          )
+        }
+        if (filledOrders.length > 0 || failedOrders.length > 0) refreshState()
       } catch (err) {
         console.error('Pending order check error:', err)
       }
