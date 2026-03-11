@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useContext, useMemo } from 'react'
+import React from 'react'
+import { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react'
 import { getAccountState, resetDemoAccount } from './tradingService'
 import BybitModePicker from './BybitModePicker'
 import { ThemeContext } from './ThemeContext'
@@ -35,6 +36,154 @@ const COIN_NAMES = {
   COMPUSDT:'Compound', GRTUSDT:'The Graph', DYDXUSDT:'dYdX', ALGOUSDT:'Algorand',
 }
 
+// ── Pure formatting helpers — module scope, created once, never recreated ──
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function formatPrice(value, decimals = 0) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  }).format(value)
+}
+
+function formatPercent(value) {
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
+}
+
+
+// ── MarketItem — memoized to skip reconciliation when unrelated state changes.
+// Without memo, every setMarkets / setShowChallengeModal / setStartingChallenge
+// call forces React to diff all 90 market rows — causing visible lag during
+// modal scrolling and selection.  With memo, items only re-render when their
+// own price/change/favorite/selected status changes.
+const MarketItem = React.memo(function MarketItem({
+  market, isSelected, isLoadingPrices, onSelect, onToggleFavorite, onSetAlert,
+}) {
+  return (
+    <div
+      className={`market-item ${isSelected ? 'selected' : ''}`}
+      onClick={() => onSelect(market)}
+    >
+      <div className="market-info">
+        <div className="market-symbol-row">
+          <div className="market-symbol">{market.symbol}</div>
+          <div className="market-actions">
+            <button
+              className={`favorite-btn ${market.favorite ? 'active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(market.symbol) }}
+              title="Add to favorites"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+            <button
+              className="alert-btn"
+              onClick={(e) => { e.stopPropagation(); onSetAlert(market) }}
+              title="Set price alert"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="market-name">{market.name}</div>
+      </div>
+      <div className="market-stats">
+        <div className="market-price">
+          {market.price === 0
+            ? (isLoadingPrices ? 'Loading...' : 'N/A')
+            : market.price < 1
+              ? formatPrice(market.price, 4)
+              : market.price < 100
+              ? formatPrice(market.price, 2)
+              : formatPrice(market.price, 0)
+          }
+        </div>
+        <div className={`market-change ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
+          {market.price === 0 ? (isLoadingPrices ? '...' : 'N/A') : formatPercent(market.change)}
+        </div>
+      </div>
+    </div>
+  )
+}, (prev, next) =>
+  prev.market.price     === next.market.price     &&
+  prev.market.change    === next.market.change    &&
+  prev.market.favorite  === next.market.favorite  &&
+  prev.isSelected       === next.isSelected       &&
+  prev.isLoadingPrices  === next.isLoadingPrices
+)
+
+
+// ── MarketTableRow — memoized table row for the "View All Markets" modal.
+// Same rationale as MarketItem: prevents full-table reconciliation on every
+// price tick or state change while the modal is open.
+const MarketTableRow = React.memo(function MarketTableRow({
+  market, isLoadingPrices, onSelect, onToggleFavorite, onSetAlert,
+}) {
+  return (
+    <tr className="market-table-row" onClick={() => onSelect(market)}>
+      <td className="market-name-cell">
+        <button
+          className={`favorite-btn-table ${market.favorite ? 'active' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(market.symbol) }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+        <div className="market-name-info">
+          <div className="market-symbol-table">{market.symbol}</div>
+          <div className="market-name-table">{market.name}</div>
+        </div>
+      </td>
+      <td className="text-right market-price-cell">
+        <div className="price-and-change">
+          <div className="market-price-value">
+            {market.price === 0
+              ? (isLoadingPrices ? 'Loading...' : 'N/A')
+              : market.price < 1
+                ? formatPrice(market.price, 4)
+                : market.price < 100
+                ? formatPrice(market.price, 2)
+                : formatPrice(market.price, 0)
+            }
+          </div>
+          <span className={`change-badge ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
+            {market.price === 0 ? (isLoadingPrices ? '...' : 'N/A') : formatPercent(market.change)}
+          </span>
+        </div>
+      </td>
+      <td className="text-center">
+        <button
+          className="alert-btn-table"
+          onClick={(e) => { e.stopPropagation(); onSetAlert(market) }}
+          title="Set price alert"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+      </td>
+    </tr>
+  )
+}, (prev, next) =>
+  prev.market.price    === next.market.price    &&
+  prev.market.change   === next.market.change   &&
+  prev.market.favorite === next.market.favorite &&
+  prev.isLoadingPrices === next.isLoadingPrices
+)
+
+
 function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) {
   const [timeRange, setTimeRange] = useState('1W')
   const { theme } = useContext(ThemeContext)
@@ -57,6 +206,9 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
   const [showChallengeModal, setShowChallengeModal] = useState(false)
   const [startingChallenge, setStartingChallenge] = useState(false)
   const [pendingTierKey, setPendingTierKey] = useState(null)
+  // Skip price polling while any modal is open — prevents reconciling all
+  // 90 market items mid-scroll and making the modal feel sluggish.
+  const anyModalOpen = useRef(false)
   
   // Real account data from Supabase (IJGF mode) or bybitData prop (Bybit mode)
   const [_account, setRawAccount] = useState(null)
@@ -397,8 +549,12 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
           change: parseFloat(prices[symbol]?.change) || 0,
           favorite: FAVORITES.has(symbol),
         }))
-        setMarkets(parsed)
-        setIsLoadingPrices(false)
+        // Skip update while any modal is open — prevents reconciling 90+
+        // market rows mid-scroll, which causes visible lag on slower devices.
+        if (!anyModalOpen.current) {
+          setMarkets(parsed)
+          setIsLoadingPrices(false)
+        }
         return true
       } catch (err) {
         console.warn('[DashboardOverview] Proxy failed, falling back to CoinGecko:', err.message)
@@ -522,29 +678,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
     : buildChartFromTrades(realTrades, hoursMap[timeRange] || 24)
   const currentChart = { ...builtChart, dates: dateLabels[timeRange] }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value)
-  }
-
-  const formatPrice = (value, decimals = 0) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    }).format(value)
-  }
-
-  const formatPercent = (value) => {
-    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
-  }
-
-  const toggleFavorite = (symbol) => {
+  const toggleFavorite = useCallback((symbol) => {
     setMarkets(prevMarkets =>
       prevMarkets.map(market =>
         market.symbol === symbol
@@ -552,13 +686,11 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
           : market
       )
     )
-  }
+  }, [])
 
-  const handleMarketClick = (market) => {
+  const handleMarketClick = useCallback((market) => {
     setSelectedMarket(market)
-    console.log('Market selected:', market)
-    // TODO: Navigate to detailed trading view or show modal
-  }
+  }, [])
 
   // currentChart is built above from real trade data
 
@@ -802,64 +934,15 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
               </div>
             ) : (
               sortedMarkets.map((market) => (
-                <div 
-                  key={market.symbol} 
-                  className={`market-item ${selectedMarket?.symbol === market.symbol ? 'selected' : ''}`}
-                  onClick={() => handleMarketClick(market)}
-                >
-                  <div className="market-info">
-                    <div className="market-symbol-row">
-                      <div className="market-symbol">{market.symbol}</div>
-                      <div className="market-actions">
-                        <button 
-                          className={`favorite-btn ${market.favorite ? 'active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleFavorite(market.symbol)
-                          }}
-                          title="Add to favorites"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                          </svg>
-                        </button>
-                        <button 
-                          className="alert-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setAlertModalMarket(market)
-                            setShowAlertModal(true)
-                          }}
-                          title="Set price alert"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="market-name">{market.name}</div>
-                  </div>
-                  <div className="market-stats">
-                    <div className="market-price">
-                      {market.price === 0 ? (
-                        isLoadingPrices ? 'Loading...' : 'N/A'
-                      ) : (
-                        market.price < 1 
-                          ? formatPrice(market.price, 4)
-                          : market.price < 100
-                          ? formatPrice(market.price, 2)
-                          : formatPrice(market.price, 0)
-                      )}
-                    </div>
-                    <div className={`market-change ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
-                      {market.price === 0 ? (
-                        isLoadingPrices ? '...' : 'N/A'
-                      ) : formatPercent(market.change)}
-                    </div>
-                  </div>
-                </div>
+                <MarketItem
+                  key={market.symbol}
+                  market={market}
+                  isSelected={selectedMarket?.symbol === market.symbol}
+                  isLoadingPrices={isLoadingPrices}
+                  onSelect={handleMarketClick}
+                  onToggleFavorite={toggleFavorite}
+                  onSetAlert={(m) => { setAlertModalMarket(m); setShowAlertModal(true) }}
+                />
               ))
             )}
           </div>
@@ -972,7 +1055,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
           )}
           {/* Only show Start New Challenge when NOT actively in a challenge */}
           {!accountLoading && account?.status !== 'active' && (
-            <button className="btn-start-challenge" onClick={() => setShowChallengeModal(true)}>
+            <button className="btn-start-challenge" onClick={() => { anyModalOpen.current = true; setShowChallengeModal(true) }}>
               {account?.status === 'failed' ? 'Try Again' : account?.status === 'passed' ? 'Start New Challenge' : 'Start Challenge'}
             </button>
           )}
@@ -1212,65 +1295,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
                     </thead>
                     <tbody>
                       {sortedMarkets.map((market) => (
-                        <tr 
-                          key={market.symbol} 
-                          className="market-table-row"
-                          onClick={() => handleMarketClick(market)}
-                        >
-                          <td className="market-name-cell">
-                            <button 
-                              className={`favorite-btn-table ${market.favorite ? 'active' : ''}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                toggleFavorite(market.symbol)
-                              }}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill={market.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                              </svg>
-                            </button>
-                            <div className="market-name-info">
-                              <div className="market-symbol-table">{market.symbol}</div>
-                              <div className="market-name-table">{market.name}</div>
-                            </div>
-                          </td>
-                          <td className="text-right market-price-cell">
-                            <div className="price-and-change">
-                              <div className="market-price-value">
-                                {market.price === 0 ? (
-                                  isLoadingPrices ? 'Loading...' : 'N/A'
-                                ) : (
-                                  market.price < 1 
-                                    ? formatPrice(market.price, 4)
-                                    : market.price < 100
-                                    ? formatPrice(market.price, 2)
-                                    : formatPrice(market.price, 0)
-                                )}
-                              </div>
-                              <span className={`change-badge ${market.change > 0 ? 'positive' : market.change < 0 ? 'negative' : ''}`}>
-                                {market.price === 0 ? (
-                                  isLoadingPrices ? '...' : 'N/A'
-                                ) : formatPercent(market.change)}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="text-center">
-                            <button 
-                              className="alert-btn-table"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setAlertModalMarket(market)
-                                setShowAlertModal(true)
-                              }}
-                              title="Set price alert"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
+                        <MarketTableRow
+                          key={market.symbol}
+                          market={market}
+                          isLoadingPrices={isLoadingPrices}
+                          onSelect={handleMarketClick}
+                          onToggleFavorite={toggleFavorite}
+                          onSetAlert={(m) => { setAlertModalMarket(m); setShowAlertModal(true) }}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -1283,14 +1315,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
 
       {/* Challenge Picker Modal */}
       {showChallengeModal && (
-        <div className="modal-overlay" onClick={() => !startingChallenge && setShowChallengeModal(false)}>
+        <div className="modal-overlay" onClick={() => { if (!startingChallenge) { anyModalOpen.current = false; setShowChallengeModal(false) } }}>
           <div className="challenge-picker-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h3>Choose Your Challenge</h3>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginTop: '0.25rem' }}>Select your account size to begin</p>
               </div>
-              <button className="modal-close" onClick={() => setShowChallengeModal(false)} disabled={startingChallenge}>
+              <button className="modal-close" onClick={() => { anyModalOpen.current = false; setShowChallengeModal(false) }} disabled={startingChallenge}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -1310,6 +1342,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
                   className={`challenge-tier-card ${tier.comingSoon ? 'coming-soon' : ''}`}
                   onClick={() => {
                     if (tier.comingSoon || startingChallenge) return
+                    anyModalOpen.current = false
                     setShowChallengeModal(false)
                     setPendingTierKey(tier.key)
                   }}

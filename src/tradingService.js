@@ -79,35 +79,31 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     .maybeSingle()
 
   const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
-  const freshState = {
-    status:                'active',
-    trading_mode:          'ijgf',
-    initial_balance:       config.initial,
-    current_balance:       config.initial,
-    equity:                config.initial,
-    profit_target:         config.profitTarget,
-    max_daily_loss:        config.dailyLoss,
-    max_total_drawdown:    config.maxDrawdown,
-    high_water_mark:       config.initial,
-    trading_days:          0,
-    total_trades:          0,
-    winning_trades:        0,
-    bybit_api_key:         null,
-    bybit_api_secret:      null,
-    bybit_connected_at:    null,
-    bybit_equity:          null,
-    bybit_trading_days:    0,
-    bybit_last_active_date: null,
-    bybit_last_sync:       null,
-    updated_at:            new Date().toISOString(),
-  }
 
   if (existingRow) {
     // Row exists (failed/passed from a prior run) — reset it in-place.
     // Avoids the uq_user_challenge UNIQUE constraint violation on INSERT.
+    //
+    // IMPORTANT: only include columns that are guaranteed to exist in the
+    // demo_accounts table.  Do NOT include:
+    //   - trading_days   → computed at runtime from demo_trades, not a column
+    //   - bybit_*        → optional migration columns; cleared best-effort below
     const { data: reset, error: updateErr } = await supabase
       .from('demo_accounts')
-      .update(freshState)
+      .update({
+        status:              'active',
+        trading_mode:        'ijgf',
+        initial_balance:     config.initial,
+        current_balance:     config.initial,
+        equity:              config.initial,
+        profit_target:       config.profitTarget,
+        max_daily_loss:      config.dailyLoss,
+        max_total_drawdown:  config.maxDrawdown,
+        high_water_mark:     config.initial,
+        total_trades:        0,
+        winning_trades:      0,
+        updated_at:          new Date().toISOString(),
+      })
       .eq('id', existingRow.id)
       .select()
       .single()
@@ -115,6 +111,18 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
       console.error('[Trading] Reset account error:', updateErr)
       throw new Error(`Failed to reset demo account: ${updateErr.message}`)
     }
+    // Best-effort: clear Bybit credentials (columns added by optional migration).
+    // If the columns don't exist yet this silently no-ops — does not abort reset.
+    await supabase.from('demo_accounts').update({
+      bybit_api_key:          null,
+      bybit_api_secret:       null,
+      bybit_connected_at:     null,
+      bybit_equity:           null,
+      bybit_trading_days:     0,
+      bybit_last_active_date: null,
+      bybit_last_sync:        null,
+    }).eq('id', existingRow.id).then(() => {}).catch(() => {})
+
     console.log('[Trading] Reset existing account to fresh state:', reset.id)
     return reset
   }
