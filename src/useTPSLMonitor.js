@@ -75,23 +75,35 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
       if (Object.keys(pm).length === 0) return
 
       try {
-        const closed = await checkPositionTPSL(userIdRef.current, pm)
+        // checkPositionTPSL now returns { closed, challengeResult }.
+        // challengeResult is set when safeCheckRules fired a drawdown/daily-loss
+        // breach and force-closed all positions. In that case closed=[] — the
+        // old bare-array check (closed.length > 0) meant NOTHING happened in
+        // the UI: no refreshState, no modal, no PNL/trade update.
+        const { closed, challengeResult } = await checkPositionTPSL(userIdRef.current, pm)
 
         if (closed.length > 0) {
-          // Notify Dashboard so it can surface toast notifications
+          // ── Case A: TP/SL/liquidation closed one or more positions ──────
           onTriggered?.(closed)
-
-          // Re-fetch symbols — some positions are now closed
           refreshSymbols()
+        }
 
-          // If any close triggered a challenge failure/pass, notify Dashboard
-          // immediately so the modal fires right away — not 8 seconds later
-          // via the background poll (which also only runs when NOT on Market tab).
-          const challengeEnded = closed.find(c => c.challengeFailed || c.challengePassed)
-          if (challengeEnded) {
-            const result = challengeEnded.challengeFailed ? 'failed' : 'passed'
-            onChallengeFailed?.(result)
-          }
+        // ── Challenge ended detection — covers BOTH paths ─────────────────
+        // Path 1: safeCheckRules (proactive drawdown check) ended the challenge.
+        //         closed=[], challengeResult.failed/passed = true.
+        // Path 2: A TP/SL close itself pushed balance past the drawdown limit.
+        //         closed=[...], one item has challengeFailed=true.
+        // Previously only Path 2 was handled, and only when closed.length > 0.
+        const challengeEndedViaRules = challengeResult?.failed || challengeResult?.passed
+        const challengeEndedViaTrade = closed.find(c => c.challengeFailed || c.challengePassed)
+
+        if (challengeEndedViaRules) {
+          const result = challengeResult.failed ? 'failed' : 'passed'
+          refreshSymbols()
+          onChallengeFailed?.(result)
+        } else if (challengeEndedViaTrade) {
+          const result = challengeEndedViaTrade.challengeFailed ? 'failed' : 'passed'
+          onChallengeFailed?.(result)
         }
       } catch (err) {
         console.error('[TPSLMonitor] Check error:', err)

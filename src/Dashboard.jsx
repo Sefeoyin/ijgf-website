@@ -35,10 +35,8 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
-  // Holds the refreshAccountState function exposed by DashboardOverview.
-  // Called immediately when an auto-close triggers a challenge failure/pass
-  // so PNL, trades, equity chart, and account stats update without waiting
-  // for the 30-second poll tick.
+  // Holds DashboardOverview's refreshAccountState — called immediately when
+  // an auto-close fails the challenge so stats update without waiting for the poll
   const dashboardRefreshRef = useRef(null)
   const [tradingMode, setTradingMode] = useState(null) // null=loading, 'ijgf', 'bybit', 'none'
 
@@ -48,7 +46,8 @@ function Dashboard() {
   // TP/SL and liquidations always fire.
   useTPSLMonitor(
     userId,
-    // onTriggered — log auto-closes (MarketsPage surfaces its own toasts)
+
+    // onTriggered — fires when TP/SL/liquidation closes a position normally
     (closedPositions) => {
       for (const pos of closedPositions) {
         const label = pos.closeReason === 'tp'
@@ -59,11 +58,18 @@ function Dashboard() {
         console.info('[Dashboard] Auto-close:', label)
       }
     },
-    // onChallengeFailed — fires immediately when an auto-close triggers pass/fail.
-    // Without this, the only detection path is the 8-second background poll
-    // (which also skips when activeTab === 'market'). Users would see the
-    // challenge silently end with no modal and corrupted stats (0 trades, — PNL).
+
+    // onChallengeFailed — fires in TWO cases:
+    //   1. A TP/SL/liquidation close returned challengeFailed/challengePassed
+    //   2. drawdown breach force-closed all positions (checkPositionTPSL returned [])
+    //      and the account is now status='failed' in the DB
+    // In both cases we must: refresh dashboard stats AND open the result modal.
     async (result) => {
+      // Step 1: force DashboardOverview to re-fetch immediately so Total PNL,
+      // trade history, win rate, and equity chart all show final values
+      dashboardRefreshRef.current?.()
+
+      // Step 2: fetch fresh account + tradingDays for the modal
       try {
         const { supabase: sb } = await import('./supabase')
         const { data: acct } = await sb
@@ -77,21 +83,22 @@ function Dashboard() {
 
         if (!acct) return
 
-        // Count real trading days from demo_trades
         const { data: trades } = await sb
           .from('demo_trades')
           .select('executed_at, is_close')
           .eq('demo_account_id', acct.id)
+
         const tradingDays = new Set(
-          (trades || []).filter(t => t.is_close === true).map(t => t.executed_at?.split('T')[0]).filter(Boolean)
+          (trades || [])
+            .filter(t => t.is_close === true)
+            .map(t => t.executed_at?.split('T')[0])
+            .filter(Boolean)
         ).size
 
+        // Guard: don't re-open modal if already showing or already recorded
+        if (challengeResultData) return
+
         prevAccountStatusRef.current = result
-        // Force DashboardOverview to re-fetch immediately so Total PNL,
-        // Trade History, Win Rate, and Equity Chart all show the final
-        // post-close values — not the stale on-mount snapshot.
-        dashboardRefreshRef.current?.()
-        setTradingMode('none')
         setChallengeResultData({
           result,
           account: acct,
@@ -104,7 +111,7 @@ function Dashboard() {
           },
         })
       } catch (err) {
-        console.error('[Dashboard] onChallengeFailed fetch error:', err)
+        console.error('[Dashboard] onChallengeFailed error:', err)
       }
     }
   )

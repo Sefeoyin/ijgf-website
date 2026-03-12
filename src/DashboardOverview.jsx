@@ -230,6 +230,8 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
         : 0)
 
   // Load account + trades from Supabase (IJGF only)
+  // Named callback so it can be: (a) called on mount, (b) polled every 30s,
+  // (c) called immediately by Dashboard when an auto-close fails the challenge
   const refreshAccountState = useCallback(async () => {
     if (!userId || isBybit) return
     try {
@@ -249,19 +251,16 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
   // Initial load on mount
   useEffect(() => { refreshAccountState() }, [refreshAccountState])
 
-  // Poll every 30 seconds so balance, trades, and PNL stay current
-  // without requiring the user to navigate away and back.
-  // 30s is conservative — short enough to catch auto-closes quickly,
-  // long enough to not hammer Supabase.
+  // Poll every 30s — keeps PNL, trades, win rate, equity chart current
+  // without requiring the user to navigate away and back
   useEffect(() => {
     if (!userId || isBybit) return
-    const interval = setInterval(refreshAccountState, 30000)
-    return () => clearInterval(interval)
+    const id = setInterval(refreshAccountState, 30000)
+    return () => clearInterval(id)
   }, [userId, isBybit, refreshAccountState])
 
-  // Expose refreshAccountState to parent (Dashboard) so onChallengeFailed
-  // can force an immediate refresh the moment an auto-close lands —
-  // without waiting up to 30 seconds for the next poll tick.
+  // Expose refreshAccountState to Dashboard so onChallengeFailed can force
+  // an immediate re-fetch the moment an auto-close lands in the DB
   useEffect(() => {
     if (onForceRefresh) onForceRefresh(refreshAccountState)
   }, [onForceRefresh, refreshAccountState])

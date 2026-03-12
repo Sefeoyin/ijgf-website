@@ -229,38 +229,51 @@ async function closePosition(db, position, currentPrice, reason) {
   const pnl    = parseFloat(calculatePnl(position, currentPrice).toFixed(8))
   const margin = parseFloat(position.margin)
 
-  // 1. Mark position closed.
-  //    The filter `status=eq.open` is the idempotency guard:
-  //    if two cron ticks race on the same position, the second PATCH
-  //    matches 0 rows and is a no-op — no double-close, no double PnL.
+  // 1. Mark position closed — idempotency guard: second PATCH on same position
+  //    matches 0 rows (status already changed) and is a no-op.
+  //    FIX Bug 3: use 'liquidated' status when reason === 'liquidation',
+  //    matching tradingService.js exactly so UI badge/filter logic works.
+  const positionStatus = reason === 'liquidation' ? 'liquidated' : 'closed'
   try {
-    await db.update(
+    const updated = await db.update(
       'demo_positions',
-      { status: reason === 'liquidation' ? 'liquidated' : 'closed', closed_at: now, close_price: currentPrice, realized_pnl: pnl },
+      { status: positionStatus, closed_at: now, close_price: currentPrice, realized_pnl: pnl },
       `id=eq.${position.id}&status=eq.open`
     )
-  } catch {
-    // Already closed by a concurrent execution — skip
-    console.warn(`[tpsl-cron] Position ${position.id} already closed, skipping`)
+    // Supabase returns [] when no row matched (already closed)
+    if (!updated || (Array.isArray(updated) && updated.length === 0)) {
+      console.warn(`[tpsl-cron] Position ${position.id} already closed, skipping`)
+      return null
+    }
+  } catch (closeErr) {
+    console.warn(`[tpsl-cron] Position ${position.id} close failed:`, closeErr.message)
     return null
   }
 
-  // 2. Insert closing trade record
-  //    is_close = true marks this as a position-close event (not an open).
-  //    executed_at is used by tradingService.js to count trading days.
+  // 2. Insert closing trade record — schema must match tradingService.js exactly.
+  //    FIX Bug 1: is_close: true is REQUIRED — getAccountState filters on this
+  //               field to count tradingDays and build trade history PNL.
+  //    FIX Bug 4: use 'price' (not 'exit_price'), add position_id, order_type,
+  //               total, fee, opened_at, closed_at to match the real schema.
+  //    FIX Bug 4: side should be the CLOSING side (LONG closes with SELL).
+  const closeSide = position.side === 'LONG' ? 'SELL' : 'BUY'
   try {
     await db.insert('demo_trades', {
       demo_account_id: position.demo_account_id,
       user_id:         position.user_id,
+      position_id:     position.id,
       symbol:          position.symbol,
-      side:            position.side === 'LONG' ? 'BUY' : 'SELL',
+      side:            closeSide,
+      order_type:      'MARKET',
+      price:           currentPrice,
       quantity:        parseFloat(position.quantity),
-      entry_price:     parseFloat(position.entry_price),
-      exit_price:      currentPrice,
-      realized_pnl:    pnl,
       leverage:        parseFloat(position.leverage) || 1,
+      total:           currentPrice * parseFloat(position.quantity),
+      fee:             0,
+      realized_pnl:    pnl,
       is_close:        true,
-      close_reason:    reason,
+      opened_at:       position.opened_at ?? null,
+      closed_at:       now,
       executed_at:     now,
     })
   } catch (tradeErr) {
@@ -273,7 +286,7 @@ async function closePosition(db, position, currentPrice, reason) {
   try {
     const rows = await db.select(
       'demo_accounts',
-      `id=eq.${position.demo_account_id}&select=id,current_balance,initial_balance,status,profit_target,max_total_drawdown,high_water_mark,min_trading_days,total_trades,winning_trades,challenge_type`
+      `id=eq.${position.demo_account_id}&select=id,current_balance,initial_balance,status,profit_target,max_total_drawdown,high_water_mark,challenge_type,total_trades,winning_trades,min_trading_days`
     )
     account = rows[0] || null
   } catch (fetchErr) {
@@ -299,9 +312,19 @@ async function closePosition(db, position, currentPrice, reason) {
   const totalDrawdown = initialBalance - newBalance
   if (maxDrawdown > 0 && totalDrawdown >= maxDrawdown) {
     try {
+      // FIX Bug 2: increment total_trades and winning_trades on every balance update
+      const updatedTrades  = (account.total_trades  || 0) + 1
+      const updatedWinning = pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0)
       await db.update(
         'demo_accounts',
-        { current_balance: newBalance, equity: newBalance, status: 'failed', total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
+        {
+          current_balance: newBalance,
+          equity:          newBalance,
+          status:          'failed',
+          total_trades:    updatedTrades,
+          winning_trades:  updatedWinning,
+          updated_at:      now,
+        },
         `id=eq.${account.id}`
       )
     } catch (failErr) {
@@ -322,12 +345,22 @@ async function closePosition(db, position, currentPrice, reason) {
         (trades || []).map(t => t.executed_at?.split('T')[0]).filter(Boolean)
       ).size
 
-      // Read from account row — matches CHALLENGE_CONFIGS.minTradingDays in tradingService.js
+      // FIX Bug 6: use account.min_trading_days, fall back to 5
       const minDays = account.min_trading_days || 5
       if (tradingDays >= minDays) {
+        // FIX Bug 2: increment total_trades and winning_trades
+        const updatedTrades  = (account.total_trades  || 0) + 1
+        const updatedWinning = pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0)
         await db.update(
           'demo_accounts',
-          { current_balance: newBalance, equity: newBalance, status: 'passed', total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
+          {
+            current_balance: newBalance,
+            equity:          newBalance,
+            status:          'passed',
+            total_trades:    updatedTrades,
+            winning_trades:  updatedWinning,
+            updated_at:      now,
+          },
           `id=eq.${account.id}`
         )
         return { pnl, reason, accountResult: 'passed' }
@@ -339,10 +372,20 @@ async function closePosition(db, position, currentPrice, reason) {
 
   // 7. Standard balance update (challenge still active)
   const newHWM = Math.max(parseFloat(account.high_water_mark || initialBalance), newBalance)
+  // FIX Bug 2: increment total_trades and winning_trades on every close
+  const updatedTrades  = (account.total_trades  || 0) + 1
+  const updatedWinning = pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0)
   try {
     await db.update(
       'demo_accounts',
-      { current_balance: newBalance, equity: newBalance, high_water_mark: newHWM, total_trades: (account.total_trades || 0) + 1, winning_trades: pnl > 0 ? (account.winning_trades || 0) + 1 : (account.winning_trades || 0), updated_at: now },
+      {
+        current_balance: newBalance,
+        equity:          newBalance,
+        high_water_mark: newHWM,
+        total_trades:    updatedTrades,
+        winning_trades:  updatedWinning,
+        updated_at:      now,
+      },
       `id=eq.${account.id}`
     )
   } catch (updateErr) {
@@ -376,7 +419,7 @@ export default async function handler(req, res) {
     // 1. Fetch every open position across all accounts
     const positions = await db.select(
       'demo_positions',
-      'status=eq.open&select=id,demo_account_id,user_id,symbol,side,quantity,entry_price,take_profit,stop_loss,margin,leverage'
+      'status=eq.open&select=id,demo_account_id,user_id,symbol,side,quantity,entry_price,take_profit,stop_loss,margin,leverage,opened_at'
     )
 
     if (!positions.length) {
