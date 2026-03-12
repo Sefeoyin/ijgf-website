@@ -19,7 +19,7 @@ import { checkPositionTPSL } from './tradingService'
 const CHECK_INTERVAL_MS = 3000
 const SYMBOL_REFRESH_MS = 15000 // re-check which positions are open every 15s
 
-export function useTPSLMonitor(userId, onTriggered) {
+export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
   const [symbols, setSymbols] = useState([])
   const { priceMap } = useBinanceWebSocket(symbols)
 
@@ -83,6 +83,15 @@ export function useTPSLMonitor(userId, onTriggered) {
 
           // Re-fetch symbols — some positions are now closed
           refreshSymbols()
+
+          // If any close triggered a challenge failure/pass, notify Dashboard
+          // immediately so the modal fires right away — not 8 seconds later
+          // via the background poll (which also only runs when NOT on Market tab).
+          const challengeEnded = closed.find(c => c.challengeFailed || c.challengePassed)
+          if (challengeEnded) {
+            const result = challengeEnded.challengeFailed ? 'failed' : 'passed'
+            onChallengeFailed?.(result)
+          }
         }
       } catch (err) {
         console.error('[TPSLMonitor] Check error:', err)

@@ -35,25 +35,79 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
+  // Holds the refreshAccountState function exposed by DashboardOverview.
+  // Called immediately when an auto-close triggers a challenge failure/pass
+  // so PNL, trades, equity chart, and account stats update without waiting
+  // for the 30-second poll tick.
+  const dashboardRefreshRef = useRef(null)
   const [tradingMode, setTradingMode] = useState(null) // null=loading, 'ijgf', 'bybit', 'none'
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
   // the interval in useDemoTrading. This hook runs at Dashboard level so
   // TP/SL and liquidations always fire.
-  useTPSLMonitor(userId, (closedPositions) => {
-    for (const pos of closedPositions) {
-      const label = pos.closeReason === 'tp'
-        ? `✅ ${pos.symbol} Take Profit hit! PNL: $${pos.pnl?.toFixed(2)}`
-        : pos.closeReason === 'sl'
-        ? `🛑 ${pos.symbol} Stop Loss hit. PNL: $${pos.pnl?.toFixed(2)}`
-        : `💀 ${pos.symbol} Liquidated`
-      console.info('[Dashboard] Auto-close:', label)
-      // If the user is on the Market tab MarketsPage will also show its own
-      // notification via useDemoTrading — that's fine, it deduplicates via
-      // the atomic .eq('status', 'open') guard in closePosition.
+  useTPSLMonitor(
+    userId,
+    // onTriggered — log auto-closes (MarketsPage surfaces its own toasts)
+    (closedPositions) => {
+      for (const pos of closedPositions) {
+        const label = pos.closeReason === 'tp'
+          ? `✅ ${pos.symbol} Take Profit hit! PNL: $${pos.pnl?.toFixed(2)}`
+          : pos.closeReason === 'sl'
+          ? `🛑 ${pos.symbol} Stop Loss hit. PNL: $${pos.pnl?.toFixed(2)}`
+          : `💀 ${pos.symbol} Liquidated`
+        console.info('[Dashboard] Auto-close:', label)
+      }
+    },
+    // onChallengeFailed — fires immediately when an auto-close triggers pass/fail.
+    // Without this, the only detection path is the 8-second background poll
+    // (which also skips when activeTab === 'market'). Users would see the
+    // challenge silently end with no modal and corrupted stats (0 trades, — PNL).
+    async (result) => {
+      try {
+        const { supabase: sb } = await import('./supabase')
+        const { data: acct } = await sb
+          .from('demo_accounts')
+          .select('*')
+          .eq('user_id', userId)
+          .not('challenge_type', 'like', '%_archived_%')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!acct) return
+
+        // Count real trading days from demo_trades
+        const { data: trades } = await sb
+          .from('demo_trades')
+          .select('executed_at, is_close')
+          .eq('demo_account_id', acct.id)
+        const tradingDays = new Set(
+          (trades || []).filter(t => t.is_close === true).map(t => t.executed_at?.split('T')[0]).filter(Boolean)
+        ).size
+
+        prevAccountStatusRef.current = result
+        // Force DashboardOverview to re-fetch immediately so Total PNL,
+        // Trade History, Win Rate, and Equity Chart all show the final
+        // post-close values — not the stale on-mount snapshot.
+        dashboardRefreshRef.current?.()
+        setTradingMode('none')
+        setChallengeResultData({
+          result,
+          account: acct,
+          tradingDays,
+          onStartNew: async (type, mode = 'ijgf') => {
+            await resetDemoAccount(userId, type)
+            setTradingMode(mode)
+            if (mode === 'ijgf') setActiveTab('market')
+            await checkUserAndLoadProfile()
+          },
+        })
+      } catch (err) {
+        console.error('[Dashboard] onChallengeFailed fetch error:', err)
+      }
     }
-  })
+  )
 
   // ── Bybit status change handler ─────────────────────────────────────────
   // Called by useBybitSync when the challenge transitions to passed / failed.
@@ -201,18 +255,10 @@ function Dashboard() {
 
     const poll = async () => {
       try {
-        // BUGFIX: must filter status='active' here.
-        // Without this, the poll can read the archived 'failed' row that
-        // resetDemoAccount writes during a challenge reset, see prev='active'
-        // → curr='failed', and fire the Challenge Ended modal when the user
-        // just clicked "Try Again". The active guard ensures we only ever
-        // detect real in-challenge failures, not reset artifacts.
         const { data: account } = await supabase
           .from('demo_accounts')
           .select('*')
           .eq('user_id', userId)
-          .eq('status', 'active')
-          .not('challenge_type', 'like', '%_archived_%')
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -417,7 +463,7 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} />}
+          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} onForceRefresh={(fn) => { dashboardRefreshRef.current = fn }} />}
           {activeTab === 'market'     && (
             tradingMode === 'ijgf' ? (
               <MarketsPage

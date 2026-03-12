@@ -184,7 +184,7 @@ const MarketTableRow = React.memo(function MarketTableRow({
 )
 
 
-function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) {
+function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, onForceRefresh }) {
   const [timeRange, setTimeRange] = useState('1W')
   const { theme } = useContext(ThemeContext)
   const _dark = theme === 'night'
@@ -230,24 +230,41 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
         : 0)
 
   // Load account + trades from Supabase (IJGF only)
+  const refreshAccountState = useCallback(async () => {
+    if (!userId || isBybit) return
+    try {
+      setAccountLoading(true)
+      const state = await getAccountState(userId)
+      setRawAccount(state.account)
+      setRealTrades(state.recentTrades)
+      setAccountPositions(state.positions || [])
+      setAccountTradingDays(state.tradingDays ?? 0)
+    } catch (err) {
+      console.error('DashboardOverview: failed to load account', err)
+    } finally {
+      setAccountLoading(false)
+    }
+  }, [userId, isBybit])
+
+  // Initial load on mount
+  useEffect(() => { refreshAccountState() }, [refreshAccountState])
+
+  // Poll every 30 seconds so balance, trades, and PNL stay current
+  // without requiring the user to navigate away and back.
+  // 30s is conservative — short enough to catch auto-closes quickly,
+  // long enough to not hammer Supabase.
   useEffect(() => {
     if (!userId || isBybit) return
-    const load = async () => {
-      try {
-        setAccountLoading(true)
-        const state = await getAccountState(userId)
-        setRawAccount(state.account)
-        setRealTrades(state.recentTrades)
-        setAccountPositions(state.positions || [])
-        setAccountTradingDays(state.tradingDays ?? 0)
-      } catch (err) {
-        console.error('DashboardOverview: failed to load account', err)
-      } finally {
-        setAccountLoading(false)
-      }
-    }
-    load()
-  }, [userId, isBybit])
+    const interval = setInterval(refreshAccountState, 30000)
+    return () => clearInterval(interval)
+  }, [userId, isBybit, refreshAccountState])
+
+  // Expose refreshAccountState to parent (Dashboard) so onChallengeFailed
+  // can force an immediate refresh the moment an auto-close lands —
+  // without waiting up to 30 seconds for the next poll tick.
+  useEffect(() => {
+    if (onForceRefresh) onForceRefresh(refreshAccountState)
+  }, [onForceRefresh, refreshAccountState])
 
   // When bybitData arrives (Bybit mode), clear the local loading state
   useEffect(() => {
@@ -1376,18 +1393,9 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData }) 
             setStartingChallenge(true)
             try {
               await resetDemoAccount(userId, pendingTierKey)
-              // BUGFIX: DashboardOverview does NOT unmount when navigating to
-              // the Market tab — both tabs live in the same layout. If we skip
-              // getAccountState here, the stale _account / realTrades /
-              // _accountTradingDays state stays in memory and the equity chart,
-              // PNL totals, and trading days counter all carry over from the
-              // previous challenge until a full page refresh.
-              const state = await getAccountState(userId)
-              setRawAccount(state.account)
-              setRealTrades(state.recentTrades ?? [])
-              setAccountPositions(state.positions ?? [])
-              setAccountTradingDays(state.tradingDays ?? 0)
-              anyModalOpen.current = false
+              // Navigate first — DashboardOverview is about to unmount so
+              // calling getAccountState here and setting local state is wasted
+              // work. The Market tab mounts fresh and loads its own state.
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('ijgf')
             } catch (err) {
