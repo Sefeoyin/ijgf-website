@@ -138,8 +138,9 @@ function ChallengeResultModal({
   const [quote]                  = useState(
     () => FAIL_QUOTES[Math.floor(Math.random() * FAIL_QUOTES.length)]
   )
-  // 'idle' | 'selectMode' | 'bybitApi'
+  // 'idle' | 'selectTier' | 'selectMode' | 'bybitApi'
   const [startStep, setStartStep]   = useState('idle')
+  const [selectedTier, setSelectedTier] = useState('10k')
   const [apiKey, setApiKey]         = useState('')
   const [apiSecret, setApiSecret]   = useState('')
   const [apiError, setApiError]     = useState('')
@@ -151,12 +152,12 @@ function ChallengeResultModal({
     return () => clearTimeout(t)
   }, [])
 
-  // Opens the mode-selection screen
-  const handleStart = () => setStartStep('selectMode')
+  // Opens the tier-selection screen first, then mode selection
+  const handleStart = () => setStartStep('selectTier')
 
   // User picks IJGF Market — activates demo trading with IJGF MarketsPage
   const handleSelectIJGF = () => {
-    if (onStartNew) onStartNew('10k', 'ijgf')
+    if (onStartNew) onStartNew(selectedTier, 'ijgf')
   }
 
   // User picks Bybit — show API key entry
@@ -188,7 +189,7 @@ function ChallengeResultModal({
         })
         .eq('id', account?.id)
       if (error) throw error
-      if (onStartNew) onStartNew('10k', 'bybit')
+      if (onStartNew) onStartNew(selectedTier, 'bybit')
     } catch (err) {
       setApiError(err.message || 'Failed to save API credentials')
     } finally {
@@ -292,6 +293,35 @@ function ChallengeResultModal({
                 </div>
               )}
 
+
+              {startStep === 'selectTier' && (
+                <div className="cr-mode-picker">
+                  <p className="cr-mode-title">Select Challenge Size</p>
+                  {[
+                    { key: '5k',   label: '$5,000',    sub: 'Target: $500 · Drawdown: $400' },
+                    { key: '10k',  label: '$10,000',   sub: 'Target: $1,000 · Drawdown: $800' },
+                    { key: '25k',  label: '$25,000',   sub: 'Target: $2,500 · Drawdown: $2,000' },
+                    { key: '50k',  label: '$50,000',   sub: 'Target: $5,000 · Drawdown: $4,000' },
+                    { key: '100k', label: '$100,000',  sub: 'Target: $10,000 · Drawdown: $8,000' },
+                  ].map(tier => (
+                    <button
+                      key={tier.key}
+                      className={`cr-mode-btn ${selectedTier === tier.key ? 'cr-mode-btn-selected' : ''}`}
+                      onClick={() => { setSelectedTier(tier.key); setStartStep('selectMode') }}
+                    >
+                      <span className="cr-mode-icon">💰</span>
+                      <div className="cr-mode-info">
+                        <span className="cr-mode-name">{tier.label} Challenge</span>
+                        <span className="cr-mode-desc">{tier.sub}</span>
+                      </div>
+                    </button>
+                  ))}
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                    ← Back
+                  </button>
+                </div>
+              )}
+
               {startStep === 'selectMode' && (
                 <div className="cr-mode-picker">
                   <p className="cr-mode-title">How would you like to trade?</p>
@@ -309,7 +339,7 @@ function ChallengeResultModal({
                       <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
                     </div>
                   </button>
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('selectTier')}>
                     ← Back
                   </button>
                 </div>
@@ -429,7 +459,34 @@ function ChallengeResultModal({
                 </div>
               )}
 
-              {startStep === 'selectMode' && (
+
+              {startStep === 'selectTier' && (
+                <div className="cr-mode-picker">
+                  <p className="cr-mode-title">Select Challenge Size</p>
+                  {[
+                    { key: '5k',   label: '$5,000',    sub: 'Target: $500 · Drawdown: $400' },
+                    { key: '10k',  label: '$10,000',   sub: 'Target: $1,000 · Drawdown: $800' },
+                    { key: '25k',  label: '$25,000',   sub: 'Target: $2,500 · Drawdown: $2,000' },
+                    { key: '50k',  label: '$50,000',   sub: 'Target: $5,000 · Drawdown: $4,000' },
+                    { key: '100k', label: '$100,000',  sub: 'Target: $10,000 · Drawdown: $8,000' },
+                  ].map(tier => (
+                    <button
+                      key={tier.key}
+                      className={`cr-mode-btn ${selectedTier === tier.key ? 'cr-mode-btn-selected' : ''}`}
+                      onClick={() => { setSelectedTier(tier.key); setStartStep('selectMode') }}
+                    >
+                      <span className="cr-mode-icon">💰</span>
+                      <div className="cr-mode-info">
+                        <span className="cr-mode-name">{tier.label} Challenge</span>
+                        <span className="cr-mode-desc">{tier.sub}</span>
+                      </div>
+                    </button>
+                  ))}
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                    ← Back
+                  </button>
+                </div>
+              )}              {startStep === 'selectMode' && (
                 <div className="cr-mode-picker">
                   <p className="cr-mode-title">How would you like to trade?</p>
                   <button className="cr-mode-btn" onClick={handleSelectIJGF}>
@@ -446,7 +503,7 @@ function ChallengeResultModal({
                       <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
                     </div>
                   </button>
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
+                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('selectTier')}>
                     ← Back
                   </button>
                 </div>
@@ -717,6 +774,10 @@ function ChallengeResultModal({
           background: rgba(124,58,237,0.15);
           border-color: rgba(124,58,237,0.45);
           transform: translateY(-1px);
+        }
+        .cr-mode-btn-selected {
+          background: rgba(124,58,237,0.2);
+          border-color: rgba(124,58,237,0.6);
         }
         .cr-mode-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
         .cr-mode-info { display: flex; flex-direction: column; gap: 2px; }

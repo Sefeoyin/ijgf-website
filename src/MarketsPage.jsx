@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDemoTrading } from './useDemoTrading'
 import { generateSimulatedOrderBook } from './useBinanceWebSocket'
-import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL } from './tradingService'
+import { MAX_LEVERAGE, reconcileDemoAccount, MIN_TRADING_DAYS, updatePositionTPSL, getAccountState } from './tradingService'
 import './MarketsPage.css'
 
 // Fallback used ONLY when ALL network sources fail (proxy + Binance direct).
@@ -449,12 +449,27 @@ function MarketsPage({ chartExpanded = false, setChartExpanded = () => {}, userI
   // (onStartNew), both of which call setChallengeResultData(null) in Dashboard.
   useEffect(() => {
     if ((challengeResult === 'passed' || challengeResult === 'failed') && onChallengeResult) {
-      onChallengeResult(
-        challengeResult,
-        account,
-        tradingDays,
-        submitStartNewChallenge
-      )
+      // Fetch fresh state from DB before opening the modal.
+      // The in-memory account + tradingDays are stale at this moment:
+      // checkChallengeRules just force-closed positions and updated balances
+      // server-side, but refreshState() hasn't run yet. Reading stale state
+      // causes the modal to show "0 Days Traded / — Net Loss / 0 Total Trades".
+      getAccountState(userId).then(freshState => {
+        onChallengeResult(
+          challengeResult,
+          freshState.account ?? account,
+          freshState.tradingDays ?? tradingDays,
+          submitStartNewChallenge
+        )
+      }).catch(() => {
+        // Fallback to in-memory values if the fetch fails
+        onChallengeResult(
+          challengeResult,
+          account,
+          tradingDays,
+          submitStartNewChallenge
+        )
+      })
       // dismissChallengeResult() intentionally removed — see comment above.
     }
   }, [challengeResult]) // eslint-disable-line

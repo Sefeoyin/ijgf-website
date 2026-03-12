@@ -201,10 +201,18 @@ function Dashboard() {
 
     const poll = async () => {
       try {
+        // BUGFIX: must filter status='active' here.
+        // Without this, the poll can read the archived 'failed' row that
+        // resetDemoAccount writes during a challenge reset, see prev='active'
+        // → curr='failed', and fire the Challenge Ended modal when the user
+        // just clicked "Try Again". The active guard ensures we only ever
+        // detect real in-challenge failures, not reset artifacts.
         const { data: account } = await supabase
           .from('demo_accounts')
           .select('*')
           .eq('user_id', userId)
+          .eq('status', 'active')
+          .not('challenge_type', 'like', '%_archived_%')
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle()
