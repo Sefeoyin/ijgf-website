@@ -724,7 +724,17 @@ export async function checkPositionTPSL(userId, priceMap) {
 
     if (closeReason) {
       try {
-        const result = await closePosition({ userId, positionId: pos.id, currentPrice: cp, reason: closeReason })
+        // Close at the exact trigger price, not the live market price.
+        // Market price at check time can differ from the TP/SL level the user set
+        // (e.g. price touched TP then fell back before the next 3s tick ran).
+        const fillPrice = closeReason === 'tp'
+          ? parseFloat(pos.take_profit)
+          : closeReason === 'sl'
+          ? parseFloat(pos.stop_loss)
+          : closeReason === 'liquidation'
+          ? parseFloat(pos.liquidation_price)
+          : cp
+        const result = await closePosition({ userId, positionId: pos.id, currentPrice: fillPrice, reason: closeReason })
         closed.push({ ...pos, closeReason, ...result })
       } catch (err) {
         console.error('[Trading] TP/SL close error:', pos.id, err)

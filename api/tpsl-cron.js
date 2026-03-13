@@ -477,7 +477,16 @@ export default async function handler(req, res) {
       if (!reason) continue
 
       try {
-        const result = await closePosition(db, position, currentPrice, reason)
+        // Close at the exact trigger price, not the snapshot market price.
+        // The cron runs every 60s so currentPrice can differ from the TP/SL level.
+        const fillPrice = reason === 'tp'
+          ? parseFloat(position.take_profit)
+          : reason === 'sl'
+          ? parseFloat(position.stop_loss)
+          : reason === 'liquidation'
+          ? parseFloat(position.liquidation_price)
+          : currentPrice
+        const result = await closePosition(db, position, fillPrice, reason)
         if (result) {
           closed.push({
             symbol:  position.symbol,
