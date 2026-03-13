@@ -157,31 +157,29 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       if (Object.keys(pm).length === 0) return
 
       try {
-        // checkPositionTPSL now returns { closed, challengeResult } — NOT a bare array.
-        // challengeResult is non-null when safeCheckRules detected a drawdown/daily-loss
-        // breach and force-closed all positions. In that case closed=[] but we MUST
-        // still call refreshState() so account.status updates from 'active' to 'failed',
-        // prevStatusRef detects the transition, and the challenge result modal fires.
-        const { closed: closedPositions, challengeResult } = await checkPositionTPSL(userIdRef.current, pm)
+        const prevPositionCount = positions.length
+        const closedPositions = await checkPositionTPSL(userIdRef.current, pm)
 
-        for (const closed of closedPositions) {
-          addNotification(
-            closed.closeReason === 'tp'
-              ? `✅ ${closed.symbol} TP hit! PNL: $${closed.pnl?.toFixed(2)}`
-              : closed.closeReason === 'sl'
-              ? `🛑 ${closed.symbol} SL hit. PNL: $${closed.pnl?.toFixed(2)}`
-              : closed.closeReason === 'liquidation'
-              ? `💀 ${closed.symbol} liquidated!`
-              : `Position ${closed.symbol} closed`,
-            closed.pnl > 0 ? 'success' : 'warning'
-          )
-        }
-
-        // Refresh if ANY positions closed OR if safeCheckRules ended the challenge.
-        // Without the challengeResult check, a drawdown-triggered force-close
-        // returns closed=[] and refreshState() is never called — account stays
-        // 'active' in React state, modal never fires, PNL/trades never update.
-        if (closedPositions.length > 0 || challengeResult) {
+        if (closedPositions.length > 0) {
+          // Normal TP/SL/liquidation — notify and refresh
+          for (const closed of closedPositions) {
+            addNotification(
+              closed.closeReason === 'tp'
+                ? `✅ ${closed.symbol} TP hit! PNL: $${closed.pnl?.toFixed(2)}`
+                : closed.closeReason === 'sl'
+                ? `🛑 ${closed.symbol} SL hit. PNL: $${closed.pnl?.toFixed(2)}`
+                : closed.closeReason === 'liquidation'
+                ? `💀 ${closed.symbol} liquidated!`
+                : `Position ${closed.symbol} closed`,
+              closed.pnl > 0 ? 'success' : 'warning'
+            )
+          }
+          await refreshState()
+        } else if (prevPositionCount > 0) {
+          // checkPositionTPSL returned [] but we had open positions — drawdown
+          // breach force-closed everything inside safeCheckRules at entry_price.
+          // Must still call refreshState() so account.status reads 'failed'
+          // and the prevStatusRef detection effect fires the modal.
           await refreshState()
         }
       } catch (err) {

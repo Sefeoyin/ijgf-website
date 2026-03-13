@@ -35,9 +35,7 @@ function Dashboard() {
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
-  // Holds DashboardOverview's refreshAccountState — called immediately when
-  // an auto-close fails the challenge so stats update without waiting for the poll
-  const dashboardRefreshRef = useRef(null)
+  const dashboardRefreshRef  = useRef(null)  // holds DashboardOverview's refreshAccountState
   const [tradingMode, setTradingMode] = useState(null) // null=loading, 'ijgf', 'bybit', 'none'
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
@@ -47,7 +45,7 @@ function Dashboard() {
   useTPSLMonitor(
     userId,
 
-    // onTriggered — fires when TP/SL/liquidation closes a position normally
+    // onTriggered — TP/SL/liquidation hit, positions returned in closed[]
     (closedPositions) => {
       for (const pos of closedPositions) {
         const label = pos.closeReason === 'tp'
@@ -59,20 +57,17 @@ function Dashboard() {
       }
     },
 
-    // onChallengeFailed — fires in TWO cases:
-    //   1. A TP/SL/liquidation close returned challengeFailed/challengePassed
-    //   2. drawdown breach force-closed all positions (checkPositionTPSL returned [])
-    //      and the account is now status='failed' in the DB
-    // In both cases we must: refresh dashboard stats AND open the result modal.
+    // onChallengeFailed — fires when any auto-close ends the challenge,
+    // OR when a drawdown breach force-closed everything (closed=[]).
+    // Must: (1) refresh dashboard stats, (2) open the result modal.
     async (result) => {
-      // Step 1: force DashboardOverview to re-fetch immediately so Total PNL,
-      // trade history, win rate, and equity chart all show final values
+      // 1. Force DashboardOverview to re-fetch immediately so Total PNL,
+      //    Trade History, Win Rate, and Equity Chart all reflect final state.
       dashboardRefreshRef.current?.()
 
-      // Step 2: fetch fresh account + tradingDays for the modal
+      // 2. Fetch fresh account + tradingDays for the modal
       try {
-        const { supabase: sb } = await import('./supabase')
-        const { data: acct } = await sb
+        const { data: acct } = await supabase
           .from('demo_accounts')
           .select('*')
           .eq('user_id', userId)
@@ -83,7 +78,7 @@ function Dashboard() {
 
         if (!acct) return
 
-        const { data: trades } = await sb
+        const { data: trades } = await supabase
           .from('demo_trades')
           .select('executed_at, is_close')
           .eq('demo_account_id', acct.id)
@@ -95,20 +90,21 @@ function Dashboard() {
             .filter(Boolean)
         ).size
 
-        // Guard: don't re-open modal if already showing or already recorded
-        if (challengeResultData) return
-
         prevAccountStatusRef.current = result
-        setChallengeResultData({
-          result,
-          account: acct,
-          tradingDays,
-          onStartNew: async (type, mode = 'ijgf') => {
-            await resetDemoAccount(userId, type)
-            setTradingMode(mode)
-            if (mode === 'ijgf') setActiveTab('market')
-            await checkUserAndLoadProfile()
-          },
+        setChallengeResultData(prev => {
+          // Don't re-open if modal is already showing
+          if (prev) return prev
+          return {
+            result,
+            account: acct,
+            tradingDays,
+            onStartNew: async (type, mode = 'ijgf') => {
+              await resetDemoAccount(userId, type)
+              setTradingMode(mode)
+              if (mode === 'ijgf') setActiveTab('market')
+              await checkUserAndLoadProfile()
+            },
+          }
         })
       } catch (err) {
         console.error('[Dashboard] onChallengeFailed error:', err)
@@ -262,10 +258,14 @@ function Dashboard() {
 
     const poll = async () => {
       try {
+        // Only read the active account — avoids false modal when resetDemoAccount
+        // briefly writes a 'failed' archived row with the newest updated_at
         const { data: account } = await supabase
           .from('demo_accounts')
           .select('*')
           .eq('user_id', userId)
+          .eq('status', 'active')
+          .not('challenge_type', 'like', '%_archived_%')
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle()

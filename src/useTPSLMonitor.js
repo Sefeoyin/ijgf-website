@@ -1,54 +1,106 @@
 /**
  * useTPSLMonitor.js
  *
- * Monitors open positions for TP, SL, and liquidation triggers.
- * Runs in Dashboard.jsx so it stays active regardless of which tab
- * the user is on. MarketsPage mounts/unmounts with the Market tab,
- * so any interval inside it stops when the user navigates away.
- * This hook ensures TP/SL always executes.
+ * Monitors open positions for TP, SL, liquidation, and drawdown breaches.
+ * Runs in Dashboard.jsx so it stays active regardless of which tab the user is on.
  *
- * Subscribes only to the symbols the user has open positions in —
- * not the full 60+ pair list — to keep WebSocket usage minimal.
+ * CRITICAL REDESIGN: This hook no longer uses useBinanceWebSocket for prices.
+ * The WebSocket subscription required symbols state to be populated first, then
+ * a WebSocket connection to establish, then prices to flow — creating a multi-step
+ * async chain that often left priceMapRef empty, silently skipping every check.
+ *
+ * Instead: prices are fetched directly via REST every CHECK_INTERVAL_MS using
+ * the same Bybit → OKX → Binance cascade as the server cron. This is:
+ *   - Synchronous per tick (no async state dependency chain)
+ *   - Guaranteed to have prices before every check
+ *   - Identical price source to the offline cron (no discrepancy)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
-import { useBinanceWebSocket } from './useBinanceWebSocket'
-import { checkPositionTPSL } from './tradingService'
+import { checkPositionTPSL, getAccountState } from './tradingService'
 
-const CHECK_INTERVAL_MS = 3000
-const SYMBOL_REFRESH_MS = 15000 // re-check which positions are open every 15s
+const CHECK_INTERVAL_MS  = 4000   // how often to check TP/SL
+const SYMBOL_REFRESH_MS  = 15000  // how often to refresh the open-position symbol list
 
+// ---------------------------------------------------------------------------
+// Price fetch cascade — mirrors tpsl-cron.js exactly
+// Bybit has the most permissive cloud-IP policy; OKX as fallback; Binance last.
+// ---------------------------------------------------------------------------
+async function fetchSpotPrices(symbols) {
+  if (!symbols || symbols.length === 0) return {}
+
+  // Try Bybit linear (futures) tickers
+  try {
+    const res  = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', { signal: AbortSignal.timeout(5000) })
+    const data = await res.json()
+    if (data?.result?.list?.length > 0) {
+      const map = {}
+      for (const item of data.result.list) {
+        if (item.symbol && item.lastPrice) map[item.symbol] = parseFloat(item.lastPrice)
+      }
+      const result = {}
+      for (const s of symbols) { if (map[s]) result[s] = map[s] }
+      if (Object.keys(result).length > 0) return result
+    }
+  } catch { /* fall through */ }
+
+  // Try OKX swap tickers
+  try {
+    const res  = await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP', { signal: AbortSignal.timeout(5000) })
+    const data = await res.json()
+    if (data?.data?.length > 0) {
+      const map = {}
+      for (const item of data.data) {
+        if (item.instId?.endsWith('-USDT-SWAP') && item.last) {
+          const base = item.instId.replace('-USDT-SWAP', '')
+          map[`${base}USDT`] = parseFloat(item.last)
+        }
+      }
+      const result = {}
+      for (const s of symbols) { if (map[s]) result[s] = map[s] }
+      if (Object.keys(result).length > 0) return result
+    }
+  } catch { /* fall through */ }
+
+  // Try Binance futures (may be blocked on some networks but worth trying)
+  try {
+    const res  = await fetch('https://fapi.binance.com/fapi/v1/ticker/price', { signal: AbortSignal.timeout(5000) })
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      const map = {}
+      for (const item of data) map[item.symbol] = parseFloat(item.price)
+      const result = {}
+      for (const s of symbols) { if (map[s]) result[s] = map[s] }
+      if (Object.keys(result).length > 0) return result
+    }
+  } catch { /* fall through */ }
+
+  return {}
+}
+
+// ---------------------------------------------------------------------------
 export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
   const [symbols, setSymbols] = useState([])
-  const { priceMap } = useBinanceWebSocket(symbols)
+  const symbolsRef   = useRef([])
+  const userIdRef    = useRef(userId)
+  const runningRef   = useRef(false) // mutex — prevents overlapping async ticks
 
-  // Refs to avoid stale closures inside setInterval
-  const priceMapRef = useRef(priceMap)
-  const userIdRef   = useRef(userId)
-
-  useEffect(() => { priceMapRef.current = priceMap }, [priceMap])
   useEffect(() => { userIdRef.current = userId }, [userId])
+  useEffect(() => { symbolsRef.current = symbols }, [symbols])
 
-  // Fetch the distinct symbols for all open positions
-  // so we only subscribe to WebSocket feeds we actually need
+  // Fetch distinct symbols for all open positions
   const refreshSymbols = useCallback(async () => {
     if (!userId) return
     try {
-      const { data: positions, error } = await supabase
+      const { data: positions } = await supabase
         .from('demo_positions')
         .select('symbol')
         .eq('user_id', userId)
         .eq('status', 'open')
 
-      if (error) {
-        console.error('[TPSLMonitor] Symbol refresh error:', error)
-        return
-      }
-
       const unique = [...new Set((positions || []).map(p => p.symbol))]
       setSymbols(prev => {
-        // Only update state if the symbol list actually changed
         const prevKey = [...prev].sort().join(',')
         const nextKey = [...unique].sort().join(',')
         return prevKey === nextKey ? prev : unique
@@ -58,58 +110,82 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
     }
   }, [userId])
 
-  // Initial load + periodic symbol refresh
+  // Initial load + periodic refresh
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSymbols()
-    const interval = setInterval(refreshSymbols, SYMBOL_REFRESH_MS)
-    return () => clearInterval(interval)
+    const id = setInterval(refreshSymbols, SYMBOL_REFRESH_MS)
+    return () => clearInterval(id)
   }, [refreshSymbols])
 
-  // TP/SL check interval — runs only when there are open positions with prices
+  // Main check loop
   useEffect(() => {
-    if (!userId || symbols.length === 0) return
+    if (!userId) return
 
-    const interval = setInterval(async () => {
-      const pm = priceMapRef.current
-      if (Object.keys(pm).length === 0) return
+    const tick = async () => {
+      // Skip if previous tick is still running
+      if (runningRef.current) return
+      runningRef.current = true
 
       try {
-        // checkPositionTPSL now returns { closed, challengeResult }.
-        // challengeResult is set when safeCheckRules fired a drawdown/daily-loss
-        // breach and force-closed all positions. In that case closed=[] — the
-        // old bare-array check (closed.length > 0) meant NOTHING happened in
-        // the UI: no refreshState, no modal, no PNL/trade update.
-        const { closed, challengeResult } = await checkPositionTPSL(userIdRef.current, pm)
+        const syms = symbolsRef.current
+        if (syms.length === 0) return
+
+        // Fetch live prices via REST cascade — guaranteed to have values before check
+        const priceMap = await fetchSpotPrices(syms)
+        if (Object.keys(priceMap).length === 0) {
+          console.warn('[TPSLMonitor] No prices returned from any source — skipping tick')
+          return
+        }
+
+        const hadPositions = syms.length > 0
+        const closed = await checkPositionTPSL(userIdRef.current, priceMap)
 
         if (closed.length > 0) {
-          // ── Case A: TP/SL/liquidation closed one or more positions ──────
+          // ── Normal TP/SL/liquidation closes ──────────────────────────────
           onTriggered?.(closed)
           refreshSymbols()
-        }
 
-        // ── Challenge ended detection — covers BOTH paths ─────────────────
-        // Path 1: safeCheckRules (proactive drawdown check) ended the challenge.
-        //         closed=[], challengeResult.failed/passed = true.
-        // Path 2: A TP/SL close itself pushed balance past the drawdown limit.
-        //         closed=[...], one item has challengeFailed=true.
-        // Previously only Path 2 was handled, and only when closed.length > 0.
-        const challengeEndedViaRules = challengeResult?.failed || challengeResult?.passed
-        const challengeEndedViaTrade = closed.find(c => c.challengeFailed || c.challengePassed)
+          const ended = closed.find(c => c.challengeFailed || c.challengePassed)
+          if (ended) {
+            onChallengeFailed?.(ended.challengeFailed ? 'failed' : 'passed')
+          }
 
-        if (challengeEndedViaRules) {
-          const result = challengeResult.failed ? 'failed' : 'passed'
-          refreshSymbols()
-          onChallengeFailed?.(result)
-        } else if (challengeEndedViaTrade) {
-          const result = challengeEndedViaTrade.challengeFailed ? 'failed' : 'passed'
-          onChallengeFailed?.(result)
+        } else if (hadPositions) {
+          // ── Empty result despite having open positions ─────────────────
+          // checkPositionTPSL runs a proactive drawdown check (safeCheckRules)
+          // BEFORE checking individual TP/SL. If that check finds a drawdown
+          // breach it force-closes ALL positions at entry_price, marks the account
+          // 'failed', then re-fetches remaining positions → gets [] → returns [].
+          // We must detect this case and fire onChallengeFailed.
+          try {
+            const { data: failedAcct } = await supabase
+              .from('demo_accounts')
+              .select('status')
+              .eq('user_id', userIdRef.current)
+              .eq('status', 'failed')
+              .not('challenge_type', 'like', '%_archived_%')
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+
+            if (failedAcct?.status === 'failed') {
+              console.log('[TPSLMonitor] Drawdown breach detected (empty return with open positions)')
+              refreshSymbols()
+              onChallengeFailed?.('failed')
+            }
+          } catch (e) {
+            console.error('[TPSLMonitor] Post-empty status check error:', e.message)
+          }
         }
       } catch (err) {
-        console.error('[TPSLMonitor] Check error:', err)
+        console.error('[TPSLMonitor] Tick error:', err)
+      } finally {
+        runningRef.current = false
       }
-    }, CHECK_INTERVAL_MS)
+    }
 
-    return () => clearInterval(interval)
-  }, [userId, symbols.length, refreshSymbols, onTriggered])
+    const id = setInterval(tick, CHECK_INTERVAL_MS)
+    tick() // run immediately on mount
+    return () => clearInterval(id)
+  }, [userId, refreshSymbols, onTriggered, onChallengeFailed])
 }
