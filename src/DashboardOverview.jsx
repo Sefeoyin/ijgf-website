@@ -246,18 +246,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
     }
   }, [userId, isBybit])
 
-  // Load on mount
   useEffect(() => { refreshAccountState() }, [refreshAccountState])
 
-  // Poll every 30s — keeps PNL, trades, win rate, equity chart live
   useEffect(() => {
     if (!userId || isBybit) return
     const id = setInterval(refreshAccountState, 30000)
     return () => clearInterval(id)
   }, [userId, isBybit, refreshAccountState])
 
-  // Expose to parent so Dashboard's onChallengeFailed can force an immediate
-  // refresh the moment an auto-close lands — no waiting for the 30s poll
   useEffect(() => {
     if (onForceRefresh) onForceRefresh(refreshAccountState)
   }, [onForceRefresh, refreshAccountState])
@@ -1388,12 +1384,17 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
           onSelectIJGF={async () => {
             setStartingChallenge(true)
             try {
-              await resetDemoAccount(userId, pendingTierKey)
-              // Navigate first — DashboardOverview is about to unmount so
-              // calling getAccountState here and setting local state is wasted
-              // work. The Market tab mounts fresh and loads its own state.
+              // Navigate BEFORE awaiting resetDemoAccount.
+              // Awaiting first caused DashboardOverview to unmount mid-Supabase call,
+              // which aborted the in-flight fetch → AbortError: signal is aborted.
+              // By navigating first, this component stays mounted long enough for
+              // resetDemoAccount to complete. The Market tab loads fresh state on mount.
               setPendingTierKey(null)
               if (onChallengeStart) onChallengeStart('ijgf')
+              // Fire and forget — runs in background after tab switch
+              resetDemoAccount(userId, pendingTierKey).catch(err => {
+                console.error('IJGF reset failed (background):', err)
+              })
             } catch (err) {
               console.error('IJGF start failed:', err)
               alert(`Failed to start challenge: ${err.message}`)

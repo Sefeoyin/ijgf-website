@@ -801,7 +801,6 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 
   const totalDrawdown = account.initial_balance - trueEquity
 
-  // Diagnostic log — visible in browser console and Vercel function logs
   console.log(
     '[Rules] Account:', accountId,
     '| initial_balance:', account.initial_balance,
@@ -811,7 +810,6 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
     '| trueEquity:', trueEquity.toFixed(2),
     '| totalDrawdown:', totalDrawdown.toFixed(2),
     '| maxDrawdown:', account.max_total_drawdown,
-    '| status:', account.status,
   )
 
   // Max drawdown
@@ -1032,10 +1030,11 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     // This is the ONLY correct fix: the account row ID is reused in-place by
     // getOrCreateDemoAccount, so marking status='failed' alone is not enough.
     const accountIds = accountsToReset.map(a => a.id)
-    // SENTINEL UUID — satisfies NOT NULL + FK constraint on demo_account_id.
-    // Trades/positions are detached from the active account but preserved in DB.
-    // The sentinel row must exist: run the SQL in the comment at the top of
-    // resetDemoAccount to create it once in your Supabase SQL editor.
+    // SENTINEL UUID satisfies the NOT NULL + FK constraint on demo_account_id.
+    // Setting null here causes an AbortError crash. Sentinel row must exist — run once:
+    // INSERT INTO demo_accounts (id,user_id,challenge_type,status,initial_balance,current_balance)
+    // VALUES ('00000000-0000-0000-0000-000000000000','36febe74-cc85-45ce-a5ab-43d4f2188e56','5k','failed',0,0)
+    // ON CONFLICT (id) DO NOTHING;
     const SENTINEL_ID = '00000000-0000-0000-0000-000000000000'
     await supabase
       .from('demo_trades')
