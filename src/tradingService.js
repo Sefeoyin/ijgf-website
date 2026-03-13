@@ -1012,27 +1012,27 @@ export async function resetDemoAccount(userId, challengeType = '10k') {
     .not('challenge_type', 'like', '%_archived_%')
 
   if (accountsToReset?.length) {
-    // Step 3: Detach old trades and closed positions from all accounts being reset.
-    // We cannot set demo_account_id = NULL because the column has a NOT NULL + FK
-    // constraint. Instead we point them at a permanent sentinel row:
-    //   id = '00000000-0000-0000-0000-000000000000'
-    // That row must exist in demo_accounts (see DB setup note below).
-    // This preserves all trade rows for auditing but removes them from every
-    // active dashboard query (which filters by demo_account_id = account.id).
-    // Critical: getOrCreateDemoAccount reuses the row IN-PLACE (same id), so
-    // any trade still pointing at that id instantly appears in the new challenge.
-    const SENTINEL = '00000000-0000-0000-0000-000000000000'
+    // Step 3: For every account that will be recycled or archived, detach its
+    // trades by setting demo_account_id = NULL. This preserves the trade rows
+    // in the DB (for analytics / auditing) but removes them from the active
+    // dashboard queries which all filter by demo_account_id = account.id.
+    // This is the ONLY correct fix: the account row ID is reused in-place by
+    // getOrCreateDemoAccount, so marking status='failed' alone is not enough.
     const accountIds = accountsToReset.map(a => a.id)
-
+    // SENTINEL UUID — satisfies NOT NULL + FK constraint on demo_account_id.
+    // Trades/positions are detached from the active account but preserved in DB.
+    // The sentinel row must exist: run the SQL in the comment at the top of
+    // resetDemoAccount to create it once in your Supabase SQL editor.
+    const SENTINEL_ID = '00000000-0000-0000-0000-000000000000'
     await supabase
       .from('demo_trades')
-      .update({ demo_account_id: SENTINEL })
+      .update({ demo_account_id: SENTINEL_ID })
       .in('demo_account_id', accountIds)
 
-    // Also detach closed positions so trade history never shows stale data
+    // Also detach positions so the history widget never shows stale open positions
     await supabase
       .from('demo_positions')
-      .update({ demo_account_id: SENTINEL })
+      .update({ demo_account_id: SENTINEL_ID })
       .in('demo_account_id', accountIds)
       .eq('status', 'closed') // only already-closed ones; open ones were handled in Step 1
 

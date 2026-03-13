@@ -27,12 +27,19 @@ const SYMBOL_REFRESH_MS  = 15000  // how often to refresh the open-position symb
 // Price fetch cascade — mirrors tpsl-cron.js exactly
 // Bybit has the most permissive cloud-IP policy; OKX as fallback; Binance last.
 // ---------------------------------------------------------------------------
+// fetchWithTimeout — works on all browsers (AbortSignal.timeout needs Chrome 103+)
+function fetchWithTimeout(url, ms = 5000) {
+  const ctrl = new AbortController()
+  const id = setTimeout(() => ctrl.abort(), ms)
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id))
+}
+
 async function fetchSpotPrices(symbols) {
   if (!symbols || symbols.length === 0) return {}
 
   // Try Bybit linear (futures) tickers
   try {
-    const res  = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', { signal: AbortSignal.timeout(5000) })
+    const res  = await fetchWithTimeout('https://api.bybit.com/v5/market/tickers?category=linear')
     const data = await res.json()
     if (data?.result?.list?.length > 0) {
       const map = {}
@@ -47,7 +54,7 @@ async function fetchSpotPrices(symbols) {
 
   // Try OKX swap tickers
   try {
-    const res  = await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP', { signal: AbortSignal.timeout(5000) })
+    const res  = await fetchWithTimeout('https://www.okx.com/api/v5/market/tickers?instType=SWAP')
     const data = await res.json()
     if (data?.data?.length > 0) {
       const map = {}
@@ -65,7 +72,7 @@ async function fetchSpotPrices(symbols) {
 
   // Try Binance futures (may be blocked on some networks but worth trying)
   try {
-    const res  = await fetch('https://fapi.binance.com/fapi/v1/ticker/price', { signal: AbortSignal.timeout(5000) })
+    const res  = await fetchWithTimeout('https://fapi.binance.com/fapi/v1/ticker/price')
     const data = await res.json()
     if (Array.isArray(data)) {
       const map = {}
