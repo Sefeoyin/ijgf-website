@@ -89,17 +89,35 @@ async function fetchSpotPrices(symbols) {
 // ---------------------------------------------------------------------------
 export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
   const [symbols, setSymbols] = useState([])
-  const symbolsRef   = useRef([])
-  const userIdRef    = useRef(userId)
-  const runningRef   = useRef(false) // mutex — prevents overlapping async ticks
+  const symbolsRef      = useRef([])
+  const userIdRef       = useRef(userId)
+  const runningRef      = useRef(false)   // mutex — prevents overlapping async ticks
+  // Track the account ID we loaded positions from — so we only fire onChallengeFailed
+  // when THAT specific account fails, not when resetDemoAccount marks the old account
+  // failed while creating a new one.
+  const monitoredAcctId = useRef(null)
 
   useEffect(() => { userIdRef.current = userId }, [userId])
   useEffect(() => { symbolsRef.current = symbols }, [symbols])
 
-  // Fetch distinct symbols for all open positions
+  // Fetch distinct symbols for all open positions on the ACTIVE account
   const refreshSymbols = useCallback(async () => {
     if (!userId) return
     try {
+      // Get the active account first so we know which account to monitor
+      const { data: acct } = await supabase
+        .from('demo_accounts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .not('challenge_type', 'like', '%_archived_%')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      // Always update which account we're watching — new challenge = new ID
+      if (acct?.id) monitoredAcctId.current = acct.id
+
       const { data: positions } = await supabase
         .from('demo_positions')
         .select('symbol')
@@ -167,7 +185,7 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
           try {
             const { data: failedAcct } = await supabase
               .from('demo_accounts')
-              .select('status')
+              .select('id, status')
               .eq('user_id', userIdRef.current)
               .eq('status', 'failed')
               .not('challenge_type', 'like', '%_archived_%')
@@ -175,8 +193,12 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
               .limit(1)
               .maybeSingle()
 
-            if (failedAcct?.status === 'failed') {
-              console.log('[TPSLMonitor] Drawdown breach detected (empty return with open positions)')
+            // Only fire if the failed account is the exact one we were monitoring.
+            // This prevents false positives when resetDemoAccount marks the OLD
+            // account 'failed' while creating the new active one.
+            if (failedAcct?.id && failedAcct.id === monitoredAcctId.current) {
+              console.log('[TPSLMonitor] Drawdown breach confirmed on monitored account:', failedAcct.id)
+              monitoredAcctId.current = null // disarm — don't fire again
               refreshSymbols()
               onChallengeFailed?.('failed')
             }
