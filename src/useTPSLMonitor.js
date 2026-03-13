@@ -18,7 +18,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
-import { checkPositionTPSL, getAccountState } from './tradingService'
+import { checkPositionTPSL } from './tradingService'
 
 const CHECK_INTERVAL_MS  = 4000   // how often to check TP/SL
 const SYMBOL_REFRESH_MS  = 15000  // how often to refresh the open-position symbol list
