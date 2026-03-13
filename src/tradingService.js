@@ -801,6 +801,19 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 
   const totalDrawdown = account.initial_balance - trueEquity
 
+  // Diagnostic log — visible in browser console and Vercel function logs
+  console.log(
+    '[Rules] Account:', accountId,
+    '| initial_balance:', account.initial_balance,
+    '| current_balance:', account.current_balance,
+    '| lockedMargin:', lockedMargin.toFixed(2),
+    '| unrealizedPNL:', unrealizedPNL.toFixed(2),
+    '| trueEquity:', trueEquity.toFixed(2),
+    '| totalDrawdown:', totalDrawdown.toFixed(2),
+    '| maxDrawdown:', account.max_total_drawdown,
+    '| status:', account.status,
+  )
+
   // Max drawdown
   if (totalDrawdown >= account.max_total_drawdown) {
     try {

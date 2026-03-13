@@ -157,7 +157,6 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
       if (Object.keys(pm).length === 0) return
 
       try {
-        const prevPositionCount = positions.length
         const closedPositions = await checkPositionTPSL(userIdRef.current, pm)
 
         if (closedPositions.length > 0) {
@@ -175,20 +174,16 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
             )
           }
           await refreshState()
-        } else if (prevPositionCount > 0) {
-          // checkPositionTPSL returned [] but we had open positions — drawdown
-          // breach force-closed everything inside safeCheckRules at entry_price.
-          // Must still call refreshState() so account.status reads 'failed'
-          // and the prevStatusRef detection effect fires the modal.
-          await refreshState()
         }
+        // Note: empty return is handled by useTPSLMonitor in Dashboard.jsx
+        // which runs independently and detects drawdown force-closes via DB check.
       } catch (err) {
         console.error('TP/SL check error:', err)
       }
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [userId, hasPrices, positions.length, refreshState, addNotification])
+  }, [userId, hasPrices, refreshState, addNotification]) // positions.length intentionally excluded — interval must not restart on position changes
 
   // --------------- Check pending orders ---------------
   // FIX: use hasPrices instead of isConnected
