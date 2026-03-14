@@ -518,7 +518,24 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
 
   // 5. Compute and write new balance — margin is returned to the free balance
   const marginToReturn = pos.margin || 0
-  const newBalance = account.current_balance + marginToReturn + pnl
+  const rawNewBalance = account.current_balance + marginToReturn + pnl
+
+  // SAFETY GUARD: if any financial component is NaN or Infinity, abort the balance
+  // write entirely. A corrupt balance causes ALL subsequent challenge evaluations to
+  // read totalDrawdown = initial_balance (e.g. 50000) which immediately exceeds
+  // max_total_drawdown and marks a winning account as FAILED.
+  if (!isFinite(rawNewBalance)) {
+    console.error(
+      '[Trading] ABORT balance update: rawNewBalance is', rawNewBalance,
+      '| current_balance:', account.current_balance,
+      '| margin:', marginToReturn,
+      '| pnl:', pnl,
+      '| positionId:', positionId
+    )
+    throw new Error(`Balance calculation produced non-finite value (${rawNewBalance}). Check position data.`)
+  }
+
+  const newBalance = rawNewBalance
 
   const { error: balanceErr } = await supabase
     .from('demo_accounts')
@@ -727,13 +744,18 @@ export async function checkPositionTPSL(userId, priceMap) {
         // Close at the exact trigger price, not the live market price.
         // Market price at check time can differ from the TP/SL level the user set
         // (e.g. price touched TP then fell back before the next 3s tick ran).
-        const fillPrice = closeReason === 'tp'
+        // SAFETY: parseFloat(null) and parseFloat(undefined) both return NaN.
+        // If liquidation_price is not populated in the DB row, this produces a NaN
+        // fillPrice which cascades to NaN current_balance, corrupting the account and
+        // causing a false FAILED on winning accounts. Always fall back to live price cp.
+        const rawFillPrice = closeReason === 'tp'
           ? parseFloat(pos.take_profit)
           : closeReason === 'sl'
           ? parseFloat(pos.stop_loss)
           : closeReason === 'liquidation'
           ? parseFloat(pos.liquidation_price)
           : cp
+        const fillPrice = isFinite(rawFillPrice) && rawFillPrice > 0 ? rawFillPrice : cp
         const result = await closePosition({ userId, positionId: pos.id, currentPrice: fillPrice, reason: closeReason })
         closed.push({ ...pos, closeReason, ...result })
       } catch (err) {
@@ -808,6 +830,13 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 
   // True equity = cash balance + margin locked in positions + unrealized PNL
   const trueEquity = account.current_balance + lockedMargin + unrealizedPNL
+
+  // SAFETY GUARD: if any component produced NaN (e.g. corrupt DB value, missing price),
+  // skip all challenge rule evaluations. Never fail a challenge on non-finite numbers.
+  if (!isFinite(trueEquity)) {
+    console.error('[Rules] trueEquity is non-finite:', trueEquity, '| Skipping challenge evaluation for account:', accountId)
+    return null
+  }
 
   const totalDrawdown = account.initial_balance - trueEquity
 
@@ -982,6 +1011,13 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 }
 
 async function updateAccountBalance(accountId, newBalance) {
+  // SAFETY GUARD: never write NaN, Infinity, or negative-infinity to current_balance.
+  // A NaN balance causes totalDrawdown = initial_balance on every subsequent rules check,
+  // which immediately exceeds max_total_drawdown and marks a WINNING account as FAILED.
+  if (!isFinite(newBalance)) {
+    console.error('[Trading] ABORT updateAccountBalance: newBalance is', newBalance, 'for account', accountId)
+    return
+  }
   const equity = Math.max(0, newBalance)
   const { error } = await supabase
     .from('demo_accounts')

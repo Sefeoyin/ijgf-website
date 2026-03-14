@@ -303,7 +303,14 @@ async function closePosition(db, position, currentPrice, reason) {
   //    new_balance = old_balance + pnl + margin
   //    (margin was subtracted from current_balance when position was opened;
   //     it is now returned to the account along with any profit/loss)
-  const newBalance     = Math.max(0, account.current_balance + pnl + margin)
+  const rawNewBalance  = account.current_balance + pnl + margin
+  // SAFETY GUARD: if any component is NaN/Infinity (e.g. from a bad price or missing
+  // column), abort the balance update entirely rather than corrupt the account row.
+  if (!isFinite(rawNewBalance)) {
+    console.error(`[tpsl-cron] ABORT balance update for ${position.id}: computed newBalance is ${rawNewBalance}. pnl=${pnl} margin=${margin} current_balance=${account.current_balance}`)
+    return { pnl, reason }
+  }
+  const newBalance     = Math.max(0, rawNewBalance)
   const initialBalance = parseFloat(account.initial_balance)
   const maxDrawdown    = parseFloat(account.max_total_drawdown)
   const profitTarget   = parseFloat(account.profit_target)
@@ -419,7 +426,7 @@ export default async function handler(req, res) {
     // 1. Fetch every open position across all accounts
     const positions = await db.select(
       'demo_positions',
-      'status=eq.open&select=id,demo_account_id,user_id,symbol,side,quantity,entry_price,take_profit,stop_loss,margin,leverage,opened_at'
+      'status=eq.open&select=id,demo_account_id,user_id,symbol,side,quantity,entry_price,take_profit,stop_loss,margin,leverage,opened_at,liquidation_price'
     )
 
     if (!positions.length) {
@@ -479,13 +486,16 @@ export default async function handler(req, res) {
       try {
         // Close at the exact trigger price, not the snapshot market price.
         // The cron runs every 60s so currentPrice can differ from the TP/SL level.
-        const fillPrice = reason === 'tp'
+        // SAFETY: always validate fillPrice is a finite number before using it.
+        // parseFloat(undefined) = NaN which would corrupt current_balance in the DB.
+        const rawFillPrice = reason === 'tp'
           ? parseFloat(position.take_profit)
           : reason === 'sl'
           ? parseFloat(position.stop_loss)
           : reason === 'liquidation'
           ? parseFloat(position.liquidation_price)
           : currentPrice
+        const fillPrice = isFinite(rawFillPrice) && rawFillPrice > 0 ? rawFillPrice : currentPrice
         const result = await closePosition(db, position, fillPrice, reason)
         if (result) {
           closed.push({
