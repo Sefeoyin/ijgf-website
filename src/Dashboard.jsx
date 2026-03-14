@@ -37,6 +37,10 @@ function Dashboard() {
   const prevAccountStatusRef = useRef(null)
   const dashboardRefreshRef  = useRef(null)  // holds DashboardOverview's refreshAccountState
   const [tradingMode, setTradingMode] = useState(null) // null=loading, 'ijgf', 'bybit', 'none'
+  // resetKey forces MarketsPage to remount (and re-initialise useDemoTrading) when a new
+  // challenge starts. Without this, React reuses the existing MarketsPage instance whose
+  // useDemoTrading hook already loaded the old account on mount and has no signal to reload.
+  const [marketResetKey, setMarketResetKey] = useState(0)
 
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
@@ -101,7 +105,10 @@ function Dashboard() {
             onStartNew: async (type, mode = 'ijgf') => {
               await resetDemoAccount(userId, type)
               setTradingMode(mode)
-              if (mode === 'ijgf') setActiveTab('market')
+              if (mode === 'ijgf') {
+                setMarketResetKey(Date.now())
+                setActiveTab('market')
+              }
               await checkUserAndLoadProfile()
             },
           }
@@ -126,7 +133,10 @@ function Dashboard() {
       onStartNew:  async (type, mode = 'ijgf') => {
         await resetDemoAccount(userId, type)
         setTradingMode(mode)
-        if (mode === 'ijgf') setActiveTab('market')
+        if (mode === 'ijgf') {
+          setMarketResetKey(Date.now())
+          setActiveTab('market')
+        }
         await checkUserAndLoadProfile()
       },
     })
@@ -285,7 +295,10 @@ function Dashboard() {
             onStartNew: async (type, mode = 'ijgf') => {
               await resetDemoAccount(userId, type)
               setTradingMode(mode)
-              if (mode === 'ijgf') setActiveTab('market')
+              if (mode === 'ijgf') {
+                setMarketResetKey(Date.now())
+                setActiveTab('market')
+              }
               await checkUserAndLoadProfile()
             },
           })
@@ -470,10 +483,23 @@ function Dashboard() {
         </header>
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
-          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode) => { setTradingMode(mode); if (mode === 'ijgf') setActiveTab('market') }} onForceRefresh={(fn) => { dashboardRefreshRef.current = fn }} />}
+          {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode, resetKey) => {
+            setTradingMode(mode)
+            // resetKey is a timestamp passed by DashboardOverview after resetDemoAccount
+            // completes. Updating marketResetKey changes the key prop on MarketsPage,
+            // which forces React to unmount the old instance and mount a fresh one.
+            // This guarantees useDemoTrading re-initialises from the DB after the new
+            // challenge account row exists — fixing the stale-state-on-tab-switch bug.
+            if (resetKey) setMarketResetKey(resetKey)
+            if (mode === 'ijgf') setActiveTab('market')
+            // Refresh DashboardOverview stats so the new account shows immediately
+            // if the user navigates back to the dashboard tab.
+            dashboardRefreshRef.current?.()
+          }} onForceRefresh={(fn) => { dashboardRefreshRef.current = fn }} />}
           {activeTab === 'market'     && (
             tradingMode === 'ijgf' ? (
               <MarketsPage
+                key={marketResetKey}
                 chartExpanded={chartExpanded}
                 setChartExpanded={setChartExpanded}
                 userId={userId}

@@ -1384,21 +1384,38 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
           onSelectIJGF={async () => {
             setStartingChallenge(true)
             try {
-              // Navigate BEFORE awaiting resetDemoAccount.
-              // Awaiting first caused DashboardOverview to unmount mid-Supabase call,
-              // which aborted the in-flight fetch → AbortError: signal is aborted.
-              // By navigating first, this component stays mounted long enough for
-              // resetDemoAccount to complete. The Market tab loads fresh state on mount.
+              // CRITICAL FIX: await resetDemoAccount BEFORE navigating to the Market tab.
+              //
+              // Previous code navigated first ("fire and forget") to avoid an AbortError
+              // that occurred when DashboardOverview unmounted mid-Supabase call.
+              // That AbortError was caused by calling setRawAccount / setRealTrades
+              // AFTER navigation unmounted this component. The fix: await the reset here,
+              // then call onChallengeStart with the new account's reset key so Dashboard
+              // knows to remount MarketsPage with clean state. We do NOT touch any local
+              // state setters after onChallengeStart fires (which unmounts this component).
+              //
+              // Why this order is correct:
+              //   1. resetDemoAccount completes → new account row exists in DB
+              //   2. onChallengeStart fires → Dashboard sets tradingMode + tab
+              //   3. MarketsPage mounts → useDemoTrading reads fresh DB → correct account
+              //
+              // Without this order, MarketsPage mounts before step 1, reads the OLD
+              // account, and displays stale data until the user manually refreshes.
+              await resetDemoAccount(userId, pendingTierKey)
               setPendingTierKey(null)
-              if (onChallengeStart) onChallengeStart('ijgf')
-              // Fire and forget — runs in background after tab switch
-              resetDemoAccount(userId, pendingTierKey).catch(err => {
-                console.error('IJGF reset failed (background):', err)
-              })
+              // Pass a resetKey (timestamp) so Dashboard can remount MarketsPage
+              // with a fresh key, guaranteeing useDemoTrading re-initialises from scratch.
+              if (onChallengeStart) onChallengeStart('ijgf', Date.now())
+              // DO NOT call any setState here — this component is about to unmount
+              // when Dashboard switches to the market tab.
             } catch (err) {
               console.error('IJGF start failed:', err)
+              setStartingChallenge(false)
               alert(`Failed to start challenge: ${err.message}`)
-            } finally { setStartingChallenge(false) }
+            }
+            // NOTE: setStartingChallenge(false) intentionally omitted from finally —
+            // the component unmounts on success, making the state update a no-op that
+            // React would log as a warning. On error we set it above before returning.
           }}
           onSelectBybit={async (apiKey, apiSecret, equity) => {
             setStartingChallenge(true)
