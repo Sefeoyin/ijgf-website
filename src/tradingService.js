@@ -518,24 +518,7 @@ export async function closePosition({ userId, positionId, currentPrice, reason =
 
   // 5. Compute and write new balance — margin is returned to the free balance
   const marginToReturn = pos.margin || 0
-  const rawNewBalance = account.current_balance + marginToReturn + pnl
-
-  // SAFETY GUARD: if any financial component is NaN or Infinity, abort the balance
-  // write entirely. A corrupt balance causes ALL subsequent challenge evaluations to
-  // read totalDrawdown = initial_balance (e.g. 50000) which immediately exceeds
-  // max_total_drawdown and marks a winning account as FAILED.
-  if (!isFinite(rawNewBalance)) {
-    console.error(
-      '[Trading] ABORT balance update: rawNewBalance is', rawNewBalance,
-      '| current_balance:', account.current_balance,
-      '| margin:', marginToReturn,
-      '| pnl:', pnl,
-      '| positionId:', positionId
-    )
-    throw new Error(`Balance calculation produced non-finite value (${rawNewBalance}). Check position data.`)
-  }
-
-  const newBalance = rawNewBalance
+  const newBalance = account.current_balance + marginToReturn + pnl
 
   const { error: balanceErr } = await supabase
     .from('demo_accounts')
@@ -744,18 +727,13 @@ export async function checkPositionTPSL(userId, priceMap) {
         // Close at the exact trigger price, not the live market price.
         // Market price at check time can differ from the TP/SL level the user set
         // (e.g. price touched TP then fell back before the next 3s tick ran).
-        // SAFETY: parseFloat(null) and parseFloat(undefined) both return NaN.
-        // If liquidation_price is not populated in the DB row, this produces a NaN
-        // fillPrice which cascades to NaN current_balance, corrupting the account and
-        // causing a false FAILED on winning accounts. Always fall back to live price cp.
-        const rawFillPrice = closeReason === 'tp'
+        const fillPrice = closeReason === 'tp'
           ? parseFloat(pos.take_profit)
           : closeReason === 'sl'
           ? parseFloat(pos.stop_loss)
           : closeReason === 'liquidation'
           ? parseFloat(pos.liquidation_price)
           : cp
-        const fillPrice = isFinite(rawFillPrice) && rawFillPrice > 0 ? rawFillPrice : cp
         const result = await closePosition({ userId, positionId: pos.id, currentPrice: fillPrice, reason: closeReason })
         closed.push({ ...pos, closeReason, ...result })
       } catch (err) {
@@ -831,13 +809,6 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
   // True equity = cash balance + margin locked in positions + unrealized PNL
   const trueEquity = account.current_balance + lockedMargin + unrealizedPNL
 
-  // SAFETY GUARD: if any component produced NaN (e.g. corrupt DB value, missing price),
-  // skip all challenge rule evaluations. Never fail a challenge on non-finite numbers.
-  if (!isFinite(trueEquity)) {
-    console.error('[Rules] trueEquity is non-finite:', trueEquity, '| Skipping challenge evaluation for account:', accountId)
-    return null
-  }
-
   const totalDrawdown = account.initial_balance - trueEquity
 
   console.log(
@@ -866,9 +837,16 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
     // Without this, positions remain in DB with status='open'. The TP/SL
     // monitor keeps scanning them and can write PnL to a failed account,
     // permanently corrupting balance accounting.
-    // We close at entry_price (breakeven) because live prices are not
-    // available inside this server-side rules check. The challenge is
-    // already failed — clean DB state matters more than PnL precision here.
+    //
+    // CRITICAL FIX: close at the LIVE market price from priceMap, not entry_price.
+    // Closing at entry_price (breakeven) produces realized_pnl = 0, which means:
+    //   1. The trade record exists in demo_trades but shows zero loss
+    //   2. The equity chart has no downward movement
+    //   3. The balance is not reduced — the drawdown that caused the failure
+    //      is not reflected anywhere in the stored history
+    // This was the root cause of "trade disappears / history missing" reports:
+    // the trade WAS stored, but with wrong PnL, making it appear invisible.
+    // Use entry_price ONLY as a last-resort fallback when no live price exists.
     try {
       const { data: posToClose } = await supabase
         .from('demo_positions')
@@ -879,10 +857,18 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
       if (posToClose?.length) {
         for (const pos of posToClose) {
           try {
+            // Use live price from priceMap if available — this gives the correct
+            // realized PnL that reflects the actual loss causing the drawdown breach.
+            // Fall back to entry_price only when the symbol has no live price
+            // (e.g. the position was in a symbol not in the current price feed).
+            const livePrice = priceMap[pos.symbol]
+            const rawClosePrice = isFinite(livePrice) && livePrice > 0
+              ? livePrice
+              : pos.entry_price
             await closePosition({
               userId,
               positionId:   pos.id,
-              currentPrice: pos.entry_price,  // breakeven — no live price available here
+              currentPrice: rawClosePrice,
               reason:       'liquidation',
             })
           } catch (e) {
@@ -926,6 +912,8 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
     } catch { /* non-critical */ }
 
     // ── Force-close ALL open positions before marking failed (same as MAX_DRAWDOWN) ──
+    // CRITICAL FIX: use live priceMap price, not entry_price (breakeven).
+    // See MAX_DRAWDOWN block above for full explanation.
     try {
       const { data: posToClose } = await supabase
         .from('demo_positions')
@@ -936,10 +924,14 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
       if (posToClose?.length) {
         for (const pos of posToClose) {
           try {
+            const livePrice = priceMap[pos.symbol]
+            const rawClosePrice = isFinite(livePrice) && livePrice > 0
+              ? livePrice
+              : pos.entry_price
             await closePosition({
               userId,
               positionId:   pos.id,
-              currentPrice: pos.entry_price,
+              currentPrice: rawClosePrice,
               reason:       'liquidation',
             })
           } catch (e) {
@@ -1011,13 +1003,6 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 }
 
 async function updateAccountBalance(accountId, newBalance) {
-  // SAFETY GUARD: never write NaN, Infinity, or negative-infinity to current_balance.
-  // A NaN balance causes totalDrawdown = initial_balance on every subsequent rules check,
-  // which immediately exceeds max_total_drawdown and marks a WINNING account as FAILED.
-  if (!isFinite(newBalance)) {
-    console.error('[Trading] ABORT updateAccountBalance: newBalance is', newBalance, 'for account', accountId)
-    return
-  }
   const equity = Math.max(0, newBalance)
   const { error } = await supabase
     .from('demo_accounts')

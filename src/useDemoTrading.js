@@ -152,6 +152,11 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
   useEffect(() => {
     if (!userId || !hasPrices || positions.length === 0) return
 
+    // Snapshot how many positions were open when this interval was created.
+    // Used to detect the drawdown force-close case: checkPositionTPSL returned []
+    // but we know positions existed — meaning all were closed inside the rules check.
+    const positionCountAtStart = positions.length
+
     const interval = setInterval(async () => {
       const pm = priceMapRef.current
       if (Object.keys(pm).length === 0) return
@@ -174,9 +179,21 @@ export function useDemoTrading(userId, selectedPair = 'BTCUSDT') {
             )
           }
           await refreshState()
+        } else if (positionCountAtStart > 0) {
+          // Empty result despite having had open positions — this is the drawdown
+          // force-close path. checkPositionTPSL closed everything inside
+          // checkChallengeRules and returned []. The positions are closed in the DB
+          // but the useDemoTrading state still holds the stale open positions.
+          // Refresh so the MarketsPage positions panel clears immediately instead
+          // of waiting for the user to manually reload.
+          //
+          // We only do this ONCE per interval lifecycle (not every tick) to avoid
+          // a refresh storm. The interval will be destroyed on the next re-render
+          // when positions.length changes to 0 and the effect dependency re-fires.
+          await refreshState()
         }
-        // Note: empty return is handled by useTPSLMonitor in Dashboard.jsx
-        // which runs independently and detects drawdown force-closes via DB check.
+        // Note: challenge pass/fail modal is handled by useTPSLMonitor in Dashboard.jsx
+        // which runs independently and always fires regardless of active tab.
       } catch (err) {
         console.error('TP/SL check error:', err)
       }

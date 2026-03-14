@@ -69,6 +69,10 @@ export default function TradeHistoryPage({ userId, bybitData }) {
         .from('demo_trades')
         .select('*')
         .eq('user_id', userId)
+        // Only closing trades carry realized_pnl and represent a completed round-trip.
+        // Opening trades (is_close = false) have no PnL and would create duplicate rows
+        // in the history table — one for open, one for close of the same position.
+        .eq('is_close', true)
         .order('executed_at', { ascending: false })
         .limit(500)
       if (error) throw error
@@ -106,10 +110,14 @@ export default function TradeHistoryPage({ userId, bybitData }) {
     ijgfTrades.map(tr => ({
       id:         tr.id,
       symbol:     tr.symbol,
-      direction:  (tr.side ?? '').toLowerCase() === 'long' ? 'Long' : 'Short',
+      // Closing trades: side is the CLOSING side (SELL=closed a Long, BUY=closed a Short)
+      // Reverse-map to show the original position direction, matching Bybit convention.
+      direction:  (tr.side ?? '').toUpperCase() === 'SELL' ? 'Long' : 'Short',
       size:       parseFloat(tr.quantity ?? tr.size) || 0,
       entryPrice: parseFloat(tr.entry_price)         || 0,
-      exitPrice:  parseFloat(tr.exit_price)          || 0,
+      // The closing price is stored in the 'price' column (not 'exit_price' — that column
+      // does not exist in demo_trades). This was causing exitPrice to always show '--'.
+      exitPrice:  parseFloat(tr.price)               || 0,
       pnl:        parseFloat(tr.realized_pnl)        || 0,
       leverage:   parseInt(tr.leverage, 10)          || 1,
       executedAt: tr.executed_at ? new Date(tr.executed_at).getTime() : null,

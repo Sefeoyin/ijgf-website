@@ -172,6 +172,11 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
 
           const ended = closed.find(c => c.challengeFailed || c.challengePassed)
           if (ended) {
+            // Wait for Supabase write propagation before Dashboard refreshes state.
+            // closePosition writes demo_trades and demo_accounts sequentially — all
+            // committed by the time closePosition returns. The 600ms settle ensures
+            // the Supabase read-replica is consistent when Dashboard queries trade history.
+            await new Promise(resolve => setTimeout(resolve, 600))
             onChallengeFailed?.(ended.challengeFailed ? 'failed' : 'passed')
           }
 
@@ -179,8 +184,9 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
           // ── Empty result despite having open positions ─────────────────
           // checkPositionTPSL runs a proactive drawdown check (safeCheckRules)
           // BEFORE checking individual TP/SL. If that check finds a drawdown
-          // breach it force-closes ALL positions at entry_price, marks the account
-          // 'failed', then re-fetches remaining positions → gets [] → returns [].
+          // breach it force-closes ALL positions at the LIVE market price
+          // (after the fix in checkChallengeRules), marks the account 'failed',
+          // then re-fetches remaining positions → gets [] → returns [].
           // We must detect this case and fire onChallengeFailed.
           try {
             const { data: failedAcct } = await supabase
@@ -200,6 +206,17 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
               console.log('[TPSLMonitor] Drawdown breach confirmed on monitored account:', failedAcct.id)
               monitoredAcctId.current = null // disarm — don't fire again
               refreshSymbols()
+
+              // CRITICAL: wait for Supabase write propagation before notifying
+              // the Dashboard to refresh. The force-close inside checkChallengeRules
+              // writes to demo_positions, demo_trades, and demo_accounts in sequence.
+              // All awaits in closePosition are in series, so by the time we reach
+              // here the writes ARE committed server-side. However the Dashboard's
+              // refreshAccountState (getAccountState) re-reads via the Supabase JS
+              // client which can return a slightly stale read-replica snapshot under
+              // high concurrency. A 600ms pause lets the replica catch up so the
+              // refreshed trade history, balance, and equity chart are all consistent.
+              await new Promise(resolve => setTimeout(resolve, 600))
               onChallengeFailed?.('failed')
             }
           } catch (e) {
