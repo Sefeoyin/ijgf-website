@@ -597,9 +597,10 @@ export default function FenixAssistant({ userId }) {
         .fenix-input {
           flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);
           border-radius: 9px; padding: 8px 10px; color: var(--text-primary);
-          font-family: 'Space Mono', monospace; font-size: 11px;
+          font-family: 'Space Mono', monospace; font-size: 16px;
           resize: none; outline: none; transition: border-color 0.15s;
           min-height: 35px; max-height: 88px; line-height: 1.5;
+          touch-action: manipulation;
         }
         .fenix-input:focus { border-color: rgba(124,58,237,0.42); }
         .fenix-input::placeholder { color: var(--text-muted); }
@@ -778,9 +779,8 @@ export default function FenixAssistant({ userId }) {
               disabled={isTyping || !input.trim()}
               aria-label="Send message"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="white" stroke="white" strokeWidth="1.5"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="white"/>
               </svg>
             </button>
           </div>
