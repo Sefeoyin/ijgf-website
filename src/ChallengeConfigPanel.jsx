@@ -325,16 +325,15 @@ export function ChallengeConfigPanel({ onStart }) {
 
         .ccp-size-popular {
           position: absolute;
-          top: -8px;
-          right: 6px;
-          font-size: 0.58rem;
+          top: 8px;
+          right: 8px;
+          font-size: 10px;
           font-weight: 700;
           letter-spacing: 0.4px;
-          background: rgba(34,197,94,0.15);
-          color: #22c55e;
-          border: 1px solid rgba(34,197,94,0.3);
-          border-radius: 20px;
-          padding: 1px 5px;
+          background: rgba(34,197,94,0.85);
+          color: white;
+          border-radius: 4px;
+          padding: 2px 6px;
         }
 
         /* ── Phase info cards ─────────────────────────────────────── */
@@ -474,7 +473,7 @@ export function ChallengeConfigPanel({ onStart }) {
         }
 
         /* ── Mobile ───────────────────────────────────────────────── */
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .ccp-toggle-track {
             width: 100%;
             border-radius: 14px;
@@ -486,6 +485,10 @@ export function ChallengeConfigPanel({ onStart }) {
             padding: 10px 12px;
             border-radius: 11px;
             font-size: 0.83rem;
+          }
+
+          .ccp-size-btn {
+            min-width: 70px;
           }
 
           .ccp-cards {

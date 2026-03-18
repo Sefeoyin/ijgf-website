@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useContext, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from './supabase'
-import { ThemeContext } from './ThemeContext'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function fmt(n, decimals = 2) {
@@ -25,27 +24,24 @@ export default function TradeHistoryPage({ userId, bybitData }) {
   // ── Detect Bybit mode ────────────────────────────────────────────────────
   const isBybit = bybitData?.account?.trading_mode === 'bybit'
 
-  // ── Theme tokens ─────────────────────────────────────────────────────────
-  const { theme } = useContext(ThemeContext)
-  const dark = theme === 'night'
+  // ── Theme tokens (CSS variables — light/dark via body[data-theme]) ─────────
   const t = {
-    pageBg:       'transparent',
-    cardBg:       dark ? 'rgba(255,255,255,0.03)'  : '#ffffff',
-    cardBorder:   dark ? 'rgba(255,255,255,0.08)'  : 'rgba(0,0,0,0.1)',
-    rowBorder:    dark ? 'rgba(255,255,255,0.05)'  : 'rgba(0,0,0,0.06)',
-    rowHoverBg:   dark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)',
-    textPrimary:  dark ? '#eaecef'                 : '#0f172a',
-    textSecondary:dark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.6)',
-    textMuted:    dark ? 'rgba(255,255,255,0.4)'   : 'rgba(0,0,0,0.45)',
-    textFaint:    dark ? 'rgba(255,255,255,0.3)'   : 'rgba(0,0,0,0.35)',
-    textCell:     dark ? 'rgba(255,255,255,0.7)'   : 'rgba(0,0,0,0.7)',
-    inputBg:      dark ? 'rgba(255,255,255,0.05)'  : 'rgba(0,0,0,0.04)',
-    inputBorder:  dark ? 'rgba(255,255,255,0.1)'   : 'rgba(0,0,0,0.12)',
-    bannerBg:     dark ? 'rgba(245,158,11,0.07)'   : 'rgba(245,158,11,0.08)',
+    cardBg:       'var(--bg-card)',
+    cardBorder:   'var(--border-color)',
+    rowBorder:    'var(--border-color)',
+    rowHoverBg:   'var(--bg-card-hover, rgba(255,255,255,0.025))',
+    textPrimary:  'var(--text-primary)',
+    textSecondary:'var(--text-secondary)',
+    textMuted:    'var(--text-muted)',
+    textFaint:    'var(--text-muted)',
+    textCell:     'var(--text-secondary)',
+    inputBg:      'var(--bg-card)',
+    inputBorder:  'var(--border-color)',
+    bannerBg:     'rgba(245,158,11,0.07)',
     bannerBorder: 'rgba(245,158,11,0.2)',
-    bannerText:   dark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.6)',
-    winRow:       dark ? 'rgba(34,197,94,0.04)'    : 'rgba(34,197,94,0.05)',
-    lossRow:      dark ? 'rgba(246,70,93,0.04)'    : 'rgba(246,70,93,0.05)',
+    bannerText:   'var(--text-secondary)',
+    winRow:       'rgba(34,197,94,0.04)',
+    lossRow:      'rgba(246,70,93,0.04)',
   }
 
   // ── IJGF state ────────────────────────────────────────────────────────────

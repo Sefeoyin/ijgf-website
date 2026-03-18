@@ -49,7 +49,6 @@ function tierSubtext(key, challengeType) {
     if (!cfg) return '8% → 5% profit · 10% DD'
     return `Phase 1: $${cfg.phase1.profitTarget.toLocaleString()} · Phase 2: $${cfg.phase2.profitTarget.toLocaleString()}`
   }
-  // 1-step: derive from amount
   const t = TIERS.find(t => t.key === key)
   if (!t) return '10% profit · 8% DD'
   const profit = Math.round(t.amount * 0.10).toLocaleString()
@@ -68,15 +67,9 @@ export function ChallengeAndTierSelector({
   const is2step = selectedChallengeType === '2step'
 
   return (
-    <div>
+    <div className="cst-root">
       {/* ── Challenge type toggle ────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 12, padding: 4,
-        marginBottom: 8,
-      }}>
+      <div className="cst-toggle-track">
         {[
           { key: '1step', Icon: Zap,    label: '1-Step', activeGrad: 'linear-gradient(135deg, #7c3aed, #a855f7)' },
           { key: '2step', Icon: Target, label: '2-Step', activeGrad: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
@@ -86,16 +79,8 @@ export function ChallengeAndTierSelector({
             <button
               key={opt.key}
               onClick={() => setSelectedChallengeType(opt.key)}
-              style={{
-                flex: 1, padding: '9px 8px',
-                background: active ? opt.activeGrad : 'transparent',
-                border: 'none', borderRadius: 9,
-                cursor: 'pointer', transition: 'all 0.2s',
-                color: active ? '#ffffff' : 'rgba(255,255,255,0.45)',
-                fontWeight: 700, fontSize: '0.88rem',
-                letterSpacing: 0.2,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
+              className={`cst-toggle-btn${active ? ' cst-toggle-btn--active' : ''}`}
+              style={active ? { background: opt.activeGrad } : undefined}
             >
               <opt.Icon size={15} strokeWidth={2.5} />
               {opt.label}
@@ -105,13 +90,8 @@ export function ChallengeAndTierSelector({
       </div>
 
       {/* Toggle description */}
-      <p style={{
-        margin: '0 0 14px',
-        fontSize: '0.76rem',
-        color: is2step ? 'rgba(56,189,248,0.8)' : 'rgba(168,85,247,0.8)',
-        textAlign: 'center',
-        lineHeight: 1.4,
-        minHeight: '1.4em',
+      <p className="cst-toggle-desc" style={{
+        color: is2step ? 'rgba(56,189,248,0.9)' : 'var(--accent-light, #a855f7)',
       }}>
         {is2step
           ? 'Hit 8% then 5% profit targets to get funded'
@@ -130,84 +110,251 @@ export function ChallengeAndTierSelector({
        * 50k    | $440       | $380
        * 100k   | $790       | $650
        * 200k   | $1,450     | $1,250
-       *
-       * Source: CHALLENGE_PRICING from tradingService.js
-       * Updates live when toggle switches — no hardcoded values here.
        */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 8,
-      }}>
+      <div className="cst-tier-grid">
         {TIERS.map(t => {
-          const sel = selectedTier === t.key
-          const fee = CHALLENGE_PRICING[selectedChallengeType]?.[t.key]
-          const accentColor = is2step ? '#0ea5e9' : '#7c3aed'
+          const sel        = selectedTier === t.key
+          const fee        = CHALLENGE_PRICING[selectedChallengeType]?.[t.key]
+          const accentColor = is2step ? '#0ea5e9' : 'var(--accent-primary, #7c3aed)'
           const accentRgb   = is2step ? '14,165,233' : '124,58,237'
 
           return (
             <button
               key={t.key}
               onClick={() => setSelectedTier(t.key)}
-              style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'flex-start',
-                background: sel
-                  ? `rgba(${accentRgb},0.15)`
-                  : 'rgba(255,255,255,0.03)',
-                border: `1.5px solid ${sel
-                  ? `rgba(${accentRgb},0.6)`
-                  : 'rgba(255,255,255,0.08)'}`,
-                borderRadius: 12, padding: '12px 14px',
-                cursor: 'pointer', transition: 'all 0.15s',
-                textAlign: 'left', width: '100%',
-                position: 'relative', overflow: 'visible',
-              }}
+              className={`cst-tier-btn${sel ? ' cst-tier-btn--sel' : ''}`}
+              style={sel ? {
+                background: `rgba(${accentRgb},0.12)`,
+                borderColor: `rgba(${accentRgb},0.6)`,
+              } : undefined}
             >
               {/* Popular badge — 10k only */}
               {t.key === '10k' && (
-                <span style={{
-                  position: 'absolute', top: -10, right: 10,
-                  fontSize: '0.58rem', fontWeight: 700, letterSpacing: 0.4,
-                  background: 'rgba(34,197,94,0.15)', color: '#22c55e',
-                  border: '1px solid rgba(34,197,94,0.3)',
-                  borderRadius: 20, padding: '2px 6px',
-                  whiteSpace: 'nowrap',
-                }}>
-                  POPULAR
-                </span>
+                <span className="cst-popular-badge">POPULAR</span>
               )}
 
-              {/* Account size — always text-primary regardless of selection */}
-              <div style={{
-                fontSize: '1rem', fontWeight: 800,
-                color: 'var(--text-primary, #eaecef)',
-                marginBottom: 4,
-              }}>
-                {t.label}
-              </div>
+              {/* Account size — always --text-primary */}
+              <div className="cst-tier-label">{t.label}</div>
 
-              {/* Fee — updates live */}
-              <div style={{
-                fontSize: '1.1rem', fontWeight: 700,
-                color: sel ? accentColor : 'rgba(255,255,255,0.75)',
-                marginBottom: 5,
+              {/* Fee */}
+              <div className="cst-tier-fee" style={{
+                color: sel ? accentColor : 'var(--text-secondary)',
               }}>
                 {fee != null ? `$${fee}` : '—'}
               </div>
 
-              {/* Subtext — profit/DD info */}
-              <div style={{
-                fontSize: '0.68rem',
-                color: 'rgba(255,255,255,0.38)',
-                lineHeight: 1.4,
-              }}>
+              {/* Subtext */}
+              <div className="cst-tier-sub">
                 {tierSubtext(t.key, selectedChallengeType)}
               </div>
             </button>
           )
         })}
       </div>
+
+      <style>{`
+        .cst-toggle-track {
+          display: flex;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 4px;
+          margin-bottom: 8px;
+          gap: 4px;
+        }
+
+        .cst-toggle-btn {
+          flex: 1;
+          padding: 9px 8px;
+          background: transparent;
+          border: none;
+          border-radius: 9px;
+          cursor: pointer;
+          transition: all 0.2s;
+          color: var(--text-muted);
+          font-weight: 700;
+          font-size: 0.88rem;
+          letter-spacing: 0.2px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+
+        .cst-toggle-btn--active {
+          color: #ffffff;
+        }
+
+        .cst-toggle-desc {
+          margin: 0 0 14px;
+          font-size: 0.76rem;
+          text-align: center;
+          line-height: 1.4;
+          min-height: 1.4em;
+        }
+
+        .cst-tier-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .cst-tier-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          background: var(--bg-card);
+          border: 1.5px solid var(--border-color);
+          border-radius: 12px;
+          padding: 12px 14px;
+          cursor: pointer;
+          transition: all 0.15s;
+          text-align: left;
+          width: 100%;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .cst-tier-btn:hover {
+          border-color: var(--border-accent);
+        }
+
+        .cst-popular-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.4px;
+          background: rgba(34,197,94,0.85);
+          color: white;
+          border-radius: 4px;
+          padding: 2px 6px;
+          white-space: nowrap;
+        }
+
+        .cst-tier-label {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          opacity: 1;
+          margin-bottom: 4px;
+        }
+
+        .cst-tier-fee {
+          font-size: 1.1rem;
+          font-weight: 700;
+          margin-bottom: 5px;
+          transition: color 0.15s;
+        }
+
+        .cst-tier-sub {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+
+        /* ── AccountModeSelector ────────────────────────────────── */
+        .cst-mode-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          background: var(--bg-card);
+          border: 1.5px solid var(--border-color);
+          border-radius: 14px;
+          padding: 16px 18px;
+          transition: all 0.15s;
+          user-select: none;
+        }
+
+        .cst-mode-card--sel {
+          background: rgba(124,58,237,0.1);
+          border-color: rgba(124,58,237,0.55);
+        }
+
+        .cst-mode-card--disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .cst-mode-card:not(.cst-mode-card--disabled) {
+          cursor: pointer;
+        }
+
+        .cst-mode-icon-wrap {
+          width: 42px;
+          height: 42px;
+          border-radius: 11px;
+          flex-shrink: 0;
+          background: var(--bg-card-hover, var(--bg-secondary));
+          border: 1px solid var(--border-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+          transition: all 0.15s;
+        }
+
+        .cst-mode-card--sel .cst-mode-icon-wrap {
+          background: rgba(124,58,237,0.15);
+          border-color: rgba(124,58,237,0.35);
+          color: var(--accent-light, #a855f7);
+        }
+
+        .cst-mode-title {
+          font-size: 0.97rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          transition: color 0.15s;
+        }
+
+        .cst-mode-card--sel .cst-mode-title {
+          color: var(--accent-light, #a855f7);
+        }
+
+        .cst-mode-desc {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+
+        .cst-coming-soon {
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          background: rgba(245,158,11,0.15);
+          color: #f59e0b;
+          border: 1px solid rgba(245,158,11,0.3);
+          border-radius: 20px;
+          padding: 2px 7px;
+          text-transform: uppercase;
+        }
+
+        .cst-radio {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          border: 2px solid var(--border-color);
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s;
+        }
+
+        .cst-mode-card--sel .cst-radio {
+          border-color: var(--accent-light, #a855f7);
+          background: var(--accent-primary, #7c3aed);
+        }
+
+        .cst-radio-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: white;
+        }
+      `}</style>
     </div>
   )
 }
@@ -236,76 +383,38 @@ export function AccountModeSelector({ value, onChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {ACCOUNT_MODES.map(mode => {
         const sel = !mode.disabled && value === mode.key
+        const cardClass = [
+          'cst-mode-card',
+          sel            ? 'cst-mode-card--sel'      : '',
+          mode.disabled  ? 'cst-mode-card--disabled' : '',
+        ].filter(Boolean).join(' ')
+
         return (
           <div
             key={mode.key}
+            className={cardClass}
             onClick={() => { if (!mode.disabled) onChange(mode.key) }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              background: sel
-                ? 'rgba(124,58,237,0.15)'
-                : 'var(--border-color, rgba(255,255,255,0.04))',
-              border: `1.5px solid ${sel
-                ? 'rgba(124,58,237,0.6)'
-                : 'var(--border-color, rgba(255,255,255,0.1))'}`,
-              borderRadius: 14, padding: '16px 18px',
-              cursor: mode.disabled ? 'not-allowed' : 'pointer',
-              opacity: mode.disabled ? 0.5 : 1,
-              transition: 'all 0.15s',
-              userSelect: 'none',
-            }}
           >
             {/* Icon */}
-            <div style={{
-              width: 42, height: 42, borderRadius: 11, flexShrink: 0,
-              background: sel ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${sel ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: sel ? '#a78bfa' : 'rgba(255,255,255,0.55)',
-            }}>
+            <div className="cst-mode-icon-wrap">
               <mode.Icon size={20} strokeWidth={1.75} />
             </div>
 
             {/* Text */}
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <span style={{
-                  fontSize: '0.97rem', fontWeight: 700,
-                  color: sel ? '#a78bfa' : 'var(--text-primary, #eaecef)',
-                }}>
-                  {mode.label}
-                </span>
+                <span className="cst-mode-title">{mode.label}</span>
                 {mode.disabled && (
-                  <span style={{
-                    fontSize: '0.62rem', fontWeight: 700, letterSpacing: 0.5,
-                    background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
-                    border: '1px solid rgba(245,158,11,0.3)',
-                    borderRadius: 20, padding: '2px 7px',
-                    textTransform: 'uppercase',
-                  }}>
-                    Coming Soon
-                  </span>
+                  <span className="cst-coming-soon">Coming Soon</span>
                 )}
               </div>
-              <div style={{
-                fontSize: '0.78rem',
-                color: 'var(--text-muted, rgba(255,255,255,0.45))',
-                lineHeight: 1.4,
-              }}>
-                {mode.desc}
-              </div>
+              <div className="cst-mode-desc">{mode.desc}</div>
             </div>
 
             {/* Radio indicator (non-disabled only) */}
             {!mode.disabled && (
-              <div style={{
-                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                border: `2px solid ${sel ? '#a855f7' : 'rgba(255,255,255,0.2)'}`,
-                background: sel ? '#7c3aed' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s',
-              }}>
-                {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />}
+              <div className="cst-radio">
+                {sel && <div className="cst-radio-dot" />}
               </div>
             )}
           </div>

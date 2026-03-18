@@ -158,30 +158,13 @@ export default function OnboardingModal({ userId, onComplete }) {
   const isActive  = (i) => i === stepIndex
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
-      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
-    }}>
-      <div style={{
-        background: '#0d0f14',
-        border: '1px solid rgba(124,58,237,0.3)',
-        borderRadius: 20,
-        padding: '32px 28px 28px',
-        maxWidth: 520, width: '100%',
-        maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-      }}>
+    <div className="onb-overlay">
+      <div className="onb-card">
 
         {/* ── Progress dots ─────────────────────────────── */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 28 }}>
           {MAIN_STEPS.map((s, i) => (
-            <div key={s} style={{
-              width: isActive(i) ? 24 : 8, height: 8, borderRadius: 4,
-              background: isDone(i) ? '#7c3aed' : isActive(i) ? '#a855f7' : 'rgba(255,255,255,0.15)',
-              transition: 'all 0.3s',
-            }} />
+            <div key={s} className={`onb-dot${isDone(i) ? ' onb-dot--done' : isActive(i) ? ' onb-dot--active' : ''}`} />
           ))}
         </div>
 
@@ -191,37 +174,16 @@ export default function OnboardingModal({ userId, onComplete }) {
         {step === 'accountMode' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(168,85,247,0.15))',
-                border: '1px solid rgba(124,58,237,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
-              }}>
+              <div className="onb-step-icon onb-step-icon--purple">
                 <Rocket size={28} strokeWidth={1.75} />
               </div>
-              <h2 style={{ margin: '0 0 8px', fontSize: '1.3rem', fontWeight: 700, color: '#eaecef' }}>
-                Welcome to IJGF!
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-                Select your account mode to get started.
-              </p>
+              <h2 className="onb-title">Welcome to IJGF!</h2>
+              <p className="onb-subtitle">Select your account mode to get started.</p>
             </div>
 
             <AccountModeSelector value={accountMode} onChange={setAccountMode} />
 
-            <button
-              onClick={handleAccountModeContinue}
-              style={{
-                width: '100%', padding: '13px', marginTop: 20,
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                color: 'white', border: 'none', borderRadius: 12,
-                fontSize: '0.97rem', fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.45)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
-            >
+            <button className="onb-btn-primary" onClick={handleAccountModeContinue}>
               Continue →
             </button>
           </>
@@ -233,12 +195,8 @@ export default function OnboardingModal({ userId, onComplete }) {
         {step === 'challengeSelect' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
-              <h2 style={{ margin: '0 0 6px', fontSize: '1.2rem', fontWeight: 700, color: '#eaecef' }}>
-                Choose Your Challenge
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.84rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                Select challenge type and account size.
-              </p>
+              <h2 className="onb-title">Choose Your Challenge</h2>
+              <p className="onb-subtitle">Select challenge type and account size.</p>
             </div>
 
             <ChallengeAndTierSelector
@@ -248,255 +206,138 @@ export default function OnboardingModal({ userId, onComplete }) {
               setSelectedTier={setTier}
             />
 
-            <button
-              onClick={handleChallengeSelectContinue}
-              style={{
-                width: '100%', padding: '13px', marginTop: 18,
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                color: 'white', border: 'none', borderRadius: 12,
-                fontSize: '0.97rem', fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.45)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
-            >
+            <button className="onb-btn-primary" style={{ marginTop: 18 }} onClick={handleChallengeSelectContinue}>
               Continue with {tier.toUpperCase()} {challengeVariant === '2step' ? '2-Step' : '1-Step'} →
             </button>
 
-            <button
-              onClick={() => setStep('accountMode')}
-              style={{
-                width: '100%', padding: '10px', marginTop: 10,
-                background: 'transparent', color: 'rgba(255,255,255,0.4)',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-                fontSize: '0.85rem', cursor: 'pointer',
-              }}
-            >
+            <button className="onb-btn-back" onClick={() => setStep('accountMode')}>
               ← Back
             </button>
           </>
         )}
 
         {/* ═══════════════════════════════════════════════════
-            STEP 3 — MODE SELECTION  (unchanged except back target)
+            STEP 3 — MODE SELECTION
         ═══════════════════════════════════════════════════ */}
         {step === 'mode' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <h2 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 700, color: '#eaecef' }}>
-                How would you like to trade?
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                Your <strong style={{ color: '#a855f7' }}>{tierLabel} challenge</strong> will run on whichever platform you choose.
+              <h2 className="onb-title">How would you like to trade?</h2>
+              <p className="onb-subtitle">
+                Your <strong style={{ color: 'var(--accent-light, #a855f7)' }}>{tierLabel} challenge</strong> will run on whichever platform you choose.
               </p>
             </div>
 
-            {apiError && (
-              <div style={{
-                background: 'rgba(246,70,93,0.1)', border: '1px solid rgba(246,70,93,0.3)',
-                color: '#f6465d', borderRadius: 10, padding: '10px 14px',
-                fontSize: '0.84rem', marginBottom: 16,
-              }}>
-                {apiError}
-              </div>
-            )}
+            {apiError && <div className="onb-error">{apiError}</div>}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {/* IJGF Market option */}
               <button
+                className="onb-mode-btn"
                 onClick={handleSelectIJGF}
                 disabled={saving}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 14, padding: '18px 20px',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
-                  transition: 'all 0.15s', textAlign: 'left', width: '100%',
-                  color: '#eaecef',
-                }}
-                onMouseEnter={e => { if (!saving) { e.currentTarget.style.background = 'rgba(124,58,237,0.15)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)' }}}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'none' }}
+                style={{ opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}
               >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                  background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'rgba(168,85,247,0.9)',
-                }}>
+                <div className="onb-mode-icon onb-mode-icon--purple">
                   <Rocket size={20} strokeWidth={1.75} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 3 }}>IJGF Market</div>
-                  <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                  <div className="onb-mode-name">IJGF Market</div>
+                  <div className="onb-mode-desc">
                     Trade Binance-listed tokens directly inside this platform. No external account needed.
                   </div>
                 </div>
-                <svg style={{ marginLeft: 'auto', flexShrink: 0, opacity: 0.4 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="onb-mode-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
 
               {/* Bybit option */}
               <button
+                className="onb-mode-btn"
                 onClick={handleSelectBybit}
                 disabled={saving}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 14, padding: '18px 20px',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
-                  transition: 'all 0.15s', textAlign: 'left', width: '100%',
-                  color: '#eaecef',
-                }}
-                onMouseEnter={e => { if (!saving) { e.currentTarget.style.background = 'rgba(124,58,237,0.15)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)' }}}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'none' }}
+                style={{ opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}
               >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                  background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'rgba(245,158,11,0.9)',
-                }}>
+                <div className="onb-mode-icon onb-mode-icon--amber">
                   <Link2 size={20} strokeWidth={1.75} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 3 }}>Connect Bybit</div>
-                  <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                  <div className="onb-mode-name">Connect Bybit</div>
+                  <div className="onb-mode-desc">
                     Connect your Bybit demo futures account via API. Trade on your own Bybit terminal.
                   </div>
                 </div>
-                <svg style={{ marginLeft: 'auto', flexShrink: 0, opacity: 0.4 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="onb-mode-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
             </div>
 
-            {/* Back → challengeSelect */}
-            <button
-              onClick={() => { setStep('challengeSelect'); setApiError('') }}
-              style={{
-                width: '100%', padding: '10px',
-                background: 'transparent', color: 'rgba(255,255,255,0.4)',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-                fontSize: '0.85rem', cursor: 'pointer',
-              }}
-            >
+            <button className="onb-btn-back" onClick={() => { setStep('challengeSelect'); setApiError('') }}>
               ← Back
             </button>
           </>
         )}
 
         {/* ═══════════════════════════════════════════════════
-            STEP 4 — BYBIT API ENTRY  (unchanged except back target)
+            STEP 4 — BYBIT API ENTRY
         ═══════════════════════════════════════════════════ */}
         {step === 'bybit' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 14px', color: 'rgba(245,158,11,0.9)',
-              }}>
+              <div className="onb-step-icon onb-step-icon--amber">
                 <Link2 size={22} strokeWidth={1.75} />
               </div>
-              <h2 style={{ margin: '0 0 8px', fontSize: '1.15rem', fontWeight: 700, color: '#eaecef' }}>
-                Connect Bybit Account
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.83rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+              <h2 className="onb-title">Connect Bybit Account</h2>
+              <p className="onb-subtitle">
                 Your {tierLabel} challenge will be mirrored on your Bybit demo futures terminal.
               </p>
             </div>
 
-            <div style={{
-              background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 10, padding: '12px 14px', marginBottom: 18,
-              fontSize: '0.79rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7,
-            }}>
-              <strong style={{ color: 'rgba(245,158,11,0.85)' }}>How to get your API key:</strong>
+            <div className="onb-bybit-info">
+              <strong className="onb-bybit-info-heading">How to get your API key:</strong>
               <ol style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                <li>Go to <strong style={{ color: 'rgba(255,255,255,0.85)' }}>bybit.com</strong> → click <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Demo Trading</strong> at the top</li>
-                <li>Avatar → <strong style={{ color: 'rgba(255,255,255,0.85)' }}>API Management → Create New Key</strong></li>
-                <li>Enable: <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Read-Write + Unified Trading + Assets (Account Transfer)</strong></li>
+                <li>Go to <strong className="onb-bybit-em">bybit.com</strong> → click <strong className="onb-bybit-em">Demo Trading</strong> at the top</li>
+                <li>Avatar → <strong className="onb-bybit-em">API Management → Create New Key</strong></li>
+                <li>Enable: <strong className="onb-bybit-em">Read-Write + Unified Trading + Assets (Account Transfer)</strong></li>
                 <li>No IP restriction → paste both keys below</li>
               </ol>
             </div>
 
-            {apiError && (
-              <div style={{
-                background: 'rgba(246,70,93,0.1)', border: '1px solid rgba(246,70,93,0.3)',
-                color: '#f6465d', borderRadius: 10, padding: '10px 14px',
-                fontSize: '0.84rem', marginBottom: 14,
-              }}>
-                {apiError}
-              </div>
-            )}
+            {apiError && <div className="onb-error">{apiError}</div>}
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: '0.79rem', color: 'rgba(255,255,255,0.55)', marginBottom: 6 }}>
-                API Key
-              </label>
+              <label className="onb-input-label">API Key</label>
               <input
+                className="onb-input"
                 type="password"
                 placeholder="Paste your Bybit API key"
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
-                style={{
-                  width: '100%', background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
-                  padding: '10px 14px', color: '#eaecef', fontSize: '0.9rem',
-                  outline: 'none', boxSizing: 'border-box',
-                }}
               />
             </div>
 
             <div style={{ marginBottom: 22 }}>
-              <label style={{ display: 'block', fontSize: '0.79rem', color: 'rgba(255,255,255,0.55)', marginBottom: 6 }}>
-                API Secret
-              </label>
+              <label className="onb-input-label">API Secret</label>
               <input
+                className="onb-input"
                 type="password"
                 placeholder="Paste your Bybit API secret"
                 value={apiSecret}
                 onChange={e => setApiSecret(e.target.value)}
-                style={{
-                  width: '100%', background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
-                  padding: '10px 14px', color: '#eaecef', fontSize: '0.9rem',
-                  outline: 'none', boxSizing: 'border-box',
-                }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              {/* Back → mode */}
-              <button
-                onClick={() => { setStep('mode'); setApiError('') }}
-                style={{
-                  flex: 1, padding: '11px',
-                  background: 'transparent', color: 'rgba(255,255,255,0.45)',
-                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
-                  fontSize: '0.88rem', cursor: 'pointer',
-                }}
-              >
+              <button className="onb-btn-back onb-btn-back--inline" onClick={() => { setStep('mode'); setApiError('') }}>
                 ← Back
               </button>
               <button
+                className="onb-btn-primary onb-btn-primary--flex"
                 onClick={handleBybitConnect}
                 disabled={saving}
-                style={{
-                  flex: 2, padding: '11px',
-                  background: saving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                  color: saving ? 'rgba(255,255,255,0.4)' : 'white',
-                  border: 'none', borderRadius: 10,
-                  fontSize: '0.9rem', fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                style={saving ? { background: 'var(--bg-card-hover, rgba(255,255,255,0.08))', color: 'var(--text-muted)', cursor: 'not-allowed' } : undefined}
               >
                 {saving ? '⏳ Resetting balance… (20–30s)' : 'Connect & Start Challenge'}
               </button>
@@ -505,6 +346,235 @@ export default function OnboardingModal({ userId, onComplete }) {
         )}
 
       </div>
+
+      <style>{`
+        /* ── Overlay ─────────────────────────────────────────── */
+        .onb-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9000;
+          background: rgba(0,0,0,0.65);
+          backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+
+        /* ── Card ────────────────────────────────────────────── */
+        .onb-card {
+          background: var(--bg-card-solid);
+          border: 1px solid var(--border-accent);
+          border-radius: 20px;
+          padding: 32px 28px 28px;
+          max-width: 520px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+          scrollbar-width: thin;
+          scrollbar-color: var(--border-color) transparent;
+        }
+
+        /* ── Progress dots ───────────────────────────────────── */
+        .onb-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 4px;
+          background: var(--border-color);
+          transition: all 0.3s;
+        }
+        .onb-dot--done   { background: var(--accent-primary); }
+        .onb-dot--active { width: 24px; background: var(--accent-light, #a855f7); }
+
+        /* ── Step icon ───────────────────────────────────────── */
+        .onb-step-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+        }
+        .onb-step-icon--purple {
+          background: rgba(124,58,237,0.15);
+          border: 1px solid rgba(124,58,237,0.4);
+          color: var(--accent-light, #a855f7);
+        }
+        .onb-step-icon--amber {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: rgba(245,158,11,0.12);
+          border: 1px solid rgba(245,158,11,0.3);
+          color: #f59e0b;
+        }
+
+        /* ── Typography ──────────────────────────────────────── */
+        .onb-title {
+          margin: 0 0 8px;
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .onb-subtitle {
+          margin: 0;
+          font-size: 0.88rem;
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+
+        /* ── Buttons ─────────────────────────────────────────── */
+        .onb-btn-primary {
+          width: 100%;
+          padding: 13px;
+          margin-top: 20px;
+          background: linear-gradient(135deg, #7c3aed, #a855f7);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 0.97rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .onb-btn-primary:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(124,58,237,0.45);
+        }
+        .onb-btn-primary--flex { flex: 2; margin-top: 0; width: auto; }
+
+        .onb-btn-back {
+          width: 100%;
+          padding: 10px;
+          margin-top: 10px;
+          background: transparent;
+          color: var(--text-muted);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .onb-btn-back:hover { border-color: var(--border-accent); color: var(--text-secondary); }
+        .onb-btn-back--inline { flex: 1; margin-top: 0; width: auto; padding: 11px; }
+
+        /* ── Error box ───────────────────────────────────────── */
+        .onb-error {
+          background: rgba(246,70,93,0.1);
+          border: 1px solid rgba(246,70,93,0.3);
+          color: #f6465d;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 0.84rem;
+          margin-bottom: 16px;
+        }
+
+        /* ── Mode buttons ────────────────────────────────────── */
+        .onb-mode-btn {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 14px;
+          padding: 18px 20px;
+          transition: all 0.15s;
+          text-align: left;
+          width: 100%;
+          color: var(--text-primary);
+        }
+        .onb-mode-btn:hover:not(:disabled) {
+          background: rgba(124,58,237,0.1);
+          border-color: rgba(124,58,237,0.45);
+          transform: translateY(-1px);
+        }
+
+        .onb-mode-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .onb-mode-icon--purple {
+          background: rgba(124,58,237,0.15);
+          border: 1px solid rgba(124,58,237,0.3);
+          color: var(--accent-light, #a855f7);
+        }
+        .onb-mode-icon--amber {
+          background: rgba(245,158,11,0.12);
+          border: 1px solid rgba(245,158,11,0.25);
+          color: #f59e0b;
+        }
+
+        .onb-mode-name {
+          font-size: 1rem;
+          font-weight: 700;
+          margin-bottom: 3px;
+          color: var(--text-primary);
+        }
+        .onb-mode-desc {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+        }
+        .onb-mode-chevron {
+          margin-left: auto;
+          flex-shrink: 0;
+          opacity: 0.35;
+          color: var(--text-secondary);
+        }
+
+        /* ── Bybit info box ──────────────────────────────────── */
+        .onb-bybit-info {
+          background: rgba(245,158,11,0.07);
+          border: 1px solid rgba(245,158,11,0.2);
+          border-radius: 10px;
+          padding: 12px 14px;
+          margin-bottom: 18px;
+          font-size: 0.79rem;
+          color: var(--text-secondary);
+          line-height: 1.7;
+        }
+        .onb-bybit-info-heading {
+          color: #f59e0b;
+        }
+        .onb-bybit-em {
+          color: var(--text-primary);
+        }
+
+        /* ── API inputs ──────────────────────────────────────── */
+        .onb-input-label {
+          display: block;
+          font-size: 0.79rem;
+          color: var(--text-muted);
+          margin-bottom: 6px;
+        }
+        .onb-input {
+          width: 100%;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 10px 14px;
+          color: var(--text-primary);
+          font-size: 0.9rem;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.15s;
+          font-family: inherit;
+        }
+        .onb-input:focus {
+          border-color: var(--border-accent);
+        }
+        .onb-input::placeholder {
+          color: var(--text-muted);
+        }
+      `}</style>
     </div>
   )
 }
