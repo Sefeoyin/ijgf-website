@@ -1000,7 +1000,7 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
           ) : account && account.status === 'active' ? (
             <div className="challenge-card active-challenge">
               <div className="challenge-info-row">
-                <span className="challenge-badge">{account.challenge_type?.toUpperCase()} Challenge</span>
+                <span className="challenge-badge">{account.challenge_type?.replace('_2step', '').replace('k', 'K')} Challenge</span>
                 <span className="challenge-status active">● Active</span>
               </div>
               <div className="challenge-metrics">

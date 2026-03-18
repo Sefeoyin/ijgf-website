@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import TermsAcceptancePopup from './TermsAcceptancePopup'
+import { ChallengeConfigPanel } from './ChallengeConfigPanel'
 
 const CAROUSEL_INTERVAL_MS = 5000
 const MOBILE_BREAKPOINT = '(max-width: 768px)'
@@ -99,7 +100,6 @@ function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_BREAKPOINT).matches)
-  const [expandedChallenge, setExpandedChallenge] = useState(null)
 
   // Use matchMedia instead of resize listener — fires only on breakpoint change
   useEffect(() => {
@@ -121,10 +121,6 @@ function LandingPage() {
 
   const toggleFaq = (id) => {
     setOpenFaq(openFaq === id ? null : id)
-  }
-
-  const toggleChallengeDetails = (index) => {
-    setExpandedChallenge(expandedChallenge === index ? null : index)
   }
 
   const scrollToSection = (id) => {
@@ -281,157 +277,7 @@ function LandingPage() {
             Select a funding level that matches your trading goals. All plans include our comprehensive evaluation system.
           </p>
 
-          <div className="challenges-preview-grid">
-            <div className="challenge-preview-card">
-              <h3 className="challenge-preview-name">The $5k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$49</span>
-                <span className="price-period">One time</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row">
-                  <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$500 (10%)</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$400 (8%)</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Min Trading Days</span>
-                  <span className="spec-value spec-value--highlight">5 Days</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Duration</span>
-                  <span className="spec-value">Indefinite</span>
-                </div>
-              </div>
-              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/signup')}>
-                Start Challenge
-              </button>
-              <button
-                className={`challenge-details-toggle ${expandedChallenge === 0 ? 'expanded' : ''}`}
-                onClick={() => toggleChallengeDetails(0)}
-              >
-                More Details
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <ul className={`challenge-preview-features ${expandedChallenge === 0 ? 'expanded' : ''}`}>
-                <li>&#10003; Real-time evaluation</li>
-                <li>&#10003; 24/7 support</li>
-                <li>&#10003; Unlimited retakes</li>
-                <li>&#10003; Fast approval process</li>
-              </ul>
-            </div>
-
-            <div className="challenge-preview-card popular">
-              <span className="popular-badge">Popular</span>
-              <h3 className="challenge-preview-name">The $10k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$99</span>
-                <span className="price-period">One time</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row">
-                  <span className="spec-label">Profit Target</span>
-                  <span className="spec-value">$1,000 (10%)</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Max Drawdown</span>
-                  <span className="spec-value">$800 (8%)</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Min Trading Days</span>
-                  <span className="spec-value spec-value--highlight">5 Days</span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-label">Duration</span>
-                  <span className="spec-value">Indefinite</span>
-                </div>
-              </div>
-              <button className="btn-primary challenge-preview-btn" onClick={() => navigate('/signup')}>
-                Start Challenge
-              </button>
-              <button
-                className={`challenge-details-toggle ${expandedChallenge === 1 ? 'expanded' : ''}`}
-                onClick={() => toggleChallengeDetails(1)}
-              >
-                More Details
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <ul className={`challenge-preview-features ${expandedChallenge === 1 ? 'expanded' : ''}`}>
-                <li>&#10003; Real-time evaluation</li>
-                <li>&#10003; 24/7 support</li>
-                <li>&#10003; Unlimited retakes</li>
-                <li>&#10003; Fast approval process</li>
-                <li>&#10003; Priority review</li>
-              </ul>
-            </div>
-
-            <div className="challenge-preview-card disabled">
-              <h3 className="challenge-preview-name">The $25k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$249</span>
-                <span className="price-period">One time</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$2,500 (10%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$2,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
-              </div>
-              <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
-              <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-              <ul className="challenge-preview-features">
-                <li>&#10003; Real-time evaluation</li><li>&#10003; 24/7 support</li><li>&#10003; Unlimited retakes</li>
-                <li>&#10003; Fast approval process</li><li>&#10003; Priority review</li><li>&#10003; Account Manager</li>
-              </ul>
-            </div>
-
-            <div className="challenge-preview-card disabled">
-              <h3 className="challenge-preview-name">The $50k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$499</span>
-                <span className="price-period">One time</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$5,000 (10%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$4,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
-              </div>
-              <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
-              <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-              <ul className="challenge-preview-features">
-                <li>&#10003; Real-time evaluation</li><li>&#10003; 24/7 support</li><li>&#10003; Unlimited retakes</li>
-                <li>&#10003; Fast approval process</li><li>&#10003; Priority review</li><li>&#10003; Account Manager</li>
-              </ul>
-            </div>
-
-            <div className="challenge-preview-card disabled">
-              <h3 className="challenge-preview-name">The $100k Challenge</h3>
-              <div className="challenge-preview-price">
-                <span className="price">$999</span>
-                <span className="price-period">One time</span>
-              </div>
-              <div className="challenge-preview-specs">
-                <div className="spec-row"><span className="spec-label">Profit Target</span><span className="spec-value">$10,000 (10%)</span></div>
-                <div className="spec-row"><span className="spec-label">Max Drawdown</span><span className="spec-value">$8,000 (8%)</span></div>
-                <div className="spec-row"><span className="spec-label">Min Trading Days</span><span className="spec-value spec-value--highlight">5 Days</span></div>
-                <div className="spec-row"><span className="spec-label">Duration</span><span className="spec-value">Indefinite</span></div>
-              </div>
-              <button className="btn-coming-soon challenge-preview-btn" disabled>Coming Soon</button>
-              <button className="challenge-details-toggle" disabled>More Details <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-              <ul className="challenge-preview-features">
-                <li>&#10003; Real-time evaluation</li><li>&#10003; 24/7 support</li><li>&#10003; Unlimited retakes</li>
-                <li>&#10003; Fast approval process</li><li>&#10003; Priority review</li><li>&#10003; Account Manager</li>
-              </ul>
-            </div>
-          </div>
+          <ChallengeConfigPanel onStart={() => navigate('/signup')} />
 
           <button className="btn-secondary learn-more-btn" onClick={() => navigate('/challenges')}>
             Show More

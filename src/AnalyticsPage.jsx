@@ -274,7 +274,7 @@ export default function AnalyticsPage({ userId, bybitData }) {
           const tradingDays = new Set(
             (accTrades || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
           ).size
-          const baseType = acc.challenge_type.replace(/_archived_\d+$/, '')
+          const baseType = acc.challenge_type.replace('_2step', '').replace(/_archived_\d+$/, '')
           const completedAt = new Date(acc.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
           return { ...acc, baseType, totalPnl, winRate, tradingDays, tradeCount: closed.length, completedAt }
         }))
@@ -696,7 +696,7 @@ export default function AnalyticsPage({ userId, bybitData }) {
                     }
                     {acc.status === 'passed' ? 'Passed' : 'Failed'}
                   </div>
-                  <span className="completed-type">${acc.baseType?.replace('k','K') || acc.challenge_type} Challenge</span>
+                  <span className="completed-type">${acc.baseType?.replace('_2step', '').replace('k','K') || acc.challenge_type} Challenge</span>
                 </div>
                 <div className="completed-stats">
                   <div className="completed-stat">

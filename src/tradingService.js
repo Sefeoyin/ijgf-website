@@ -9,12 +9,38 @@ import { supabase } from './supabase'
 
 // dailyLoss: 0 means "no daily loss limit enforced" — satisfies the NOT NULL
 // constraint on demo_accounts.max_daily_loss while keeping the rule inactive.
+// 1-Step: 10% profit target, 8% max drawdown, 5 min trading days
 const CHALLENGE_CONFIGS = {
-  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 0, maxDrawdown: 400,  minTradingDays: 5 },
-  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: 0, maxDrawdown: 800,  minTradingDays: 5 },
-  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: 0, maxDrawdown: 2000, minTradingDays: 5 },
-  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: 0, maxDrawdown: 4000, minTradingDays: 5 },
-  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 0, maxDrawdown: 8000, minTradingDays: 5 },
+  '5k':   { initial: 5000,   profitTarget: 500,   dailyLoss: 0, maxDrawdown: 400,   minTradingDays: 5 },
+  '10k':  { initial: 10000,  profitTarget: 1000,  dailyLoss: 0, maxDrawdown: 800,   minTradingDays: 5 },
+  '25k':  { initial: 25000,  profitTarget: 2500,  dailyLoss: 0, maxDrawdown: 2000,  minTradingDays: 5 },
+  '50k':  { initial: 50000,  profitTarget: 5000,  dailyLoss: 0, maxDrawdown: 4000,  minTradingDays: 5 },
+  '100k': { initial: 100000, profitTarget: 10000, dailyLoss: 0, maxDrawdown: 8000,  minTradingDays: 5 },
+  '200k': { initial: 200000, profitTarget: 20000, dailyLoss: 0, maxDrawdown: 16000, minTradingDays: 5 },
+}
+
+// 2-Step: Phase 1 (8% profit target, 10% max drawdown, 0 min trading days)
+//         Phase 2 (5% profit target, 10% max drawdown, 0 min trading days)
+// profitTarget and maxDrawdown are absolute dollar amounts derived from initial balance.
+export const CHALLENGE_CONFIGS_2STEP = {
+  '5k':   { initial: 5000,   phase1: { profitTarget: 400,   maxDrawdown: 500,   minTradingDays: 0 }, phase2: { profitTarget: 250,   maxDrawdown: 500,   minTradingDays: 0 } },
+  '10k':  { initial: 10000,  phase1: { profitTarget: 800,   maxDrawdown: 1000,  minTradingDays: 0 }, phase2: { profitTarget: 500,   maxDrawdown: 1000,  minTradingDays: 0 } },
+  '25k':  { initial: 25000,  phase1: { profitTarget: 2000,  maxDrawdown: 2500,  minTradingDays: 0 }, phase2: { profitTarget: 1250,  maxDrawdown: 2500,  minTradingDays: 0 } },
+  '50k':  { initial: 50000,  phase1: { profitTarget: 4000,  maxDrawdown: 5000,  minTradingDays: 0 }, phase2: { profitTarget: 2500,  maxDrawdown: 5000,  minTradingDays: 0 } },
+  '100k': { initial: 100000, phase1: { profitTarget: 8000,  maxDrawdown: 10000, minTradingDays: 0 }, phase2: { profitTarget: 5000,  maxDrawdown: 10000, minTradingDays: 0 } },
+  '200k': { initial: 200000, phase1: { profitTarget: 16000, maxDrawdown: 20000, minTradingDays: 0 }, phase2: { profitTarget: 10000, maxDrawdown: 20000, minTradingDays: 0 } },
+}
+
+// One-time challenge fees by type and account size
+export const CHALLENGE_PRICING = {
+  '1step': { '5k': 58,  '10k': 110, '25k': 250, '50k': 440, '100k': 790,  '200k': 1450 },
+  '2step': { '5k': 50,  '10k': 100, '25k': 230, '50k': 380, '100k': 650,  '200k': 1250 },
+}
+
+// Display-only rules for the Live Stage card (not enforced in trading logic)
+export const LIVE_STAGE_RULES = {
+  '1step': { profitSplit: 80, maxDrawdownPct: 8,  minTradingDays: 0, duration: 'Indefinite', leverage: '1:100' },
+  '2step': { profitSplit: 80, maxDrawdownPct: 10, minTradingDays: 0, duration: 'Indefinite', leverage: '1:100' },
 }
 
 // Platform-wide minimum — fallback if column absent from DB row
@@ -78,7 +104,27 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
     .eq('challenge_type', challengeType)
     .maybeSingle()
 
-  const config = CHALLENGE_CONFIGS[challengeType] || CHALLENGE_CONFIGS['10k']
+  // Derive challenge_variant locally — never accept as a parameter to prevent
+  // callers passing wrong values. 2-step types end with '_2step'.
+  const is2step = challengeType.endsWith('_2step')
+  const challenge_variant = is2step ? '2step' : '1step'
+  const tierKey = is2step ? challengeType.replace('_2step', '') : challengeType
+
+  let config
+  if (is2step) {
+    // 2-step: use Phase 1 values from CHALLENGE_CONFIGS_2STEP
+    const cfg2 = CHALLENGE_CONFIGS_2STEP[tierKey] || CHALLENGE_CONFIGS_2STEP['10k']
+    config = {
+      initial:        cfg2.initial,
+      profitTarget:   cfg2.phase1.profitTarget,
+      dailyLoss:      0,
+      maxDrawdown:    cfg2.phase1.maxDrawdown,
+      minTradingDays: cfg2.phase1.minTradingDays,  // 0
+    }
+  } else {
+    // 1-step: use existing CHALLENGE_CONFIGS (unchanged)
+    config = CHALLENGE_CONFIGS[tierKey] || CHALLENGE_CONFIGS['10k']
+  }
 
   if (existingRow) {
     // Row exists (failed/passed from a prior run) — reset it in-place.
@@ -102,6 +148,10 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
         high_water_mark:     config.initial,
         total_trades:        0,
         winning_trades:      0,
+        challenge_variant,
+        current_phase:       1,
+        phase1_passed:       false,
+        min_trading_days:    config.minTradingDays,
         updated_at:          new Date().toISOString(),
       })
       .eq('id', existingRow.id)
@@ -141,6 +191,10 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
       max_daily_loss:     config.dailyLoss,
       max_total_drawdown: config.maxDrawdown,
       high_water_mark:    config.initial,
+      challenge_variant,
+      current_phase:      1,
+      phase1_passed:      false,
+      min_trading_days:   config.minTradingDays,
     })
     .select()
     .single()
@@ -967,10 +1021,42 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
       (allTrades || []).filter(t => t.is_close === true).map(t => t.executed_at.split('T')[0])
     ).size
 
-    const minDays = CHALLENGE_CONFIGS[account.challenge_type]?.minTradingDays ?? MIN_TRADING_DAYS
+    // Read min_trading_days from DB (written at account creation in Step 4).
+    // Fallback is variant-aware: 2-step requires 0 days, 1-step requires 5.
+    // This ensures correct behavior even for accounts created before Step 4 runs.
+    const minDays = account.min_trading_days != null
+      ? account.min_trading_days
+      : (account.challenge_variant === '2step' ? 0 : MIN_TRADING_DAYS)
 
     if (tradingDays >= minDays) {
-      // All conditions met — mark as passed
+      // ── 2-Step Phase 1 pass ────────────────────────────────────────────────
+      if (account.challenge_variant === '2step' && account.current_phase === 1) {
+        const tierKey = account.challenge_type.replace('_2step', '')
+        const twoStepCfg = CHALLENGE_CONFIGS_2STEP[tierKey]
+        if (!twoStepCfg) throw new Error(`No 2-step config for tier: ${tierKey}`)
+        const p2 = twoStepCfg.phase2
+
+        // 1. Reset balance to original account size FIRST (reuses existing updateAccountBalance).
+        //    updateAccountBalance is a pure DB write — it does NOT call checkChallengeRules.
+        await updateAccountBalance(accountId, account.initial_balance)
+
+        // 2. Update phase tracking + Phase 2 rules. Balance reset is committed above.
+        await supabase
+          .from('demo_accounts')
+          .update({
+            current_phase:      2,
+            phase1_passed:      true,
+            profit_target:      p2.profitTarget,
+            max_total_drawdown: p2.maxDrawdown,
+            min_trading_days:   p2.minTradingDays,
+            updated_at:         new Date().toISOString(),
+          })
+          .eq('id', accountId)
+
+        return { phase1Passed: true, tradingDays }
+      }
+
+      // ── 1-Step pass OR 2-Step Phase 2 pass (identical behavior) ───────────
       await supabase
         .from('demo_accounts')
         .update({ status: 'passed', updated_at: new Date().toISOString() })

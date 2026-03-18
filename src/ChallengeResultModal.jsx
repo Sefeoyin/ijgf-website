@@ -12,11 +12,12 @@
  *   profileImage   string — avatar URL (optional)
  *   account        object — demo account with challenge_type, initial_balance etc.
  *   tradingDays    number
- *   onStartNew     function(challengeType) — resets and starts new challenge
+ *   onStartNew     function(challengeType, mode) — resets and starts new challenge
  *   onDismiss      function — just closes the modal
  */
 
 import { useEffect, useState, useRef } from 'react'
+import { ChallengeAndTierSelector, AccountModeSelector } from './ChallengeSelectSteps'
 
 // ── Motivational quotes for failed challenges ──────────────────────────────
 const FAIL_QUOTES = [
@@ -138,13 +139,20 @@ function ChallengeResultModal({
   const [quote]                  = useState(
     () => FAIL_QUOTES[Math.floor(Math.random() * FAIL_QUOTES.length)]
   )
-  // 'idle' | 'selectTier' | 'selectMode' | 'bybitApi'
-  const [startStep, setStartStep]   = useState('idle')
-  const [selectedTier, setSelectedTier] = useState('10k')
-  const [apiKey, setApiKey]         = useState('')
-  const [apiSecret, setApiSecret]   = useState('')
-  const [apiError, setApiError]     = useState('')
-  const [apiSaving, setApiSaving]   = useState(false)
+
+  // Retry state machine:
+  // 'idle' → 'accountMode' → 'challengeSelect' → 'selectMode' → 'bybitApi'
+  const [startStep, setStartStep]           = useState('idle')
+  const [selectedAccountMode, setSelectedAccountMode] = useState('demo')
+  const [selectedChallengeType, setSelectedChallengeType] = useState('1step')
+  const [selectedTier, setSelectedTier]     = useState('10k')
+  const [apiKey, setApiKey]                 = useState('')
+  const [apiSecret, setApiSecret]           = useState('')
+  const [apiError, setApiError]             = useState('')
+  const [apiSaving, setApiSaving]           = useState(false)
+
+  // Compound key: '10k' | '10k_2step'
+  const challengeTypeKey = selectedTier + (selectedChallengeType === '2step' ? '_2step' : '')
 
   // Animate in
   useEffect(() => {
@@ -152,12 +160,12 @@ function ChallengeResultModal({
     return () => clearTimeout(t)
   }, [])
 
-  // Opens the tier-selection screen first, then mode selection
-  const handleStart = () => setStartStep('selectTier')
+  // Opens the account mode selection screen first
+  const handleStart = () => setStartStep('accountMode')
 
   // User picks IJGF Market — activates demo trading with IJGF MarketsPage
   const handleSelectIJGF = () => {
-    if (onStartNew) onStartNew(selectedTier, 'ijgf')
+    if (onStartNew) onStartNew(challengeTypeKey, 'ijgf')
   }
 
   // User picks Bybit — show API key entry
@@ -172,24 +180,32 @@ function ChallengeResultModal({
     setApiSaving(true)
     setApiError('')
     try {
-      // Write credentials to demo_accounts.
-      // Requires migration: ALTER TABLE demo_accounts
-      //   ADD COLUMN trading_mode TEXT DEFAULT 'ijgf',
-      //   ADD COLUMN bybit_api_key TEXT,
-      //   ADD COLUMN bybit_api_secret TEXT,
-      //   ADD COLUMN bybit_connected_at TIMESTAMPTZ;
+      const { getOrCreateDemoAccount } = await import('./tradingService')
       const { supabase } = await import('./supabase')
+
+      // Resolve userId from the existing account or from the auth session
+      let userId = account?.user_id
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        userId = user?.id
+      }
+
+      // Create (or get) the new challenge account for the selected compound key
+      const newAccount = await getOrCreateDemoAccount(userId, challengeTypeKey)
+
+      // Write Bybit credentials onto the new account row
       const { error } = await supabase
         .from('demo_accounts')
         .update({
-          trading_mode:      'bybit',
-          bybit_api_key:     apiKey.trim(),
-          bybit_api_secret:  apiSecret.trim(),
+          trading_mode:       'bybit',
+          bybit_api_key:      apiKey.trim(),
+          bybit_api_secret:   apiSecret.trim(),
           bybit_connected_at: new Date().toISOString(),
         })
-        .eq('id', account?.id)
+        .eq('id', newAccount.id)
       if (error) throw error
-      if (onStartNew) onStartNew(selectedTier, 'bybit')
+
+      if (onStartNew) onStartNew(challengeTypeKey, 'bybit')
     } catch (err) {
       setApiError(err.message || 'Failed to save API credentials')
     } finally {
@@ -198,8 +214,10 @@ function ChallengeResultModal({
   }
 
   const isPassed = result === 'passed'
+
+  // Strip _2step suffix before display: '10k_2step' → '$10,000'
   const acctSize = account?.challenge_type
-    ? account.challenge_type.replace('k', ',000')
+    ? account.challenge_type.replace('_2step', '').replace('k', ',000')
     : '10,000'
 
   return (
@@ -281,7 +299,6 @@ function ChallengeResultModal({
                 🎉 In live mode, your funded account would now be activated. For this demo, start a new challenge to keep practising.
               </div>
 
-              {/* ── Start New Challenge: mode picker / Bybit API ──── */}
               {startStep === 'idle' && (
                 <div className="cr-actions">
                   <button className="cr-btn-primary" onClick={handleStart}>
@@ -290,99 +307,6 @@ function ChallengeResultModal({
                   <button className="cr-btn-ghost" onClick={onDismiss}>
                     View Dashboard
                   </button>
-                </div>
-              )}
-
-
-              {startStep === 'selectTier' && (
-                <div className="cr-mode-picker">
-                  <p className="cr-mode-title">Select Challenge Size</p>
-                  {[
-                    { key: '5k',   label: '$5,000',    sub: 'Target: $500 · Drawdown: $400' },
-                    { key: '10k',  label: '$10,000',   sub: 'Target: $1,000 · Drawdown: $800' },
-                    { key: '25k',  label: '$25,000',   sub: 'Target: $2,500 · Drawdown: $2,000' },
-                    { key: '50k',  label: '$50,000',   sub: 'Target: $5,000 · Drawdown: $4,000' },
-                    { key: '100k', label: '$100,000',  sub: 'Target: $10,000 · Drawdown: $8,000' },
-                  ].map(tier => (
-                    <button
-                      key={tier.key}
-                      className={`cr-mode-btn ${selectedTier === tier.key ? 'cr-mode-btn-selected' : ''}`}
-                      onClick={() => { setSelectedTier(tier.key); setStartStep('selectMode') }}
-                    >
-                      <span className="cr-mode-icon">💰</span>
-                      <div className="cr-mode-info">
-                        <span className="cr-mode-name">{tier.label} Challenge</span>
-                        <span className="cr-mode-desc">{tier.sub}</span>
-                      </div>
-                    </button>
-                  ))}
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
-                    ← Back
-                  </button>
-                </div>
-              )}
-
-              {startStep === 'selectMode' && (
-                <div className="cr-mode-picker">
-                  <p className="cr-mode-title">How would you like to trade?</p>
-                  <button className="cr-mode-btn" onClick={handleSelectIJGF}>
-                    <span className="cr-mode-icon">🚀</span>
-                    <div className="cr-mode-info">
-                      <span className="cr-mode-name">IJGF Market</span>
-                      <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
-                    </div>
-                  </button>
-                  <button className="cr-mode-btn" onClick={handleSelectBybit}>
-                    <span className="cr-mode-icon">🔗</span>
-                    <div className="cr-mode-info">
-                      <span className="cr-mode-name">Connect Bybit</span>
-                      <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
-                    </div>
-                  </button>
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('selectTier')}>
-                    ← Back
-                  </button>
-                </div>
-              )}
-
-              {startStep === 'bybitApi' && (
-                <div className="cr-bybit-form">
-                  <p className="cr-mode-title">Connect Bybit Demo Account</p>
-                  <p className="cr-bybit-hint">
-                    Create a <strong>read + trade</strong> API key on Bybit Testnet. Do not enable withdrawals.
-                  </p>
-                  {apiError && (
-                    <div className="cr-api-error">{apiError}</div>
-                  )}
-                  <label className="cr-api-label">API Key</label>
-                  <input
-                    className="cr-api-input"
-                    type="password"
-                    placeholder="Paste Bybit API key"
-                    value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
-                  />
-                  <label className="cr-api-label">API Secret</label>
-                  <input
-                    className="cr-api-input"
-                    type="password"
-                    placeholder="Paste Bybit API secret"
-                    value={apiSecret}
-                    onChange={e => setApiSecret(e.target.value)}
-                  />
-                  <div className="cr-actions" style={{marginTop:16}}>
-                    <button
-                      className="cr-btn-primary"
-                      onClick={handleSaveBybit}
-                      disabled={apiSaving}
-                      style={{opacity: apiSaving ? 0.7 : 1}}
-                    >
-                      {apiSaving ? 'Connecting...' : 'Connect & Start Challenge'}
-                    </button>
-                    <button className="cr-btn-ghost" onClick={() => setStartStep('selectMode')}>
-                      ← Back
-                    </button>
-                  </div>
                 </div>
               )}
             </>
@@ -458,99 +382,119 @@ function ChallengeResultModal({
                   </button>
                 </div>
               )}
-
-
-              {startStep === 'selectTier' && (
-                <div className="cr-mode-picker">
-                  <p className="cr-mode-title">Select Challenge Size</p>
-                  {[
-                    { key: '5k',   label: '$5,000',    sub: 'Target: $500 · Drawdown: $400' },
-                    { key: '10k',  label: '$10,000',   sub: 'Target: $1,000 · Drawdown: $800' },
-                    { key: '25k',  label: '$25,000',   sub: 'Target: $2,500 · Drawdown: $2,000' },
-                    { key: '50k',  label: '$50,000',   sub: 'Target: $5,000 · Drawdown: $4,000' },
-                    { key: '100k', label: '$100,000',  sub: 'Target: $10,000 · Drawdown: $8,000' },
-                  ].map(tier => (
-                    <button
-                      key={tier.key}
-                      className={`cr-mode-btn ${selectedTier === tier.key ? 'cr-mode-btn-selected' : ''}`}
-                      onClick={() => { setSelectedTier(tier.key); setStartStep('selectMode') }}
-                    >
-                      <span className="cr-mode-icon">💰</span>
-                      <div className="cr-mode-info">
-                        <span className="cr-mode-name">{tier.label} Challenge</span>
-                        <span className="cr-mode-desc">{tier.sub}</span>
-                      </div>
-                    </button>
-                  ))}
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('idle')}>
-                    ← Back
-                  </button>
-                </div>
-              )}              {startStep === 'selectMode' && (
-                <div className="cr-mode-picker">
-                  <p className="cr-mode-title">How would you like to trade?</p>
-                  <button className="cr-mode-btn" onClick={handleSelectIJGF}>
-                    <span className="cr-mode-icon">🚀</span>
-                    <div className="cr-mode-info">
-                      <span className="cr-mode-name">IJGF Market</span>
-                      <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
-                    </div>
-                  </button>
-                  <button className="cr-mode-btn" onClick={handleSelectBybit}>
-                    <span className="cr-mode-icon">🔗</span>
-                    <div className="cr-mode-info">
-                      <span className="cr-mode-name">Connect Bybit</span>
-                      <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
-                    </div>
-                  </button>
-                  <button className="cr-btn-ghost" style={{marginTop:4}} onClick={() => setStartStep('selectTier')}>
-                    ← Back
-                  </button>
-                </div>
-              )}
-
-              {startStep === 'bybitApi' && (
-                <div className="cr-bybit-form">
-                  <p className="cr-mode-title">Connect Bybit Demo Account</p>
-                  <p className="cr-bybit-hint">
-                    Create a <strong>read + trade</strong> API key on Bybit Testnet. Do not enable withdrawals.
-                  </p>
-                  {apiError && (
-                    <div className="cr-api-error">{apiError}</div>
-                  )}
-                  <label className="cr-api-label">API Key</label>
-                  <input
-                    className="cr-api-input"
-                    type="password"
-                    placeholder="Paste Bybit API key"
-                    value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
-                  />
-                  <label className="cr-api-label">API Secret</label>
-                  <input
-                    className="cr-api-input"
-                    type="password"
-                    placeholder="Paste Bybit API secret"
-                    value={apiSecret}
-                    onChange={e => setApiSecret(e.target.value)}
-                  />
-                  <div className="cr-actions" style={{marginTop:16}}>
-                    <button
-                      className="cr-btn-primary"
-                      onClick={handleSaveBybit}
-                      disabled={apiSaving}
-                      style={{opacity: apiSaving ? 0.7 : 1}}
-                    >
-                      {apiSaving ? 'Connecting...' : 'Connect & Start Challenge'}
-                    </button>
-                    <button className="cr-btn-ghost" onClick={() => setStartStep('selectMode')}>
-                      ← Back
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           )}
+
+          {/* ── SHARED RETRY STEPS — outside both passed/failed blocks ────── */}
+
+          {startStep === 'accountMode' && (
+            <div className="cr-mode-picker">
+              <p className="cr-mode-title">Select Account Type</p>
+              <AccountModeSelector
+                value={selectedAccountMode}
+                onChange={setSelectedAccountMode}
+              />
+              <div className="cr-actions" style={{ marginTop: 12 }}>
+                <button
+                  className="cr-btn-primary"
+                  onClick={() => setStartStep('challengeSelect')}
+                >
+                  Continue →
+                </button>
+                <button className="cr-btn-ghost" onClick={() => setStartStep('idle')}>
+                  ← Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {startStep === 'challengeSelect' && (
+            <div className="cr-mode-picker">
+              <p className="cr-mode-title">Select Challenge</p>
+              <ChallengeAndTierSelector
+                selectedChallengeType={selectedChallengeType}
+                setSelectedChallengeType={setSelectedChallengeType}
+                selectedTier={selectedTier}
+                setSelectedTier={setSelectedTier}
+              />
+              <div className="cr-actions" style={{ marginTop: 12 }}>
+                <button
+                  className="cr-btn-primary"
+                  onClick={() => setStartStep('selectMode')}
+                >
+                  Continue →
+                </button>
+                <button className="cr-btn-ghost" onClick={() => setStartStep('accountMode')}>
+                  ← Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {startStep === 'selectMode' && (
+            <div className="cr-mode-picker">
+              <p className="cr-mode-title">How would you like to trade?</p>
+              <button className="cr-mode-btn" onClick={handleSelectIJGF}>
+                <span className="cr-mode-icon">🚀</span>
+                <div className="cr-mode-info">
+                  <span className="cr-mode-name">IJGF Market</span>
+                  <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
+                </div>
+              </button>
+              <button className="cr-mode-btn" onClick={handleSelectBybit}>
+                <span className="cr-mode-icon">🔗</span>
+                <div className="cr-mode-info">
+                  <span className="cr-mode-name">Connect Bybit</span>
+                  <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>
+                </div>
+              </button>
+              <button className="cr-btn-ghost" style={{ marginTop: 4 }} onClick={() => setStartStep('challengeSelect')}>
+                ← Back
+              </button>
+            </div>
+          )}
+
+          {startStep === 'bybitApi' && (
+            <div className="cr-bybit-form">
+              <p className="cr-mode-title">Connect Bybit Demo Account</p>
+              <p className="cr-bybit-hint">
+                Create a <strong>read + trade</strong> API key on Bybit Testnet. Do not enable withdrawals.
+              </p>
+              {apiError && (
+                <div className="cr-api-error">{apiError}</div>
+              )}
+              <label className="cr-api-label">API Key</label>
+              <input
+                className="cr-api-input"
+                type="password"
+                placeholder="Paste Bybit API key"
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+              />
+              <label className="cr-api-label">API Secret</label>
+              <input
+                className="cr-api-input"
+                type="password"
+                placeholder="Paste Bybit API secret"
+                value={apiSecret}
+                onChange={e => setApiSecret(e.target.value)}
+              />
+              <div className="cr-actions" style={{ marginTop: 16 }}>
+                <button
+                  className="cr-btn-primary"
+                  onClick={handleSaveBybit}
+                  disabled={apiSaving}
+                  style={{ opacity: apiSaving ? 0.7 : 1 }}
+                >
+                  {apiSaving ? 'Connecting...' : 'Connect & Start Challenge'}
+                </button>
+                <button className="cr-btn-ghost" onClick={() => setStartStep('selectMode')}>
+                  ← Back
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
