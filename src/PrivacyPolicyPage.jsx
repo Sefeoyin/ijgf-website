@@ -49,6 +49,7 @@ function PrivacyPolicyPage() {
               <li>Improve our services and develop new features including premium analytics tools</li>
               <li>Prevent fraud, ensure platform security, and comply with legal obligations</li>
               <li>Enforce our Terms of Service and protect our rights</li>
+              <li>Power the Fenix AI Assistant — your trading account data (balance, trade history, open positions) and conversation inputs are processed by our AI provider solely to generate your requested analysis. This data is not used to train AI models and is not retained beyond the session by our AI provider.</li>
             </ul>
           </section>
 
@@ -60,6 +61,7 @@ function PrivacyPolicyPage() {
               <li><strong>KYC/Verification Providers:</strong> Sumsub, Onfido, or Jumio for identity verification and regulatory compliance</li>
               <li><strong>Cloud Infrastructure:</strong> Vercel (hosting), Supabase (backend/database)</li>
               <li><strong>Exchange APIs:</strong> Binance, Bybit, OKX, Bitget for trade execution monitoring and analytics</li>
+              <li><strong>AI Provider (Fenix Assistant):</strong> When you use the Fenix AI Assistant, your trading account data and conversation inputs are transmitted to our AI provider (Anthropic) to generate responses. This is limited to data necessary to answer your query. Our AI provider does not use this data for model training. See Anthropic's privacy policy at anthropic.com for details.</li>
               <li><strong>Analytics Services:</strong> Google Analytics or similar for platform performance and user behavior analysis</li>
               <li><strong>Email Services:</strong> For transactional emails and notifications</li>
               <li><strong>Customer Support Tools:</strong> For ticket management and user assistance</li>
