@@ -597,10 +597,9 @@ export default function FenixAssistant({ userId }) {
         .fenix-input {
           flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);
           border-radius: 9px; padding: 8px 10px; color: var(--text-primary);
-          font-family: 'Space Mono', monospace; font-size: 16px;
+          font-family: 'Space Mono', monospace; font-size: 11px;
           resize: none; outline: none; transition: border-color 0.15s;
           min-height: 35px; max-height: 88px; line-height: 1.5;
-          touch-action: manipulation;
         }
         .fenix-input:focus { border-color: rgba(124,58,237,0.42); }
         .fenix-input::placeholder { color: var(--text-muted); }
@@ -610,10 +609,11 @@ export default function FenixAssistant({ userId }) {
           border: none; cursor: pointer; display: flex; align-items: center;
           justify-content: center; flex-shrink: 0;
           transition: filter 0.15s, transform 0.15s;
+          color: #ffffff; line-height: 1; padding: 0;
         }
         .fenix-send-btn:hover:not(:disabled) { filter: brightness(1.1); transform: scale(1.04); }
         .fenix-send-btn:disabled { opacity: 0.36; cursor: not-allowed; transform: none; }
-        .fenix-send-btn svg { width: 14px; height: 14px; }
+        .fenix-send-btn svg { display: block; width: 16px; height: 16px; overflow: visible; }
 
         .fenix-disclaimer {
           padding: 6px 14px 2px; text-align: center;
@@ -779,8 +779,8 @@ export default function FenixAssistant({ userId }) {
               disabled={isTyping || !input.trim()}
               aria-label="Send message"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="white"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{display:'block',flexShrink:0}}>
+                <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="#ffffff"/>
               </svg>
             </button>
           </div>
