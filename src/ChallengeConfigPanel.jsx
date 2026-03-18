@@ -18,6 +18,7 @@
  */
 
 import { useState } from 'react'
+import { Zap, Target } from 'lucide-react'
 
 // ─── Display-only constants (keep in sync with tradingService.js) ────────────
 
@@ -133,8 +134,8 @@ export function ChallengeConfigPanel({ onStart }) {
       {/* ── 1. Challenge type toggle ─────────────────────────────────── */}
       <div className="ccp-toggle-track">
         {[
-          { key: '1step', icon: '⚡', label: '1-Step Challenge' },
-          { key: '2step', icon: '🎯', label: '2-Step Challenge' },
+          { key: '1step', Icon: Zap,    label: '1-Step Challenge' },
+          { key: '2step', Icon: Target, label: '2-Step Challenge' },
         ].map(opt => (
           <button
             key={opt.key}
@@ -144,7 +145,7 @@ export function ChallengeConfigPanel({ onStart }) {
               ? { background: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', boxShadow: '0 4px 14px rgba(14,165,233,0.35)' }
               : undefined}
           >
-            <span className="ccp-toggle-icon">{opt.icon}</span>
+            <opt.Icon size={18} strokeWidth={2.5} className="ccp-toggle-icon" />
             {opt.label}
           </button>
         ))}

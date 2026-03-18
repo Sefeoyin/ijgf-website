@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
+import { Rocket, Link2 } from 'lucide-react'
 import { ChallengeAndTierSelector, AccountModeSelector } from './ChallengeSelectSteps'
 
 // ── Motivational quotes for failed challenges ──────────────────────────────
@@ -435,14 +436,14 @@ function ChallengeResultModal({
             <div className="cr-mode-picker">
               <p className="cr-mode-title">How would you like to trade?</p>
               <button className="cr-mode-btn" onClick={handleSelectIJGF}>
-                <span className="cr-mode-icon">🚀</span>
+                <span className="cr-mode-icon"><Rocket size={20} strokeWidth={1.75} /></span>
                 <div className="cr-mode-info">
                   <span className="cr-mode-name">IJGF Market</span>
                   <span className="cr-mode-desc">Trade Binance tokens inside this platform</span>
                 </div>
               </button>
               <button className="cr-mode-btn" onClick={handleSelectBybit}>
-                <span className="cr-mode-icon">🔗</span>
+                <span className="cr-mode-icon"><Link2 size={20} strokeWidth={1.75} /></span>
                 <div className="cr-mode-info">
                   <span className="cr-mode-name">Connect Bybit</span>
                   <span className="cr-mode-desc">Trade on your Bybit demo futures terminal</span>

@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(wc -l /c/Users/hp/Desktop/ijgf-waitlist/src/*.js /c/Users/hp/Desktop/ijgf-waitlist/src/*.jsx)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node node_modules/.bin/npm install lucide-react --save)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install lucide-react --save)"
     ]
   }
 }

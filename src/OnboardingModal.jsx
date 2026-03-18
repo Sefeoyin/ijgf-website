@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react'
+import { Rocket, Link2 } from 'lucide-react'
 import { supabase } from './supabase'
 import { getOrCreateDemoAccount, CHALLENGE_PRICING, CHALLENGE_CONFIGS_2STEP } from './tradingService'
 import { ChallengeAndTierSelector, AccountModeSelector } from './ChallengeSelectSteps'
@@ -197,7 +198,7 @@ export default function OnboardingModal({ userId, onComplete }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px',
               }}>
-                <span style={{ fontSize: '1.6rem' }}>🚀</span>
+                <Rocket size={28} strokeWidth={1.75} />
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: '1.3rem', fontWeight: 700, color: '#eaecef' }}>
                 Welcome to IJGF!
@@ -322,9 +323,9 @@ export default function OnboardingModal({ userId, onComplete }) {
                   width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                   background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.3rem',
+                  color: 'rgba(168,85,247,0.9)',
                 }}>
-                  🚀
+                  <Rocket size={20} strokeWidth={1.75} />
                 </div>
                 <div>
                   <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 3 }}>IJGF Market</div>
@@ -358,9 +359,9 @@ export default function OnboardingModal({ userId, onComplete }) {
                   width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                   background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.3rem',
+                  color: 'rgba(245,158,11,0.9)',
                 }}>
-                  🔗
+                  <Link2 size={20} strokeWidth={1.75} />
                 </div>
                 <div>
                   <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 3 }}>Connect Bybit</div>
@@ -399,9 +400,9 @@ export default function OnboardingModal({ userId, onComplete }) {
                 width: 48, height: 48, borderRadius: 12,
                 background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 14px', fontSize: '1.4rem',
+                margin: '0 auto 14px', color: 'rgba(245,158,11,0.9)',
               }}>
-                🔗
+                <Link2 size={22} strokeWidth={1.75} />
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: '1.15rem', fontWeight: 700, color: '#eaecef' }}>
                 Connect Bybit Account

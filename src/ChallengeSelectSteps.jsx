@@ -11,6 +11,8 @@
  * Both use CSS variables for light/dark mode compatibility.
  */
 
+import { Zap, Target, Monitor, Briefcase } from 'lucide-react'
+
 // ─── Display-only constants ───────────────────────────────────────────────────
 // Inlined here to avoid importing tradingService.js (which carries a Supabase
 // dependency). The authoritative values live in tradingService.js — keep in sync.
@@ -76,8 +78,8 @@ export function ChallengeAndTierSelector({
         marginBottom: 8,
       }}>
         {[
-          { key: '1step', label: '⚡ 1-Step', activeGrad: 'linear-gradient(135deg, #7c3aed, #a855f7)' },
-          { key: '2step', label: '🎯 2-Step', activeGrad: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
+          { key: '1step', Icon: Zap,    label: '1-Step', activeGrad: 'linear-gradient(135deg, #7c3aed, #a855f7)' },
+          { key: '2step', Icon: Target, label: '2-Step', activeGrad: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
         ].map(opt => {
           const active = selectedChallengeType === opt.key
           return (
@@ -92,8 +94,10 @@ export function ChallengeAndTierSelector({
                 color: active ? '#ffffff' : 'rgba(255,255,255,0.45)',
                 fontWeight: 700, fontSize: '0.88rem',
                 letterSpacing: 0.2,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}
             >
+              <opt.Icon size={15} strokeWidth={2.5} />
               {opt.label}
             </button>
           )
@@ -156,26 +160,28 @@ export function ChallengeAndTierSelector({
                   : 'rgba(255,255,255,0.08)'}`,
                 borderRadius: 12, padding: '12px 14px',
                 cursor: 'pointer', transition: 'all 0.15s',
-                textAlign: 'left', width: '100%', position: 'relative',
+                textAlign: 'left', width: '100%',
+                position: 'relative', overflow: 'visible',
               }}
             >
               {/* Popular badge — 10k only */}
               {t.key === '10k' && (
                 <span style={{
-                  position: 'absolute', top: 8, right: 8,
+                  position: 'absolute', top: -10, right: 10,
                   fontSize: '0.58rem', fontWeight: 700, letterSpacing: 0.4,
                   background: 'rgba(34,197,94,0.15)', color: '#22c55e',
                   border: '1px solid rgba(34,197,94,0.3)',
                   borderRadius: 20, padding: '2px 6px',
+                  whiteSpace: 'nowrap',
                 }}>
                   POPULAR
                 </span>
               )}
 
-              {/* Account size */}
+              {/* Account size — always text-primary regardless of selection */}
               <div style={{
                 fontSize: '1rem', fontWeight: 800,
-                color: sel ? (is2step ? '#38bdf8' : '#a78bfa') : 'var(--text-primary, #eaecef)',
+                color: 'var(--text-primary, #eaecef)',
                 marginBottom: 4,
               }}>
                 {t.label}
@@ -213,14 +219,14 @@ const ACCOUNT_MODES = [
     key:      'demo',
     label:    'Demo Account',
     desc:     'Practice with simulated funds — same challenge rules',
-    icon:     '🎮',
+    Icon:     Monitor,
     disabled: false,
   },
   {
     key:      'live',
     label:    'Live Account',
     desc:     'Real capital allocation',
-    icon:     '💼',
+    Icon:     Briefcase,
     disabled: true,
   },
 ]
@@ -255,9 +261,9 @@ export function AccountModeSelector({ value, onChange }) {
               background: sel ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${sel ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.08)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.25rem',
+              color: sel ? '#a78bfa' : 'rgba(255,255,255,0.55)',
             }}>
-              {mode.icon}
+              <mode.Icon size={20} strokeWidth={1.75} />
             </div>
 
             {/* Text */}
