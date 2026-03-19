@@ -17,7 +17,7 @@
  * CHALLENGE_PRICING in tradingService.js.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Zap, Target } from 'lucide-react'
 
 // ─── Display-only constants (keep in sync with tradingService.js) ────────────
@@ -133,9 +133,6 @@ export function ChallengeConfigPanel({ onStart }) {
   const [selectedTier,  setSelectedTier]  = useState('25k')
   const [featuresOpen,  setFeaturesOpen]  = useState(false)
 
-  // Reset features collapse when tier changes
-  useEffect(() => { setFeaturesOpen(false) }, [selectedTier])
-
   const fee        = PRICING[challengeType]?.[selectedTier]
   const tier       = TIERS.find(t => t.key === selectedTier)
   const phaseCards = getPhaseCards(challengeType, selectedTier)
@@ -185,7 +182,7 @@ export function ChallengeConfigPanel({ onStart }) {
                   background: 'rgba(14,165,233,0.12)',
                   color: '#38bdf8',
                 } : undefined}
-                onClick={() => setSelectedTier(t.key)}
+                onClick={() => { setFeaturesOpen(false); setSelectedTier(t.key) }}
               >
                 {t.label}
                 {t.key === '10k' && <span className="ccp-size-popular">Popular</span>}
