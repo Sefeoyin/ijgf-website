@@ -5,7 +5,8 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(node node_modules/.bin/npm install lucide-react --save)",
       "Bash(\"/c/Program Files/nodejs/npm.cmd\" install lucide-react --save)",
-      "Bash(\"/c/Program Files/nodejs/npm.cmd\" run build)"
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" run build)",
+      "Bash(npm run:*)"
     ]
   }
 }

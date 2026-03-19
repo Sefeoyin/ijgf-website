@@ -1999,7 +1999,7 @@ body[data-theme="day"] .step-card p {
 
 .challenges-section .section-container {
   max-width: 1600px;
-  padding: 0 1rem;
+  padding: 0 24px;
 }
 
 .challenges-section::before {
@@ -4164,13 +4164,13 @@ body[data-theme="day"] .footer {
     height: 36px;
   }
 
-  /* Challenges Preview - Horizontal Scroll on Mobile */
+  /* Challenges Preview - Mobile */
   .challenges-section {
     padding: 60px 0;
   }
 
   .challenges-section .section-container {
-    padding: 0;
+    padding: 0 16px;
   }
 
   .challenges-section .section-title,

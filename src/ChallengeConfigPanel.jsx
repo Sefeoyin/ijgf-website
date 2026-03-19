@@ -315,24 +315,23 @@ export function ChallengeConfigPanel({ onStart }) {
 
         /* ── Account size selector ────────────────────────────────── */
         .ccp-sizes-scroll {
-          overflow-x: auto;
           margin-bottom: 20px;
-          scrollbar-width: none;
-          -webkit-overflow-scrolling: touch;
         }
-        .ccp-sizes-scroll::-webkit-scrollbar { display: none; }
 
         .ccp-sizes {
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
-          min-width: max-content;
         }
 
         .ccp-size-btn {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
-          flex-shrink: 0;
+          flex: 1 1 auto;
+          min-width: 80px;
+          text-align: center;
           padding: 10px 22px;
           border-radius: 10px;
           border: 1.5px solid var(--border-color, rgba(255,255,255,0.08));
@@ -506,6 +505,10 @@ export function ChallengeConfigPanel({ onStart }) {
 
         /* ── Mobile ───────────────────────────────────────────────── */
         @media (max-width: 768px) {
+          .ccp-wrapper {
+            padding: 0 16px;
+          }
+
           .ccp-toggle-track {
             width: 100%;
             border-radius: 14px;
@@ -517,10 +520,6 @@ export function ChallengeConfigPanel({ onStart }) {
             padding: 10px 12px;
             border-radius: 11px;
             font-size: 0.83rem;
-          }
-
-          .ccp-size-btn {
-            min-width: 70px;
           }
 
           .ccp-cards {
