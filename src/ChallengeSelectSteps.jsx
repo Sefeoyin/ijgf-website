@@ -128,13 +128,11 @@ export function ChallengeAndTierSelector({
                 borderColor: `rgba(${accentRgb},0.6)`,
               } : undefined}
             >
-              {/* Popular badge — 10k only */}
-              {t.key === '10k' && (
-                <span className="cst-popular-badge">POPULAR</span>
-              )}
-
-              {/* Account size — always --text-primary */}
-              <div className="cst-tier-label">{t.label}</div>
+              {/* Account size + inline popular badge */}
+              <div className="cst-tier-label">
+                {t.label}
+                {t.key === '10k' && <span className="cst-popular-badge">POPULAR</span>}
+              </div>
 
               {/* Fee */}
               <div className="cst-tier-fee" style={{
@@ -219,26 +217,27 @@ export function ChallengeAndTierSelector({
           border-color: var(--border-accent);
         }
 
-        .cst-popular-badge {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.4px;
-          background: rgba(34,197,94,0.85);
-          color: white;
-          border-radius: 4px;
-          padding: 2px 6px;
-          white-space: nowrap;
-        }
-
         .cst-tier-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           font-size: 1rem;
           font-weight: 700;
           color: var(--text-primary);
           opacity: 1;
           margin-bottom: 4px;
+        }
+
+        .cst-popular-badge {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.3px;
+          background: rgba(34,197,94,0.85);
+          color: white;
+          border-radius: 999px;
+          padding: 2px 8px;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .cst-tier-fee {
@@ -380,13 +379,13 @@ const ACCOUNT_MODES = [
 
 export function AccountModeSelector({ value, onChange }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="cst-ams-root">
       {ACCOUNT_MODES.map(mode => {
         const sel = !mode.disabled && value === mode.key
         const cardClass = [
-          'cst-mode-card',
-          sel            ? 'cst-mode-card--sel'      : '',
-          mode.disabled  ? 'cst-mode-card--disabled' : '',
+          'cst-ams-card',
+          sel           ? 'cst-ams-card--sel'      : '',
+          mode.disabled ? 'cst-ams-card--disabled' : '',
         ].filter(Boolean).join(' ')
 
         return (
@@ -395,31 +394,138 @@ export function AccountModeSelector({ value, onChange }) {
             className={cardClass}
             onClick={() => { if (!mode.disabled) onChange(mode.key) }}
           >
-            {/* Icon */}
-            <div className="cst-mode-icon-wrap">
-              <mode.Icon size={20} strokeWidth={1.75} />
-            </div>
-
-            {/* Text */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <span className="cst-mode-title">{mode.label}</span>
-                {mode.disabled && (
-                  <span className="cst-coming-soon">Coming Soon</span>
-                )}
+            {/* Row 1: Icon · Title · Badge · Radio */}
+            <div className="cst-ams-row1">
+              <div className="cst-ams-icon">
+                <mode.Icon size={20} strokeWidth={1.75} />
               </div>
-              <div className="cst-mode-desc">{mode.desc}</div>
+              <span className="cst-ams-title">{mode.label}</span>
+              {mode.disabled && (
+                <span className="cst-ams-badge">Coming Soon</span>
+              )}
+              {!mode.disabled && (
+                <div className={`cst-ams-radio${sel ? ' cst-ams-radio--sel' : ''}`}>
+                  {sel && <div className="cst-ams-dot" />}
+                </div>
+              )}
             </div>
-
-            {/* Radio indicator (non-disabled only) */}
-            {!mode.disabled && (
-              <div className="cst-radio">
-                {sel && <div className="cst-radio-dot" />}
-              </div>
-            )}
+            {/* Row 2: Description */}
+            <p className="cst-ams-desc">{mode.desc}</p>
           </div>
         )
       })}
+
+      <style>{`
+        .cst-ams-root {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .cst-ams-card {
+          background: var(--bg-card-solid, #0d0d14);
+          border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+          border-radius: 14px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.15s;
+          user-select: none;
+        }
+
+        .cst-ams-card--sel {
+          border-color: var(--accent-primary, #7c3aed);
+          background: rgba(124,58,237,0.08);
+        }
+
+        .cst-ams-card--disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .cst-ams-row1 {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 6px;
+        }
+
+        .cst-ams-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          flex-shrink: 0;
+          background: var(--bg-card-hover, rgba(255,255,255,0.06));
+          border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+          transition: all 0.15s;
+        }
+
+        .cst-ams-card--sel .cst-ams-icon {
+          background: rgba(124,58,237,0.15);
+          border-color: rgba(124,58,237,0.35);
+          color: var(--accent-light, #a855f7);
+        }
+
+        .cst-ams-title {
+          flex: 1;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          transition: color 0.15s;
+        }
+
+        .cst-ams-card--sel .cst-ams-title {
+          color: var(--accent-light, #a855f7);
+        }
+
+        .cst-ams-badge {
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          background: rgba(245,158,11,0.15);
+          color: #f59e0b;
+          border: 1px solid rgba(245,158,11,0.3);
+          border-radius: 20px;
+          padding: 2px 7px;
+          text-transform: uppercase;
+        }
+
+        .cst-ams-radio {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          border: 2px solid var(--border-color, rgba(255,255,255,0.2));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s;
+        }
+
+        .cst-ams-radio--sel {
+          border-color: var(--accent-primary, #7c3aed);
+          background: var(--accent-primary, #7c3aed);
+        }
+
+        .cst-ams-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: white;
+        }
+
+        .cst-ams-desc {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+          margin: 0;
+          padding-left: 46px;
+        }
+      `}</style>
     </div>
   )
 }

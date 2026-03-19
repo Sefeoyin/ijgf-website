@@ -17,7 +17,7 @@
  * CHALLENGE_PRICING in tradingService.js.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Zap, Target } from 'lucide-react'
 
 // ─── Display-only constants (keep in sync with tradingService.js) ────────────
@@ -34,6 +34,15 @@ const TIERS = [
 const PRICING = {
   '1step': { '5k': 58,  '10k': 110, '25k': 250, '50k': 440, '100k': 790,  '200k': 1450 },
   '2step': { '5k': 50,  '10k': 100, '25k': 230, '50k': 380, '100k': 650,  '200k': 1250 },
+}
+
+const TIER_FEATURES = {
+  '5k':   ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process'],
+  '10k':  ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process', 'Priority review'],
+  '25k':  ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process', 'Priority review', 'Account Manager'],
+  '50k':  ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process', 'Priority review', 'Account Manager'],
+  '100k': ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process', 'Priority review', 'Account Manager'],
+  '200k': ['Real-time evaluation', '24/7 support', 'Instant account activation', 'Fast approval process', 'Priority review', 'Account Manager'],
 }
 
 // ─── Phase card data ─────────────────────────────────────────────────────────
@@ -122,6 +131,10 @@ function getPhaseCards(challengeType, tierKey) {
 export function ChallengeConfigPanel({ onStart }) {
   const [challengeType, setChallengeType] = useState('1step')
   const [selectedTier,  setSelectedTier]  = useState('25k')
+  const [featuresOpen,  setFeaturesOpen]  = useState(false)
+
+  // Reset features collapse when tier changes
+  useEffect(() => { setFeaturesOpen(false) }, [selectedTier])
 
   const fee        = PRICING[challengeType]?.[selectedTier]
   const tier       = TIERS.find(t => t.key === selectedTier)
@@ -175,9 +188,7 @@ export function ChallengeConfigPanel({ onStart }) {
                 onClick={() => setSelectedTier(t.key)}
               >
                 {t.label}
-                {t.key === '10k' && (
-                  <span className="ccp-size-popular">Popular</span>
-                )}
+                {t.key === '10k' && <span className="ccp-size-popular">Popular</span>}
               </button>
             )
           })}
@@ -201,6 +212,29 @@ export function ChallengeConfigPanel({ onStart }) {
                   <span className="ccp-row-value">{row.value}</span>
                 </div>
               ))}
+
+              {/* Collapsible features — Phase 1 card only */}
+              {i === 0 && (
+                <>
+                  <div
+                    className="ccp-features-trigger"
+                    onClick={() => setFeaturesOpen(o => !o)}
+                  >
+                    <span>Features</span>
+                    <span className={`ccp-features-chevron${featuresOpen ? ' ccp-features-chevron--open' : ''}`}>∨</span>
+                  </div>
+                  <div className={`ccp-features-body${featuresOpen ? ' ccp-features-body--open' : ''}`}>
+                    {(TIER_FEATURES[selectedTier] || []).map((f, fi) => (
+                      <div key={fi} className="ccp-feature-row">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -298,7 +332,9 @@ export function ChallengeConfigPanel({ onStart }) {
         }
 
         .ccp-size-btn {
-          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 6px;
           flex-shrink: 0;
           padding: 10px 22px;
           border-radius: 10px;
@@ -324,16 +360,15 @@ export function ChallengeConfigPanel({ onStart }) {
         }
 
         .ccp-size-popular {
-          position: absolute;
-          top: 8px;
-          right: 8px;
           font-size: 10px;
           font-weight: 700;
-          letter-spacing: 0.4px;
+          letter-spacing: 0.3px;
           background: rgba(34,197,94,0.85);
           color: white;
-          border-radius: 4px;
-          padding: 2px 6px;
+          border-radius: 999px;
+          padding: 2px 8px;
+          margin-left: 2px;
+          flex-shrink: 0;
         }
 
         /* ── Phase info cards ─────────────────────────────────────── */
@@ -536,6 +571,49 @@ export function ChallengeConfigPanel({ onStart }) {
 
         body[data-theme="day"] .ccp-toggle-track {
           background: var(--bg-card);
+        }
+
+        /* ── Collapsible features ─────────────────────────────────── */
+        .ccp-features-trigger {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 10px;
+          margin-top: 10px;
+          border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));
+          cursor: pointer;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          user-select: none;
+        }
+
+        .ccp-features-chevron {
+          display: inline-block;
+          transition: transform 0.25s;
+        }
+
+        .ccp-features-chevron--open {
+          transform: rotate(180deg);
+        }
+
+        .ccp-features-body {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+
+        .ccp-features-body--open {
+          max-height: 220px;
+        }
+
+        .ccp-feature-row {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 4px 0;
+          font-size: 0.75rem;
+          color: var(--text-secondary);
         }
       `}</style>
     </div>
