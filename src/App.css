@@ -4169,8 +4169,9 @@ body[data-theme="day"] .footer {
     padding: 60px 0;
   }
 
-  .challenges-section .section-container {
-    padding: 0 16px;
+  .challenges-section .section-container,
+  .challenges-page .section-container {
+    padding: 0;
   }
 
   .challenges-section .section-title,

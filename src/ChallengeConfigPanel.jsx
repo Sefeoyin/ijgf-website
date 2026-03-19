@@ -264,6 +264,7 @@ export function ChallengeConfigPanel({ onStart }) {
           width: 100%;
           max-width: 900px;
           margin: 0 auto;
+          box-sizing: border-box;
         }
 
         /* ── Challenge type toggle ────────────────────────────────── */
@@ -276,6 +277,7 @@ export function ChallengeConfigPanel({ onStart }) {
           width: fit-content;
           margin: 0 auto 10px;
           gap: 4px;
+          overflow: hidden;
         }
 
         .ccp-toggle-btn {
@@ -506,7 +508,9 @@ export function ChallengeConfigPanel({ onStart }) {
         /* ── Mobile ───────────────────────────────────────────────── */
         @media (max-width: 768px) {
           .ccp-wrapper {
-            padding: 0 16px;
+            max-width: 100%;
+            padding: 0 12px;
+            margin: 0;
           }
 
           .ccp-toggle-track {
@@ -518,7 +522,7 @@ export function ChallengeConfigPanel({ onStart }) {
             flex: 1;
             justify-content: center;
             padding: 10px 12px;
-            border-radius: 11px;
+            border-radius: 10px;
             font-size: 0.83rem;
           }
 
