@@ -19,16 +19,16 @@ const CHALLENGE_CONFIGS = {
   '200k': { initial: 200000, profitTarget: 20000, dailyLoss: 0, maxDrawdown: 16000, minTradingDays: 5 },
 }
 
-// 2-Step: Phase 1 (8% profit target, 10% max drawdown, 0 min trading days)
-//         Phase 2 (5% profit target, 10% max drawdown, 0 min trading days)
+// 2-Step: Phase 1 (8% profit target, 10% max drawdown, 5 min trading days)
+//         Phase 2 (5% profit target, 10% max drawdown, 5 min trading days)
 // profitTarget and maxDrawdown are absolute dollar amounts derived from initial balance.
 export const CHALLENGE_CONFIGS_2STEP = {
-  '5k':   { initial: 5000,   phase1: { profitTarget: 400,   maxDrawdown: 500,   minTradingDays: 0 }, phase2: { profitTarget: 250,   maxDrawdown: 500,   minTradingDays: 0 } },
-  '10k':  { initial: 10000,  phase1: { profitTarget: 800,   maxDrawdown: 1000,  minTradingDays: 0 }, phase2: { profitTarget: 500,   maxDrawdown: 1000,  minTradingDays: 0 } },
-  '25k':  { initial: 25000,  phase1: { profitTarget: 2000,  maxDrawdown: 2500,  minTradingDays: 0 }, phase2: { profitTarget: 1250,  maxDrawdown: 2500,  minTradingDays: 0 } },
-  '50k':  { initial: 50000,  phase1: { profitTarget: 4000,  maxDrawdown: 5000,  minTradingDays: 0 }, phase2: { profitTarget: 2500,  maxDrawdown: 5000,  minTradingDays: 0 } },
-  '100k': { initial: 100000, phase1: { profitTarget: 8000,  maxDrawdown: 10000, minTradingDays: 0 }, phase2: { profitTarget: 5000,  maxDrawdown: 10000, minTradingDays: 0 } },
-  '200k': { initial: 200000, phase1: { profitTarget: 16000, maxDrawdown: 20000, minTradingDays: 0 }, phase2: { profitTarget: 10000, maxDrawdown: 20000, minTradingDays: 0 } },
+  '5k':   { initial: 5000,   phase1: { profitTarget: 400,   maxDrawdown: 500,   minTradingDays: 5 }, phase2: { profitTarget: 250,   maxDrawdown: 500,   minTradingDays: 5 } },
+  '10k':  { initial: 10000,  phase1: { profitTarget: 800,   maxDrawdown: 1000,  minTradingDays: 5 }, phase2: { profitTarget: 500,   maxDrawdown: 1000,  minTradingDays: 5 } },
+  '25k':  { initial: 25000,  phase1: { profitTarget: 2000,  maxDrawdown: 2500,  minTradingDays: 5 }, phase2: { profitTarget: 1250,  maxDrawdown: 2500,  minTradingDays: 5 } },
+  '50k':  { initial: 50000,  phase1: { profitTarget: 4000,  maxDrawdown: 5000,  minTradingDays: 5 }, phase2: { profitTarget: 2500,  maxDrawdown: 5000,  minTradingDays: 5 } },
+  '100k': { initial: 100000, phase1: { profitTarget: 8000,  maxDrawdown: 10000, minTradingDays: 5 }, phase2: { profitTarget: 5000,  maxDrawdown: 10000, minTradingDays: 5 } },
+  '200k': { initial: 200000, phase1: { profitTarget: 16000, maxDrawdown: 20000, minTradingDays: 5 }, phase2: { profitTarget: 10000, maxDrawdown: 20000, minTradingDays: 5 } },
 }
 
 // One-time challenge fees by type and account size
@@ -119,7 +119,7 @@ export async function getOrCreateDemoAccount(userId, challengeType = '10k') {
       profitTarget:   cfg2.phase1.profitTarget,
       dailyLoss:      0,
       maxDrawdown:    cfg2.phase1.maxDrawdown,
-      minTradingDays: cfg2.phase1.minTradingDays,  // 0
+      minTradingDays: cfg2.phase1.minTradingDays,  // 5
     }
   } else {
     // 1-step: use existing CHALLENGE_CONFIGS (unchanged)
@@ -1022,11 +1022,11 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
     ).size
 
     // Read min_trading_days from DB (written at account creation in Step 4).
-    // Fallback is variant-aware: 2-step requires 0 days, 1-step requires 5.
+    // Fallback: both 1-step and 2-step require 5 min trading days.
     // This ensures correct behavior even for accounts created before Step 4 runs.
     const minDays = account.min_trading_days != null
       ? account.min_trading_days
-      : (account.challenge_variant === '2step' ? 0 : MIN_TRADING_DAYS)
+      : MIN_TRADING_DAYS
 
     if (tradingDays >= minDays) {
       // ── 2-Step Phase 1 pass ────────────────────────────────────────────────

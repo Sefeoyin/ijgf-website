@@ -94,7 +94,7 @@ function getPhaseCards(challengeType, tierKey) {
       rows: [
         { label: 'Profit Target',    value: `$${p1Amt.toLocaleString()} (8%)`  },
         { label: 'Max Drawdown',     value: `$${ddAmt.toLocaleString()} (10%)` },
-        { label: 'Min Trading Days', value: 'None'                             },
+        { label: 'Min Trading Days', value: '5 Days'                           },
         { label: 'Duration',         value: 'Indefinite'                       },
         { label: 'Leverage',         value: 'Up to 1:100'                      },
       ],
@@ -106,7 +106,7 @@ function getPhaseCards(challengeType, tierKey) {
       rows: [
         { label: 'Profit Target',    value: `$${p2Amt.toLocaleString()} (5%)`  },
         { label: 'Max Drawdown',     value: `$${ddAmt.toLocaleString()} (10%)` },
-        { label: 'Min Trading Days', value: 'None'                             },
+        { label: 'Min Trading Days', value: '5 Days'                           },
         { label: 'Duration',         value: 'Indefinite'                       },
         { label: 'Leverage',         value: 'Up to 1:100'                      },
       ],
