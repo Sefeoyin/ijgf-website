@@ -1038,7 +1038,17 @@ async function checkChallengeRules(accountId, userId, priceMap = {}) {
 
         // 1. Reset balance to original account size FIRST (reuses existing updateAccountBalance).
         //    updateAccountBalance is a pure DB write — it does NOT call checkChallengeRules.
-        await updateAccountBalance(accountId, account.initial_balance)
+        //
+        //    IMPORTANT: subtract lockedMargin from the reset target.
+        //    Phase 1 can pass while a position is still open (unrealized PNL hits the target
+        //    before the position is closed). If we reset to `initial_balance` outright, then
+        //    closePosition will later do:
+        //      newBalance = initial_balance + marginToReturn + pnl  ← margin double-counted
+        //    Setting `initial_balance - lockedMargin` means closePosition returns:
+        //      newBalance = (initial_balance - lockedMargin) + lockedMargin + pnl
+        //                 = initial_balance + pnl              ← correct
+        //    When no positions are open, lockedMargin = 0 and behaviour is unchanged.
+        await updateAccountBalance(accountId, account.initial_balance - lockedMargin)
 
         // 2. Update phase tracking + Phase 2 rules. Balance reset is committed above.
         await supabase
