@@ -184,7 +184,7 @@ const MarketTableRow = React.memo(function MarketTableRow({
 )
 
 
-function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, onForceRefresh }) {
+function DashboardOverview({ userId, onNavigate, onChallengeStart, onRetry, bybitData, onForceRefresh }) {
   const [timeRange, setTimeRange] = useState('1W')
   const { theme } = useContext(ThemeContext)
   const _dark = theme === 'night'
@@ -1064,7 +1064,14 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, bybitData, on
           )}
           {/* Only show Start New Challenge when NOT actively in a challenge */}
           {!accountLoading && account?.status !== 'active' && (
-            <button className="btn-start-challenge" onClick={() => { anyModalOpen.current = true; setShowChallengeModal(true) }}>
+            <button className="btn-start-challenge" onClick={() => {
+              if (account?.status === 'failed' && onRetry) {
+                onRetry(account)
+              } else {
+                anyModalOpen.current = true
+                setShowChallengeModal(true)
+              }
+            }}>
               {account?.status === 'failed' ? 'Try Again' : account?.status === 'passed' ? 'Start New Challenge' : 'Start Challenge'}
             </button>
           )}

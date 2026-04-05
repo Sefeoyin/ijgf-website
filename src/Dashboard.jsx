@@ -603,6 +603,21 @@ function Dashboard() {
             // Refresh DashboardOverview stats so the new account shows immediately
             // if the user navigates back to the dashboard tab.
             dashboardRefreshRef.current?.()
+          }} onRetry={(failedAccount) => {
+            setChallengeResultData({
+              result: 'failed',
+              account: failedAccount,
+              tradingDays: failedAccount?.trading_days ?? 0,
+              onStartNew: async (type, mode = 'ijgf') => {
+                await resetDemoAccount(userId, type)
+                setTradingMode(mode)
+                if (mode === 'ijgf') {
+                  setMarketResetKey(Date.now())
+                  setActiveTab('market')
+                }
+                dashboardRefreshRef.current?.()
+              },
+            })
           }} onForceRefresh={(fn) => { dashboardRefreshRef.current = fn }} />}
           {activeTab === 'market'     && (
             tradingMode === 'ijgf' ? (
