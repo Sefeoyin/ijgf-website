@@ -881,6 +881,7 @@ body[data-theme="day"] .profile-container {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
   padding: 0.65rem 1.5rem;
+  padding-top: calc(0.65rem + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   gap: 1.5rem;

@@ -171,6 +171,25 @@ function ChallengeCard({ account, tradingDaysMap, positionsMap, bybitEquity }) {
                 }}>BYBIT</span>
               )}
             </span>
+            {(() => {
+              const variant = account.challenge_variant
+              const phase   = account.current_phase
+              let label, color
+              if (variant === '2step' && phase === 2) {
+                label = '2-STEP · PHASE 2'; color = '#22c55e'
+              } else if (variant === '2step') {
+                label = '2-STEP · PHASE 1'; color = '#C9A84C'
+              } else {
+                label = '1-STEP'; color = '#7C3AED'
+              }
+              return (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  padding: '2px 8px', borderRadius: 20,
+                  background: `${color}22`, color, border: `1px solid ${color}55`,
+                }}>{label}</span>
+              )
+            })()}
             <span style={{
               fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 20, letterSpacing: 0.5,
               background: isPassed ? 'rgba(34,197,94,0.12)' : isFailed ? 'rgba(246,70,93,0.12)' : 'rgba(245,158,11,0.12)',

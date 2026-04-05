@@ -42,6 +42,7 @@ function Dashboard() {
   const [chartExpanded, setChartExpanded] = useState(false)
   const [userId, setUserId] = useState(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [profileImgError, setProfileImgError] = useState(false)
   // Challenge result modal state — lifted here so it fires regardless of active tab
   const [challengeResultData, setChallengeResultData] = useState(null)
   const prevAccountStatusRef = useRef(null)
@@ -183,6 +184,7 @@ function Dashboard() {
         const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
         setUserName(fullName || 'User')
         setProfileImage(profile.profile_image || '')
+        setProfileImgError(false)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -446,10 +448,24 @@ function Dashboard() {
                 style={{ cursor: 'pointer' }}
                 title={userName}
               >
-                {profileImage
-                  ? <img src={profileImage} alt={userName} />
-                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                }
+                {profileImage && !profileImgError ? (
+                  <img
+                    src={profileImage}
+                    alt={userName}
+                    onError={() => setProfileImgError(true)}
+                  />
+                ) : userName ? (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '100%', height: '100%',
+                    background: 'var(--accent-primary)', borderRadius: '50%',
+                    color: '#fff', fontWeight: 700, fontSize: '0.9rem',
+                  }}>
+                    {userName.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                )}
               </div>
 
               {showUserMenu && (

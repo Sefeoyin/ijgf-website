@@ -1001,6 +1001,25 @@ function DashboardOverview({ userId, onNavigate, onChallengeStart, onRetry, bybi
             <div className="challenge-card active-challenge">
               <div className="challenge-info-row">
                 <span className="challenge-badge">{account.challenge_type?.replace('_2step', '').replace('k', 'K')} Challenge</span>
+                {(() => {
+                  const variant = account.challenge_variant
+                  const phase   = account.current_phase
+                  let label, color
+                  if (variant === '2step' && phase === 2) {
+                    label = '2-STEP · PHASE 2'; color = '#22c55e'
+                  } else if (variant === '2step') {
+                    label = '2-STEP · PHASE 1'; color = '#C9A84C'
+                  } else {
+                    label = '1-STEP'; color = '#7C3AED'
+                  }
+                  return (
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                      padding: '2px 8px', borderRadius: 20,
+                      background: `${color}22`, color, border: `1px solid ${color}55`,
+                    }}>{label}</span>
+                  )
+                })()}
                 <span className="challenge-status active">● Active</span>
               </div>
               <div className="challenge-metrics">
