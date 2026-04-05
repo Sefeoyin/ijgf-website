@@ -343,13 +343,13 @@ function ChallengeResultModal({
                   <span className="cr-fail-stat-lbl">Days Traded</span>
                 </div>
                 <div className="cr-fail-stat">
-                  <span className="cr-fail-stat-val cr-neg">
+                  <span className={`cr-fail-stat-val${account && account.current_balance < account.initial_balance ? ' cr-neg' : ''}`}>
                     {account
-                      ? `$${Math.abs(account.current_balance - account.initial_balance).toFixed(0)}`
+                      ? `${account.current_balance >= account.initial_balance ? '+' : '-'}$${Math.abs(account.current_balance - account.initial_balance).toFixed(0)}`
                       : '—'
                     }
                   </span>
-                  <span className="cr-fail-stat-lbl">Net Loss</span>
+                  <span className="cr-fail-stat-lbl">Net P&amp;L</span>
                 </div>
                 <div className="cr-fail-stat">
                   <span className="cr-fail-stat-val">
