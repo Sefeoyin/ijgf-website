@@ -18,10 +18,20 @@ import { useTPSLMonitor } from './useTPSLMonitor'
 import { useBybitSync } from './useBybitSync'
 import BybitLivePanel from './BybitLivePanel'
 import { resetDemoAccount } from './tradingService'
+import { usePWAInstall } from './hooks/usePWAInstall'
 
 function Dashboard() {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useContext(ThemeContext)
+  const { isInstallable, isIOS, promptInstall } = usePWAInstall()
+  const [showIOSModal, setShowIOSModal] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    try {
+      const ts = localStorage.getItem('pwa_banner_dismissed')
+      if (!ts) return false
+      return Date.now() - parseInt(ts, 10) < 7 * 24 * 60 * 60 * 1000
+    } catch { return false }
+  })
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userName, setUserName] = useState('')
@@ -481,6 +491,104 @@ function Dashboard() {
             </div>
           </div>
         </header>
+
+        {/* ── PWA install banner ───────────────────────────────────────── */}
+        {isInstallable && !bannerDismissed && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 18px',
+            background: 'rgba(124,58,237,0.12)',
+            borderBottom: '1px solid rgba(124,58,237,0.2)',
+            fontSize: '0.84rem', color: 'rgba(255,255,255,0.8)',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+              <line x1="12" y1="18" x2="12" y2="18" strokeLinecap="round" strokeWidth="3"/>
+            </svg>
+            <span style={{ flex: 1 }}>
+              Install IJGF as an app for faster access and a better trading experience.
+            </span>
+            {isIOS ? (
+              <button
+                onClick={() => setShowIOSModal(true)}
+                style={{
+                  background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.5)',
+                  color: '#c4b5fd', borderRadius: 6, padding: '5px 12px',
+                  fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                How to Install
+              </button>
+            ) : (
+              <button
+                onClick={promptInstall}
+                style={{
+                  background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.5)',
+                  color: '#c4b5fd', borderRadius: 6, padding: '5px 12px',
+                  fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                Install Now
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setBannerDismissed(true)
+                // eslint-disable-next-line no-unused-vars
+                try { localStorage.setItem('pwa_banner_dismissed', String(Date.now())) } catch (_e) { void 0 }
+              }}
+              style={{
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                cursor: 'pointer', padding: '4px 6px', fontSize: '1rem', lineHeight: 1,
+              }}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ── iOS install instructions modal ───────────────────────────── */}
+        {showIOSModal && (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            }}
+            onClick={() => setShowIOSModal(false)}
+          >
+            <div
+              style={{
+                background: '#0d0f14', border: '1px solid rgba(124,58,237,0.3)',
+                borderRadius: 16, padding: '28px 24px', maxWidth: 340, width: '100%',
+                textAlign: 'center',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: 12 }}>📱</div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#eaecef', marginBottom: 8 }}>
+                Add IJGF to Home Screen
+              </div>
+              <ol style={{ textAlign: 'left', color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem', lineHeight: 1.7, paddingLeft: 20, marginBottom: 20 }}>
+                <li>Open this page in <strong style={{ color: '#eaecef' }}>Safari</strong></li>
+                <li>Tap the <strong style={{ color: '#eaecef' }}>Share</strong> button (□↑)</li>
+                <li>Scroll down and tap <strong style={{ color: '#eaecef' }}>Add to Home Screen</strong></li>
+                <li>Tap <strong style={{ color: '#eaecef' }}>Add</strong></li>
+              </ol>
+              <button
+                onClick={() => setShowIOSModal(false)}
+                style={{
+                  background: '#7C3AED', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '10px 24px', fontSize: '0.9rem',
+                  fontWeight: 600, cursor: 'pointer', width: '100%',
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={`dash-content${activeTab === 'market' ? ' dash-content-markets' : ''}`}>
           {activeTab === 'dashboard'  && <DashboardOverview userId={userId} onNavigate={handleNavClick} bybitData={bybitSync} onChallengeStart={(mode, resetKey) => {

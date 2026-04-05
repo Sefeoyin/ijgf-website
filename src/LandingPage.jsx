@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import TermsAcceptancePopup from './TermsAcceptancePopup'
 import { ChallengeConfigPanel } from './ChallengeConfigPanel'
+import { usePWAInstall } from './hooks/usePWAInstall'
 
 const CAROUSEL_INTERVAL_MS = 5000
 const MOBILE_BREAKPOINT = '(max-width: 768px)'
@@ -97,6 +98,8 @@ function getInitials(name) {
 
 function LandingPage() {
   const navigate = useNavigate()
+  const { isInstallable, isIOS, promptInstall } = usePWAInstall()
+  const [showIOSTip, setShowIOSTip] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_BREAKPOINT).matches)
@@ -162,6 +165,39 @@ function LandingPage() {
             <button className="btn-secondary" onClick={() => scrollToSection('how-it-works')}>
               Learn How it Works
             </button>
+            {isInstallable && (
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  className="btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  onClick={() => {
+                    if (isIOS) {
+                      setShowIOSTip(v => !v)
+                    } else {
+                      promptInstall()
+                    }
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="5" y="2" width="14" height="20" rx="2"/>
+                    <line x1="12" y1="18" x2="12" y2="18" strokeLinecap="round" strokeWidth="3"/>
+                  </svg>
+                  Install App
+                </button>
+                {isIOS && showIOSTip && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
+                    transform: 'translateX(-50%)', zIndex: 100,
+                    background: 'rgba(15,20,30,0.97)', border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 10, padding: '10px 14px', width: 230, fontSize: '0.82rem',
+                    color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, textAlign: 'center',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  }}>
+                    Tap the <strong>Share</strong> button in Safari, then tap <strong>Add to Home Screen</strong>.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="hero-features">
