@@ -28,7 +28,7 @@ const SYMBOL_REFRESH_MS  = 15000  // how often to refresh the open-position symb
 // Bybit has the most permissive cloud-IP policy; OKX as fallback; Binance last.
 // ---------------------------------------------------------------------------
 // fetchWithTimeout — works on all browsers (AbortSignal.timeout needs Chrome 103+)
-function fetchWithTimeout(url, ms = 5000) {
+function fetchWithTimeout(url, ms = 3000) {
   const ctrl = new AbortController()
   const id = setTimeout(() => ctrl.abort(), ms)
   return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id))
@@ -96,6 +96,7 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
   // when THAT specific account fails, not when resetDemoAccount marks the old account
   // failed while creating a new one.
   const monitoredAcctId = useRef(null)
+  const runningStartRef = useRef(0)  // timestamp when current tick started
 
   useEffect(() => { userIdRef.current = userId }, [userId])
   useEffect(() => { symbolsRef.current = symbols }, [symbols])
@@ -147,9 +148,14 @@ export function useTPSLMonitor(userId, onTriggered, onChallengeFailed) {
     if (!userId) return
 
     const tick = async () => {
-      // Skip if previous tick is still running
-      if (runningRef.current) return
+      // Skip if previous tick is still running — but force-proceed if it has
+      // been stuck for > 10s (price fetch cascade timeout: 3 exchanges × 3s = 9s max).
+      // Without this guard, a slow network holds runningRef true indefinitely and
+      // every subsequent 4s tick is silently dropped — causing the observed 30-120s
+      // window where drawdown breaches go undetected.
+      if (runningRef.current && Date.now() - runningStartRef.current < 10000) return
       runningRef.current = true
+      runningStartRef.current = Date.now()
 
       try {
         const syms = symbolsRef.current
