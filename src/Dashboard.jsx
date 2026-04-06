@@ -567,7 +567,7 @@ function Dashboard() {
           <div
             style={{
               position: 'fixed', inset: 0, zIndex: 9999,
-              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+              background: 'rgba(0,0,0,0.7)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
             }}
             onClick={() => setShowIOSModal(false)}

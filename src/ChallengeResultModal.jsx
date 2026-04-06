@@ -504,7 +504,6 @@ function ChallengeResultModal({
         .cr-overlay {
           position: fixed; inset: 0; z-index: 9999;
           background: rgba(0,0,0,0.85);
-          backdrop-filter: blur(8px);
           display: flex; align-items: center; justify-content: center;
           padding: 20px;
           opacity: 0; transition: opacity 0.35s ease;
