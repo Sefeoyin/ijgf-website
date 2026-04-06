@@ -66,7 +66,7 @@ function Confetti() {
     canvas.height = window.innerHeight
 
     const COLORS = ['#7C3AED','#a855f7','#f59e0b','#fbbf24','#22c55e','#60a5fa','#f472b6','#e879f9']
-    const PARTICLE_COUNT = 180
+    const PARTICLE_COUNT = window.innerWidth >= 1024 ? 60 : 180
 
     const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
       x:       Math.random() * canvas.width,
@@ -104,6 +104,14 @@ function Confetti() {
     }
     tick()
 
+    const stopTimer = setTimeout(() => {
+      cancelAnimationFrame(raf)
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d')
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+      }
+    }, 4000)
+
     const handleResize = () => {
       canvas.width  = window.innerWidth
       canvas.height = window.innerHeight
@@ -112,6 +120,7 @@ function Confetti() {
 
     return () => {
       cancelAnimationFrame(raf)
+      clearTimeout(stopTimer)
       window.removeEventListener('resize', handleResize)
     }
   }, [])
