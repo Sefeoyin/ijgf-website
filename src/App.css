@@ -881,7 +881,6 @@ body[data-theme="day"] .profile-container {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
   padding: 0.65rem 1.5rem;
-  padding-top: calc(0.65rem + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -8669,8 +8668,9 @@ body[data-theme="day"] .dash-sidebar {
   align-items: center;
   justify-content: space-between;
   padding: 0 1.25rem;
-  height: 56px;
-  min-height: 56px;
+  padding-top: env(safe-area-inset-top);
+  height: calc(56px + env(safe-area-inset-top));
+  min-height: calc(56px + env(safe-area-inset-top));
   background: var(--bg-card-solid);
   border-bottom: 1px solid var(--border-color);
   position: sticky;

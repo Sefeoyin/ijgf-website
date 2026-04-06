@@ -56,79 +56,77 @@ function Dashboard() {
   // TP/SL monitor — always active regardless of which dashboard tab is open.
   // MarketsPage unmounts when the user leaves the Market tab, which kills
   // the interval in useDemoTrading. This hook runs at Dashboard level so
-  // TP/SL and liquidations always fire.
-  useTPSLMonitor(
-    userId,
-
-    // onTriggered — TP/SL/liquidation hit, positions returned in closed[]
-    (closedPositions) => {
-      for (const pos of closedPositions) {
-        const label = pos.closeReason === 'tp'
-          ? `✅ ${pos.symbol} Take Profit hit! PNL: $${pos.pnl?.toFixed(2)}`
-          : pos.closeReason === 'sl'
-          ? `🛑 ${pos.symbol} Stop Loss hit. PNL: $${pos.pnl?.toFixed(2)}`
-          : `💀 ${pos.symbol} Liquidated`
-        console.info('[Dashboard] Auto-close:', label)
-      }
-    },
-
-    // onChallengeFailed — fires when any auto-close ends the challenge,
-    // OR when a drawdown breach force-closed everything (closed=[]).
-    // Must: (1) refresh dashboard stats, (2) open the result modal.
-    async (result) => {
-      // 1. Force DashboardOverview to re-fetch immediately so Total PNL,
-      //    Trade History, Win Rate, and Equity Chart all reflect final state.
-      dashboardRefreshRef.current?.()
-
-      // 2. Fetch fresh account + tradingDays for the modal
-      try {
-        const { data: acct } = await supabase
-          .from('demo_accounts')
-          .select('*')
-          .eq('user_id', userId)
-          .not('challenge_type', 'like', '%_archived_%')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (!acct) return
-
-        const { data: trades } = await supabase
-          .from('demo_trades')
-          .select('executed_at, is_close')
-          .eq('demo_account_id', acct.id)
-
-        const tradingDays = new Set(
-          (trades || [])
-            .filter(t => t.is_close === true)
-            .map(t => t.executed_at?.split('T')[0])
-            .filter(Boolean)
-        ).size
-
-        prevAccountStatusRef.current = result
-        setChallengeResultData(prev => {
-          // Don't re-open if modal is already showing
-          if (prev) return prev
-          return {
-            result,
-            account: acct,
-            tradingDays,
-            onStartNew: async (type, mode = 'ijgf') => {
-              await resetDemoAccount(userId, type)
-              setTradingMode(mode)
-              if (mode === 'ijgf') {
-                setMarketResetKey(Date.now())
-                setActiveTab('market')
-              }
-              await checkUserAndLoadProfile()
-            },
-          }
-        })
-      } catch (err) {
-        console.error('[Dashboard] onChallengeFailed error:', err)
-      }
+  // Memoized callbacks for useTPSLMonitor — MUST be stable refs.
+  // Without useCallback these are recreated on every Dashboard render, which
+  // causes useTPSLMonitor's tick useEffect to tear down and restart its interval
+  // (and run tick() immediately) on every single state update — causing freezes.
+  const handleTPSLTriggered = useCallback((closedPositions) => {
+    for (const pos of closedPositions) {
+      const label = pos.closeReason === 'tp'
+        ? `✅ ${pos.symbol} Take Profit hit! PNL: $${pos.pnl?.toFixed(2)}`
+        : pos.closeReason === 'sl'
+        ? `🛑 ${pos.symbol} Stop Loss hit. PNL: $${pos.pnl?.toFixed(2)}`
+        : `💀 ${pos.symbol} Liquidated`
+      console.info('[Dashboard] Auto-close:', label)
     }
-  )
+  }, [])
+
+  const handleTPSLFailed = useCallback(async (result) => {
+    // 1. Force DashboardOverview to re-fetch immediately so Total PNL,
+    //    Trade History, Win Rate, and Equity Chart all reflect final state.
+    dashboardRefreshRef.current?.()
+
+    // 2. Fetch fresh account + tradingDays for the modal
+    try {
+      const { data: acct } = await supabase
+        .from('demo_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .not('challenge_type', 'like', '%_archived_%')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!acct) return
+
+      const { data: trades } = await supabase
+        .from('demo_trades')
+        .select('executed_at, is_close')
+        .eq('demo_account_id', acct.id)
+
+      const tradingDays = new Set(
+        (trades || [])
+          .filter(t => t.is_close === true)
+          .map(t => t.executed_at?.split('T')[0])
+          .filter(Boolean)
+      ).size
+
+      prevAccountStatusRef.current = result
+      setChallengeResultData(prev => {
+        // Don't re-open if modal is already showing
+        if (prev) return prev
+        return {
+          result,
+          account: acct,
+          tradingDays,
+          onStartNew: async (type, mode = 'ijgf') => {
+            await resetDemoAccount(userId, type)
+            setTradingMode(mode)
+            if (mode === 'ijgf') {
+              setMarketResetKey(Date.now())
+              setActiveTab('market')
+            }
+            await checkUserAndLoadProfile()
+          },
+        }
+      })
+    } catch (err) {
+      console.error('[Dashboard] onChallengeFailed error:', err)
+    }
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // TP/SL and liquidations always fire.
+  useTPSLMonitor(userId, handleTPSLTriggered, handleTPSLFailed)
 
   // ── Bybit status change handler ─────────────────────────────────────────
   // Called by useBybitSync when the challenge transitions to passed / failed.
