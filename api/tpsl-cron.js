@@ -224,7 +224,7 @@ function shouldClose(position, currentPrice) {
 // ---------------------------------------------------------------------------
 // Close a single position atomically and update the account balance
 // ---------------------------------------------------------------------------
-async function closePosition(db, position, currentPrice, reason) {
+async function closePosition(db, position, currentPrice, reason, priceMap = {}) {
   const now    = new Date().toISOString()
   const pnl    = parseFloat(calculatePnl(position, currentPrice).toFixed(8))
   const margin = parseFloat(position.margin)
@@ -337,6 +337,61 @@ async function closePosition(db, position, currentPrice, reason) {
     } catch (failErr) {
       console.error(`[tpsl-cron] Failed to fail account ${account.id}:`, failErr.message)
     }
+
+    // Force-close all remaining open positions on this account.
+    // The triggering position is already closed above — exclude it by id.
+    // Mirrors checkChallengeRules in tradingService.js which does the same loop
+    // before marking failed, preventing ghost 'open' rows in demo_positions.
+    try {
+      const remaining = await db.select(
+        'demo_positions',
+        `demo_account_id=eq.${account.id}&status=eq.open&id=neq.${position.id}&select=id,symbol,side,entry_price,quantity,margin,leverage,opened_at,demo_account_id,user_id`
+      )
+      if (remaining && remaining.length > 0) {
+        let forceClosedCount = 0
+        for (const rem of remaining) {
+          try {
+            const livePrice = priceMap[rem.symbol]
+            const closePrice = isFinite(livePrice) && livePrice > 0 ? livePrice : parseFloat(rem.entry_price)
+            const remPnl = rem.side === 'LONG'
+              ? (closePrice - parseFloat(rem.entry_price)) * parseFloat(rem.quantity)
+              : (parseFloat(rem.entry_price) - closePrice) * parseFloat(rem.quantity)
+            await db.update(
+              'demo_positions',
+              { status: 'closed', closed_at: now, close_price: closePrice, realized_pnl: parseFloat(remPnl.toFixed(8)) },
+              `id=eq.${rem.id}&status=eq.open`
+            )
+            // Insert closing trade record so history is complete
+            const closeSide = rem.side === 'LONG' ? 'SELL' : 'BUY'
+            await db.insert('demo_trades', {
+              demo_account_id: rem.demo_account_id,
+              user_id:         rem.user_id,
+              position_id:     rem.id,
+              symbol:          rem.symbol,
+              side:            closeSide,
+              order_type:      'MARKET',
+              price:           closePrice,
+              quantity:        parseFloat(rem.quantity),
+              leverage:        parseFloat(rem.leverage) || 1,
+              total:           closePrice * parseFloat(rem.quantity),
+              fee:             0,
+              realized_pnl:    parseFloat(remPnl.toFixed(8)),
+              is_close:        true,
+              opened_at:       rem.opened_at ?? null,
+              closed_at:       now,
+              executed_at:     now,
+            })
+            forceClosedCount++
+          } catch (remErr) {
+            console.error(`[tpsl-cron] Force-close failed for remaining position ${rem.id}:`, remErr.message)
+          }
+        }
+        console.log(`[tpsl-cron] Force-closed ${forceClosedCount} additional positions for account ${account.id}`)
+      }
+    } catch (remainErr) {
+      console.error(`[tpsl-cron] Failed to query remaining positions for account ${account.id}:`, remainErr.message)
+    }
+
     return { pnl, reason, accountResult: 'failed' }
   }
 
@@ -496,7 +551,7 @@ export default async function handler(req, res) {
           ? parseFloat(position.liquidation_price)
           : currentPrice
         const fillPrice = isFinite(rawFillPrice) && rawFillPrice > 0 ? rawFillPrice : currentPrice
-        const result = await closePosition(db, position, fillPrice, reason)
+        const result = await closePosition(db, position, fillPrice, reason, priceMap)
         if (result) {
           closed.push({
             symbol:  position.symbol,
